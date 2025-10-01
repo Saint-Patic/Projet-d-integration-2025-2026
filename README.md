@@ -33,6 +33,7 @@ Avant de commencer, assurez-vous d'avoir installé :
 
 3. **Lancer l'application**
    ```bash
+   cd "./frisTrack"
    npm start
    ```
    ou
