@@ -1,7 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   View,
-  TouchableOpacity,
   Animated,
   PanResponder,
   StyleSheet,
@@ -33,140 +32,134 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   cardId,
 }) => {
   const translateX = useRef(new Animated.Value(0)).current;
-  const [revealedSide, setRevealedSide] = useState<"none" | "left" | "right">(
-    "none"
-  );
-  const ACTION_WIDTH = 80;
+  const [swipeDirection, setSwipeDirection] = useState<
+    "none" | "left" | "right"
+  >("none");
+  const ACTION_THRESHOLD = 50; // Distance required to trigger action
+
+  // Force reset position on component mount and when props change
+  useEffect(() => {
+    translateX.setValue(0);
+    setSwipeDirection("none");
+  }, [translateX, cardId]);
+
+  // Utility function to reset card position with force reset
+  const resetCardPosition = () => {
+    setSwipeDirection("none");
+
+    // Stop any ongoing animation first
+    translateX.stopAnimation();
+
+    // Force immediate reset then animate smoothly
+    translateX.setValue(0);
+
+    Animated.spring(translateX, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 8,
+    }).start(() => {
+      // Double check the value is actually 0
+      translateX.setValue(0);
+    });
+  };
 
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: (evt, gestureState) => {
       return Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
     },
+    onPanResponderGrant: () => {
+      // When the user starts touching, stop any ongoing animation
+      translateX.stopAnimation();
+    },
     onPanResponderMove: (evt, gestureState) => {
-      const newValue = Math.max(
-        -ACTION_WIDTH,
-        Math.min(ACTION_WIDTH, gestureState.dx)
-      );
+      // Provide visual feedback during swipe with stricter limits
+      const newValue = Math.max(-120, Math.min(120, gestureState.dx));
       translateX.setValue(newValue);
 
-      if (newValue > 2) {
-        setRevealedSide("left");
-      } else if (newValue < -2) {
-        setRevealedSide("right");
+      // Update swipe direction for icon display
+      if (gestureState.dx > 10) {
+        setSwipeDirection("right");
+      } else if (gestureState.dx < -10) {
+        setSwipeDirection("left");
       } else {
-        setRevealedSide("none");
+        setSwipeDirection("none");
       }
     },
     onPanResponderRelease: (evt, gestureState) => {
-      const actionWindow = 30;
-      if (gestureState.dx < -actionWindow) {
-        setRevealedSide("right");
-        Animated.spring(translateX, {
-          toValue: -ACTION_WIDTH,
-          useNativeDriver: true,
-        }).start();
-      } else if (gestureState.dx > actionWindow) {
-        setRevealedSide("left");
-        Animated.spring(translateX, {
-          toValue: ACTION_WIDTH,
-          useNativeDriver: true,
-        }).start();
-      } else {
-        setRevealedSide("none");
-        Animated.spring(translateX, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
-      }
+      // Perform actions based on swipe direction and distance
+      const shouldEdit = gestureState.dx < -ACTION_THRESHOLD && onEdit;
+      const shouldDelete = gestureState.dx > ACTION_THRESHOLD && onDelete;
+
+      // Force immediate reset to prevent getting stuck
+      setSwipeDirection("none");
+      translateX.stopAnimation();
+
+      // Animate back to center position
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 150,
+        friction: 10,
+        restSpeedThreshold: 0.01,
+        restDisplacementThreshold: 0.01,
+      }).start(() => {
+        // Ensure position is exactly 0
+        translateX.setValue(0);
+
+        // Execute actions after reset is complete
+        if (shouldEdit) {
+          onEdit();
+        } else if (shouldDelete) {
+          onDelete();
+        }
+      });
+    },
+    onPanResponderTerminate: () => {
+      // If the gesture is terminated (interrupted), force reset position
+      resetCardPosition();
     },
   });
 
-  const resetPosition = () => {
-    setRevealedSide("none");
-    Animated.spring(translateX, {
-      toValue: 0,
-      useNativeDriver: true,
-    }).start();
-  };
-
   return (
     <View style={styles.cardContainer}>
-      {/* Action gauche - Delete */}
-      {revealedSide === "left" && onDelete && (
-        <View style={styles.leftAction}>
-          <TouchableOpacity
-            style={[styles.actionHidden, styles.deleteAction]}
-            onPress={() => {
-              resetPosition();
-              onDelete();
-            }}
-          >
-            <Icon name="delete" size={20} color="#ffffff" />
-          </TouchableOpacity>
+      {/* Icône de suppression (swipe right) */}
+      {swipeDirection === "right" && onDelete && (
+        <View style={styles.leftIcon}>
+          <Icon name="delete" size={24} color="#e74c3c" />
         </View>
       )}
 
-      {/* Action droite - Edit */}
-      {revealedSide === "right" && onEdit && (
-        <View style={styles.rightAction}>
-          <TouchableOpacity
-            style={[styles.actionHidden, styles.editAction]}
-            onPress={() => {
-              resetPosition();
-              onEdit();
-            }}
-          >
-            <Icon name="edit" size={20} color="#ffffff" />
-          </TouchableOpacity>
+      {/* Icône d'édition (swipe left) */}
+      {swipeDirection === "left" && onEdit && (
+        <View style={styles.rightIcon}>
+          <Icon name="edit" size={24} color="#3498db" />
         </View>
       )}
 
-      {/* Carte principale */}
+      {/* Swipeable card - Swipe right to delete, swipe left to edit */}
       <Animated.View
         style={[styles.cardWrapper, { transform: [{ translateX }] }]}
         {...panResponder.panHandlers}
       >
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={() => {
-            if (revealedSide !== "none") {
-              resetPosition();
-            }
-          }}
-          style={{ flex: 1 }}
-        >
-          <ThemedView
-            style={[
-              styles.card,
-              { borderTopColor },
-              revealedSide === "left" && styles.cardLeftRevealed,
-              revealedSide === "right" && styles.cardRightRevealed,
-            ]}
-          >
-            {/* Header */}
-            <View
-              style={[
-                styles.header,
-                revealedSide === "left" && styles.headerLeftRevealed,
-                revealedSide === "right" && styles.headerRightRevealed,
-              ]}
-            >
-              <ThemedText type="subtitle" style={styles.title}>
-                {title} {cardId}
-              </ThemedText>
-              <View style={styles.swipeIndicator}>
-                <IconSymbol
-                  name="chevron.left.chevron.right"
-                  size={16}
-                  color="#bdc3c7"
-                />
-              </View>
+        <ThemedView style={[styles.card, { borderTopColor }]}>
+          {/* Header */}
+          <View style={styles.header}>
+            <ThemedText type="subtitle" style={styles.title}>
+              {title} {cardId}
+            </ThemedText>
+            <View style={styles.swipeIndicator}>
+              <IconSymbol
+                name="chevron.left.chevron.right"
+                size={16}
+                color="#bdc3c7"
+              />
             </View>
+          </View>
 
-            {/* Content */}
-            <View style={styles.content}>{children}</View>
-          </ThemedView>
-        </TouchableOpacity>
+          {/* Content */}
+          <View style={styles.content}>{children}</View>
+        </ThemedView>
       </Animated.View>
     </View>
   );
@@ -181,40 +174,41 @@ const styles = StyleSheet.create({
   cardWrapper: {
     width: cardWidth,
   },
-  leftAction: {
+  leftIcon: {
     position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 80,
+    left: 20,
+    top: "50%",
+    transform: [{ translateY: -12 }],
     zIndex: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderRadius: 20,
+    padding: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  rightAction: {
+  rightIcon: {
     position: "absolute",
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 80,
+    right: 20,
+    top: "50%",
+    transform: [{ translateY: -12 }],
     zIndex: 1,
-  },
-  actionHidden: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  editAction: {
-    backgroundColor: "#3498db",
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-  },
-  deleteAction: {
-    backgroundColor: "#e74c3c",
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-    borderTopRightRadius: 0,
-    borderBottomRightRadius: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderRadius: 20,
+    padding: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   card: {
     backgroundColor: "#ffffff",
@@ -238,20 +232,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f9fa",
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
-  },
-  cardLeftRevealed: {
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-  },
-  cardRightRevealed: {
-    borderTopRightRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  headerLeftRevealed: {
-    borderTopLeftRadius: 0,
-  },
-  headerRightRevealed: {
-    borderTopRightRadius: 0,
   },
   title: {
     fontSize: 18,
