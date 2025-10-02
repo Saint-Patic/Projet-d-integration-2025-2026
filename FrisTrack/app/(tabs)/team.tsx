@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -12,6 +12,7 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import Icon from "react-native-vector-icons/MaterialIcons";
 
 interface Team {
   id: number;
@@ -33,6 +34,12 @@ export default function TeamScreen() {
       name: "Équipe Beta",
       playerCount: 6,
       color: "#e74c3c",
+    },
+    {
+      id: 3,
+      name: "Équipe Gamma",
+      playerCount: 0,
+      color: "#b4918dff",
     },
   ]);
 
@@ -93,10 +100,10 @@ export default function TeamScreen() {
         translateX.setValue(newValue);
 
         // Mettre à jour revealedSide en temps réel pendant le mouvement
-        if (newValue > 20) {
+        if (newValue > 2) {
           // Mouvement vers la droite - révéler delete à gauche
           setRevealedSide("left");
-        } else if (newValue < -20) {
+        } else if (newValue < -2) {
           // Mouvement vers la gauche - révéler edit à droite
           setRevealedSide("right");
         } else {
@@ -151,7 +158,7 @@ export default function TeamScreen() {
                 deleteTeam(team.id);
               }}
             >
-              <IconSymbol name="trash" size={20} color="#ffffff" />
+              <Icon name="delete" size={20} color="#ffffff" />
             </TouchableOpacity>
           </View>
         )}
@@ -166,7 +173,7 @@ export default function TeamScreen() {
                 editTeam(team.id);
               }}
             >
-              <IconSymbol name="pencil" size={20} color="#ffffff" />
+              <Icon name="edit" size={20} color="#ffffff" />
             </TouchableOpacity>
           </View>
         )}
@@ -176,76 +183,86 @@ export default function TeamScreen() {
           style={[styles.teamCardWrapper, { transform: [{ translateX }] }]}
           {...panResponder.panHandlers}
         >
-          <ThemedView
-            style={[
-              styles.teamCard,
-              { borderTopColor: team.color },
-              revealedSide === "left" && styles.teamCardLeftRevealed,
-              revealedSide === "right" && styles.teamCardRightRevealed,
-            ]}
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {
+              if (revealedSide !== "none") {
+                resetPosition();
+              }
+            }}
+            style={{ flex: 1 }}
           >
-            {/* Header */}
-            <View
+            <ThemedView
               style={[
-                styles.teamHeader,
-                revealedSide === "left" && styles.teamHeaderLeftRevealed,
-                revealedSide === "right" && styles.teamHeaderRightRevealed,
+                styles.teamCard,
+                { borderTopColor: team.color },
+                revealedSide === "left" && styles.teamCardLeftRevealed,
+                revealedSide === "right" && styles.teamCardRightRevealed,
               ]}
             >
-              <ThemedText type="subtitle" style={styles.teamTitle}>
-                Team {team.id}
-              </ThemedText>
-              <View style={styles.swipeIndicator}>
-                <IconSymbol
-                  name="chevron.left.chevron.right"
-                  size={16}
-                  color="#bdc3c7"
-                />
-              </View>
-            </View>
-
-            {/* Content */}
-            <View style={styles.teamContent}>
-              {/* Team Info */}
-              <View style={styles.teamInfo}>
-                <View style={styles.teamNameSection}>
-                  <ThemedText style={styles.teamName}>{team.name}</ThemedText>
-                  <View style={styles.playerCountContainer}>
-                    <IconSymbol name="person" size={16} color="#7f8c8d" />
-                    <ThemedText style={styles.playerCount}>
-                      {team.playerCount}
-                    </ThemedText>
-                  </View>
+              {/* Header */}
+              <View
+                style={[
+                  styles.teamHeader,
+                  revealedSide === "left" && styles.teamHeaderLeftRevealed,
+                  revealedSide === "right" && styles.teamHeaderRightRevealed,
+                ]}
+              >
+                <ThemedText type="subtitle" style={styles.teamTitle}>
+                  Team {team.id}
+                </ThemedText>
+                <View style={styles.swipeIndicator}>
+                  <IconSymbol
+                    name="chevron.left.chevron.right"
+                    size={16}
+                    color="#bdc3c7"
+                  />
                 </View>
               </View>
 
-              {/* Actions */}
-              <View style={styles.teamActions}>
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.primaryButton]}
-                  onPress={() => {
-                    resetPosition();
-                    viewTeamDetails(team.id);
-                  }}
-                >
-                  <ThemedText style={styles.primaryButtonText}>
-                    Voir détails
-                  </ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.secondaryButton]}
-                  onPress={() => {
-                    resetPosition();
-                    addPlayer(team.id);
-                  }}
-                >
-                  <ThemedText style={styles.secondaryButtonText}>
-                    + Joueur
-                  </ThemedText>
-                </TouchableOpacity>
+              {/* Content */}
+              <View style={styles.teamContent}>
+                {/* Team Info */}
+                <View style={styles.teamInfo}>
+                  <View style={styles.teamNameSection}>
+                    <ThemedText style={styles.teamName}>{team.name}</ThemedText>
+                    <View style={styles.playerCountContainer}>
+                      <IconSymbol name="person" size={16} color="#7f8c8d" />
+                      <ThemedText style={styles.playerCount}>
+                        {team.playerCount}
+                      </ThemedText>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Actions */}
+                <View style={styles.teamActions}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.primaryButton]}
+                    onPress={() => {
+                      resetPosition();
+                      viewTeamDetails(team.id);
+                    }}
+                  >
+                    <ThemedText style={styles.primaryButtonText}>
+                      Voir détails
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.secondaryButton]}
+                    onPress={() => {
+                      resetPosition();
+                      addPlayer(team.id);
+                    }}
+                  >
+                    <ThemedText style={styles.secondaryButtonText}>
+                      + Joueur
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          </ThemedView>
+            </ThemedView>
+          </TouchableOpacity>
         </Animated.View>
       </View>
     );
