@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -6,6 +6,8 @@ import {
   Alert,
   View,
   Dimensions,
+  Animated,
+  PanResponder,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -15,8 +17,6 @@ interface Team {
   id: number;
   name: string;
   playerCount: number;
-  matches: number;
-  wins: number;
   color: string;
 }
 
@@ -26,16 +26,12 @@ export default function TeamScreen() {
       id: 1,
       name: "Équipe Alpha",
       playerCount: 7,
-      matches: 12,
-      wins: 8,
       color: "#3498db",
     },
     {
       id: 2,
       name: "Équipe Beta",
       playerCount: 6,
-      matches: 10,
-      wins: 5,
       color: "#e74c3c",
     },
   ]);
@@ -77,65 +73,183 @@ export default function TeamScreen() {
     // Navigation vers écran de création
   };
 
-  const TeamCard = ({ team }: { team: Team }) => (
-    <ThemedView style={[styles.teamCard, { borderTopColor: team.color }]}>
-      {/* Header */}
-      <View style={styles.teamHeader}>
-        <ThemedText type="subtitle" style={styles.teamTitle}>
-          Team {team.id}
-        </ThemedText>
-        <View style={styles.teamControls}>
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => editTeam(team.id)}
-          >
-            <IconSymbol name="pencil" size={18} color="#3498db" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => deleteTeam(team.id)}
-          >
-            <IconSymbol name="trash" size={18} color="#e74c3c" />
-          </TouchableOpacity>
-        </View>
-      </View>
+  const TeamCard = ({ team }: { team: Team }) => {
+    const translateX = useRef(new Animated.Value(0)).current;
+    const [revealedSide, setRevealedSide] = useState<"none" | "left" | "right">(
+      "none"
+    );
+    const ACTION_WIDTH = 80; // Largeur d'une seule action
 
-      {/* Content */}
-      <View style={styles.teamContent}>
-        {/* Team Info */}
-        <View style={styles.teamInfo}>
-          <View style={styles.teamNameSection}>
-            <ThemedText style={styles.teamName}>{team.name}</ThemedText>
-            <View style={styles.playerCountContainer}>
-              <IconSymbol name="person" size={16} color="#7f8c8d" />
-              <ThemedText style={styles.playerCount}>
-                {team.playerCount}
-              </ThemedText>
-            </View>
+    const panResponder = PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        // Permettre le mouvement dans les deux directions
+        const newValue = Math.max(
+          -ACTION_WIDTH,
+          Math.min(ACTION_WIDTH, gestureState.dx)
+        );
+        translateX.setValue(newValue);
+
+        // Mettre à jour revealedSide en temps réel pendant le mouvement
+        if (newValue > 20) {
+          // Mouvement vers la droite - révéler delete à gauche
+          setRevealedSide("left");
+        } else if (newValue < -20) {
+          // Mouvement vers la gauche - révéler edit à droite
+          setRevealedSide("right");
+        } else {
+          // Position neutre
+          setRevealedSide("none");
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        const actionWindow = 30;
+        if (gestureState.dx < -actionWindow) {
+          // Swipe vers la gauche - révéler l'action de droite (edit)
+          setRevealedSide("right");
+          Animated.spring(translateX, {
+            toValue: -ACTION_WIDTH,
+            useNativeDriver: true,
+          }).start();
+        } else if (gestureState.dx > actionWindow) {
+          // Swipe vers la droite - révéler l'action de gauche (delete)
+          setRevealedSide("left");
+          Animated.spring(translateX, {
+            toValue: ACTION_WIDTH,
+            useNativeDriver: true,
+          }).start();
+        } else {
+          // Retour au centre - cacher les actions
+          setRevealedSide("none");
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    });
+
+    const resetPosition = () => {
+      setRevealedSide("none");
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    return (
+      <View style={styles.teamCardContainer}>
+        {/* Action gauche - Delete */}
+        {revealedSide === "left" && (
+          <View style={styles.leftAction}>
+            <TouchableOpacity
+              style={[styles.actionHidden, styles.deleteAction]}
+              onPress={() => {
+                resetPosition();
+                deleteTeam(team.id);
+              }}
+            >
+              <IconSymbol name="trash" size={20} color="#ffffff" />
+            </TouchableOpacity>
           </View>
-        </View>
+        )}
 
-        {/* Actions */}
-        <View style={styles.teamActions}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.primaryButton]}
-            onPress={() => viewTeamDetails(team.id)}
+        {/* Action droite - Edit */}
+        {revealedSide === "right" && (
+          <View style={styles.rightAction}>
+            <TouchableOpacity
+              style={[styles.actionHidden, styles.editAction]}
+              onPress={() => {
+                resetPosition();
+                editTeam(team.id);
+              }}
+            >
+              <IconSymbol name="pencil" size={20} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Carte principale */}
+        <Animated.View
+          style={[styles.teamCardWrapper, { transform: [{ translateX }] }]}
+          {...panResponder.panHandlers}
+        >
+          <ThemedView
+            style={[
+              styles.teamCard,
+              { borderTopColor: team.color },
+              revealedSide === "left" && styles.teamCardLeftRevealed,
+              revealedSide === "right" && styles.teamCardRightRevealed,
+            ]}
           >
-            <ThemedText style={styles.primaryButtonText}>
-              Voir détails
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.secondaryButton]}
-            onPress={() => addPlayer(team.id)}
-          >
-            <ThemedText style={styles.secondaryButtonText}>+ Joueur</ThemedText>
-          </TouchableOpacity>
-        </View>
+            {/* Header */}
+            <View
+              style={[
+                styles.teamHeader,
+                revealedSide === "left" && styles.teamHeaderLeftRevealed,
+                revealedSide === "right" && styles.teamHeaderRightRevealed,
+              ]}
+            >
+              <ThemedText type="subtitle" style={styles.teamTitle}>
+                Team {team.id}
+              </ThemedText>
+              <View style={styles.swipeIndicator}>
+                <IconSymbol
+                  name="chevron.left.chevron.right"
+                  size={16}
+                  color="#bdc3c7"
+                />
+              </View>
+            </View>
+
+            {/* Content */}
+            <View style={styles.teamContent}>
+              {/* Team Info */}
+              <View style={styles.teamInfo}>
+                <View style={styles.teamNameSection}>
+                  <ThemedText style={styles.teamName}>{team.name}</ThemedText>
+                  <View style={styles.playerCountContainer}>
+                    <IconSymbol name="person" size={16} color="#7f8c8d" />
+                    <ThemedText style={styles.playerCount}>
+                      {team.playerCount}
+                    </ThemedText>
+                  </View>
+                </View>
+              </View>
+
+              {/* Actions */}
+              <View style={styles.teamActions}>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.primaryButton]}
+                  onPress={() => {
+                    resetPosition();
+                    viewTeamDetails(team.id);
+                  }}
+                >
+                  <ThemedText style={styles.primaryButtonText}>
+                    Voir détails
+                  </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.secondaryButton]}
+                  onPress={() => {
+                    resetPosition();
+                    addPlayer(team.id);
+                  }}
+                >
+                  <ThemedText style={styles.secondaryButtonText}>
+                    + Joueur
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ThemedView>
+        </Animated.View>
       </View>
-    </ThemedView>
-  );
-
+    );
+  };
   return (
     <View style={styles.container}>
       {/* Fixed Title */}
@@ -204,8 +318,61 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     gap: 15,
   },
-  teamCard: {
+  teamCardContainer: {
     width: cardWidth,
+    marginBottom: 15,
+    position: "relative",
+  },
+  teamCardWrapper: {
+    width: cardWidth,
+  },
+  hiddenActions: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 120,
+    flexDirection: "row",
+    zIndex: 1,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  leftAction: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 80,
+    zIndex: 1,
+  },
+  rightAction: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 80,
+    zIndex: 1,
+  },
+  actionHidden: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  editAction: {
+    backgroundColor: "#3498db",
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+  },
+  deleteAction: {
+    backgroundColor: "#e74c3c",
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  teamCard: {
     backgroundColor: "#ffffff",
     borderRadius: 12,
     borderTopWidth: 4,
@@ -217,7 +384,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
-    marginBottom: 15,
   },
   teamHeader: {
     flexDirection: "row",
@@ -229,18 +395,27 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
   },
+  teamCardLeftRevealed: {
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+  },
+  teamCardRightRevealed: {
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  teamHeaderLeftRevealed: {
+    borderTopLeftRadius: 0,
+  },
+  teamHeaderRightRevealed: {
+    borderTopRightRadius: 0,
+  },
   teamTitle: {
     fontSize: 18,
     fontWeight: "600",
     color: "#2c3e50",
   },
-  teamControls: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  controlButton: {
-    padding: 6,
-    borderRadius: 4,
+  swipeIndicator: {
+    opacity: 0.5,
   },
   teamContent: {
     padding: 15,
