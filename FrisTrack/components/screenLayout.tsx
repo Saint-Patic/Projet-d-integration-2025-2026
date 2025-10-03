@@ -1,22 +1,49 @@
 import React from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  StatusBar,
+  Platform,
+} from "react-native";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 
 interface ScreenLayoutProps {
   title: string;
   children: React.ReactNode;
+  titleOffset?: number;
 }
 
 export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   title,
   children,
-}) => {
+  titleOffset = 6,
+}: ScreenLayoutProps) => {
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          // Ajoute la hauteur de la status bar Android + offset demandé
+          paddingTop:
+            (Platform.OS === "android" ? StatusBar.currentHeight ?? 0 : 0) +
+            titleOffset,
+        },
+      ]}
+    >
       {/* Fixed Title */}
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title" style={styles.mainTitle}>
+        <ThemedText
+          type="title"
+          style={[
+            styles.mainTitle,
+            {
+              includeFontPadding: false,
+              marginTop: Platform.OS === "android" ? 2 : 0,
+            },
+          ]}
+        >
           {title}
         </ThemedText>
       </ThemedView>

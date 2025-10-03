@@ -5,6 +5,8 @@ import {
   PanResponder,
   StyleSheet,
   Dimensions,
+  Platform,
+  Vibration,
 } from "react-native";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
@@ -35,31 +37,31 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   const [swipeDirection, setSwipeDirection] = useState<
     "none" | "left" | "right"
   >("none");
-  const ACTION_THRESHOLD = 50; // Distance required to trigger action
+  const [isDeleteArmed, setIsDeleteArmed] = useState(false);
+  const [isEditArmed, setIsEditArmed] = useState(false);
+  const actionLockedRef = useRef(false);
+  const ACTION_THRESHOLD = 50;
 
-  // Force reset position on component mount and when props change
   useEffect(() => {
     translateX.setValue(0);
     setSwipeDirection("none");
+    setIsDeleteArmed(false);
+    setIsEditArmed(false);
+    actionLockedRef.current = false;
   }, [translateX, cardId]);
 
-  // Utility function to reset card position with force reset
   const resetCardPosition = () => {
     setSwipeDirection("none");
-
-    // Stop any ongoing animation first
+    setIsDeleteArmed(false);
+    setIsEditArmed(false);
     translateX.stopAnimation();
-
-    // Force immediate reset then animate smoothly
     translateX.setValue(0);
-
     Animated.spring(translateX, {
       toValue: 0,
       useNativeDriver: true,
       tension: 100,
       friction: 8,
     }).start(() => {
-      // Double check the value is actually 0
       translateX.setValue(0);
     });
   };
@@ -69,33 +71,39 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
       return Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
     },
     onPanResponderGrant: () => {
-      // When the user starts touching, stop any ongoing animation
       translateX.stopAnimation();
     },
     onPanResponderMove: (evt, gestureState) => {
-      // Provide visual feedback during swipe with stricter limits
       const newValue = Math.max(-120, Math.min(120, gestureState.dx));
       translateX.setValue(newValue);
 
-      // Update swipe direction for icon display
-      if (gestureState.dx > 10) {
-        setSwipeDirection("right");
-      } else if (gestureState.dx < -10) {
-        setSwipeDirection("left");
-      } else {
-        setSwipeDirection("none");
-      }
+      if (gestureState.dx > 10) setSwipeDirection("right");
+      else if (gestureState.dx < -10) setSwipeDirection("left");
+      else setSwipeDirection("none");
+
+      setIsDeleteArmed(gestureState.dx > ACTION_THRESHOLD);
+      setIsEditArmed(gestureState.dx < -ACTION_THRESHOLD);
     },
     onPanResponderRelease: (evt, gestureState) => {
-      // Perform actions based on swipe direction and distance
-      const shouldEdit = gestureState.dx < -ACTION_THRESHOLD && onEdit;
-      const shouldDelete = gestureState.dx > ACTION_THRESHOLD && onDelete;
+      if (actionLockedRef.current) {
+        resetCardPosition();
+        return;
+      }
 
-      // Force immediate reset to prevent getting stuck
+      const triggerEdit = gestureState.dx < -ACTION_THRESHOLD && !!onEdit;
+      const triggerDelete = gestureState.dx > ACTION_THRESHOLD && !!onDelete;
+
       setSwipeDirection("none");
       translateX.stopAnimation();
 
-      // Animate back to center position
+      // Feedback + anti-spam + action immédiate
+      if (triggerEdit || triggerDelete) {
+        actionLockedRef.current = true;
+        Vibration.vibrate(10);
+        if (triggerEdit) onEdit?.();
+        if (triggerDelete) onDelete?.();
+      }
+
       Animated.spring(translateX, {
         toValue: 0,
         useNativeDriver: true,
@@ -104,19 +112,15 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
         restSpeedThreshold: 0.01,
         restDisplacementThreshold: 0.01,
       }).start(() => {
-        // Ensure position is exactly 0
         translateX.setValue(0);
-
-        // Execute actions after reset is complete
-        if (shouldEdit) {
-          onEdit();
-        } else if (shouldDelete) {
-          onDelete();
-        }
+        setIsDeleteArmed(false);
+        setIsEditArmed(false);
+        setTimeout(() => {
+          actionLockedRef.current = false;
+        }, 250);
       });
     },
     onPanResponderTerminate: () => {
-      // If the gesture is terminated (interrupted), force reset position
       resetCardPosition();
     },
   });
@@ -125,25 +129,32 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
     <View style={styles.cardContainer}>
       {/* Icône de suppression (swipe right) */}
       {swipeDirection === "right" && onDelete && (
-        <View style={styles.leftIcon}>
-          <Icon name="delete" size={24} color="#e74c3c" />
+        <View style={[styles.leftIcon, isDeleteArmed && styles.leftIconArmed]}>
+          <Icon
+            name="delete"
+            size={24}
+            color={isDeleteArmed ? "#fff" : "#e74c3c"}
+          />
         </View>
       )}
 
       {/* Icône d'édition (swipe left) */}
       {swipeDirection === "left" && onEdit && (
-        <View style={styles.rightIcon}>
-          <Icon name="edit" size={24} color="#3498db" />
+        <View style={[styles.rightIcon, isEditArmed && styles.rightIconArmed]}>
+          <Icon
+            name="edit"
+            size={24}
+            color={isEditArmed ? "#fff" : "#3498db"}
+          />
         </View>
       )}
 
-      {/* Swipeable card - Swipe right to delete, swipe left to edit */}
+      {/* Swipeable card */}
       <Animated.View
         style={[styles.cardWrapper, { transform: [{ translateX }] }]}
         {...panResponder.panHandlers}
       >
         <ThemedView style={[styles.card, { borderTopColor }]}>
-          {/* Header */}
           <View style={styles.header}>
             <ThemedText type="subtitle" style={styles.title}>
               {title} {cardId}
@@ -157,7 +168,6 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
             </View>
           </View>
 
-          {/* Content */}
           <View style={styles.content}>{children}</View>
         </ThemedView>
       </Animated.View>
@@ -184,13 +194,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 8,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+  },
+  leftIconArmed: {
+    backgroundColor: "#e74c3c",
   },
   rightIcon: {
     position: "absolute",
@@ -202,23 +212,20 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 8,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+  },
+  rightIconArmed: {
+    backgroundColor: "#3498db",
   },
   card: {
     backgroundColor: "#ffffff",
     borderRadius: 12,
     borderTopWidth: 4,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
@@ -235,6 +242,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
+    lineHeight: 22,
+    includeFontPadding: false,
+    marginTop: Platform.OS === "android" ? 1 : 0,
     fontWeight: "600",
     color: "#2c3e50",
   },

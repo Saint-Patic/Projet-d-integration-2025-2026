@@ -116,7 +116,7 @@ export default function TeamScreen() {
   };
 
   return (
-    <ScreenLayout title="Gestion des Équipes">
+    <ScreenLayout title="Gestion des Équipes" titleOffset={8}>
       {/* Teams Grid */}
       <View style={styles.teamsContainer}>
         {teams.map((team) => (
