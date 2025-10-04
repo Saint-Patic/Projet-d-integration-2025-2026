@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import { View, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SwipeableCard } from "@/components/swipeableCard";
 import { ScreenLayout } from "@/components/screenLayout";
 import { AddButton } from "@/components/addButton";
+import { getMatches } from "@/services/getMatches";
 
 interface Match {
   id: number;
@@ -13,43 +14,18 @@ interface Match {
   score1: number;
   score2: number;
   date: string;
-  status: "finished" | "ongoing" | "scheduled";
+  status: string;
   color: string;
 }
 
 export default function HomeScreen() {
-  const [matches, setMatches] = useState<Match[]>([
-    {
-      id: 1,
-      team1: "Équipe Alpha",
-      team2: "Équipe Beta",
-      score1: 15,
-      score2: 12,
-      date: "2025-10-01",
-      status: "finished",
-      color: "#27ae60",
-    },
-    {
-      id: 2,
-      team1: "Équipe Gamma",
-      team2: "Équipe Alpha",
-      score1: 8,
-      score2: 21,
-      date: "2025-10-02",
-      status: "finished",
-      color: "#e74c3c",
-    },
-    {
-      id: 3,
-      team1: "Équipe Beta",
-      team2: "Équipe Gamma",
-      score1: 0,
-      score2: 0,
-      date: "2025-10-03",
-      status: "ongoing",
-      color: "#f39c12",
-    },
-  ]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  useEffect(() => {
+    // Utiliser le service pour obtenir les données des matchs
+    getMatches().then((data) => {
+      setMatches(data);
+    });
+  }, []);
 
   const editMatch = (matchId: number) => {
     console.log(`Édition du match ${matchId}`);

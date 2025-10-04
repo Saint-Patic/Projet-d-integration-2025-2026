@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SwipeableCard } from "@/components/swipeableCard";
 import { ScreenLayout } from "@/components/screenLayout";
 import { AddButton } from "@/components/addButton";
+import { getTeams } from "@/services/getTeams";
 
 interface Team {
   id: number;
@@ -14,26 +15,15 @@ interface Team {
 }
 
 export default function TeamScreen() {
-  const [teams, setTeams] = useState<Team[]>([
-    {
-      id: 1,
-      name: "Équipe Alpha",
-      playerCount: 7,
-      color: "#3498db",
-    },
-    {
-      id: 2,
-      name: "Équipe Beta",
-      playerCount: 6,
-      color: "#e74c3c",
-    },
-    {
-      id: 3,
-      name: "Équipe Gamma",
-      playerCount: 0,
-      color: "#b4918dff",
-    },
-  ]);
+  const [teams, setTeams] = useState<Team[]>([]);
+
+  // Charger les équipes au montage du composant
+  useEffect(() => {
+    // Utiliser le service pour obtenir les données des équipes
+    getTeams().then((data) => {
+      setTeams(data);
+    });
+  }, []);
 
   const editTeam = (teamId: number) => {
     console.log(`Édition de l'équipe ${teamId}`);
