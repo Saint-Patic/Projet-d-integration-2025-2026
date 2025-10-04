@@ -1,257 +1,190 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef } from "react";
 import {
-  View,
-  Animated,
-  PanResponder,
   StyleSheet,
+  View,
+  TouchableOpacity,
   Dimensions,
-  Platform,
-  Vibration,
+  Alert,
 } from "react-native";
-import { ThemedView } from "@/components/themed-view";
+import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
+import Animated, {
+  useAnimatedStyle,
+  interpolate,
+  Extrapolation,
+  SharedValue,
+} from "react-native-reanimated";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import Icon from "react-native-vector-icons/MaterialIcons";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const ACTION_WIDTH = 80;
+const SWIPE_THRESHOLD = 100; // Seuil de déclenchement automatique
 
 interface SwipeableCardProps {
-  children: React.ReactNode;
-  onEdit?: () => void;
-  onDelete?: () => void;
-  borderTopColor?: string;
   title: string;
   cardId: number;
+  borderTopColor: string;
+  onEdit: () => void;
+  onDelete: () => void;
+  children: React.ReactNode;
 }
 
-const { width } = Dimensions.get("window");
-const cardWidth = width > 600 ? (width - 60) / 2 : width - 40;
-
 export const SwipeableCard: React.FC<SwipeableCardProps> = ({
-  children,
-  onEdit,
-  onDelete,
-  borderTopColor = "#3498db",
   title,
   cardId,
+  borderTopColor,
+  onEdit,
+  onDelete,
+  children,
 }) => {
-  const translateX = useRef(new Animated.Value(0)).current;
-  const [swipeDirection, setSwipeDirection] = useState<
-    "none" | "left" | "right"
-  >("none");
-  const [isDeleteArmed, setIsDeleteArmed] = useState(false);
-  const [isEditArmed, setIsEditArmed] = useState(false);
-  const actionLockedRef = useRef(false);
-  const ACTION_THRESHOLD = 50;
+  const swipeableRef = useRef<any>(null);
 
-  useEffect(() => {
-    translateX.setValue(0);
-    setSwipeDirection("none");
-    setIsDeleteArmed(false);
-    setIsEditArmed(false);
-    actionLockedRef.current = false;
-  }, [translateX, cardId]);
-
-  const resetCardPosition = () => {
-    setSwipeDirection("none");
-    setIsDeleteArmed(false);
-    setIsEditArmed(false);
-    translateX.stopAnimation();
-    translateX.setValue(0);
-    Animated.spring(translateX, {
-      toValue: 0,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 8,
-    }).start(() => {
-      translateX.setValue(0);
-    });
+  // Gestion de l'ouverture du swipeable
+  const handleSwipeableOpen = (direction: "left" | "right") => {
+    if (direction === "right") {
+      // Pour l'action d'édition, exécuter immédiatement et refermer
+      onEdit();
+      // Fermer le swipeable après l'action d'édition
+    } else if (direction === "left") {
+      onDelete();
+    }
+    setTimeout(() => {
+      swipeableRef.current?.close();
+    }, 300);
   };
 
-  const panResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: (evt, gestureState) => {
-      return Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
-    },
-    onPanResponderGrant: () => {
-      translateX.stopAnimation();
-    },
-    onPanResponderMove: (evt, gestureState) => {
-      const newValue = Math.max(-120, Math.min(120, gestureState.dx));
-      translateX.setValue(newValue);
+  // Indicateurs visuels uniquement
+  const renderRightActions = (progress: SharedValue<number>) => {
+    const animatedStyle = useAnimatedStyle(() => {
+      const trans = interpolate(
+        progress.value,
+        [0, 1],
+        [ACTION_WIDTH, 0],
+        Extrapolation.CLAMP
+      );
+      return {
+        transform: [{ translateX: trans }],
+      };
+    });
 
-      if (gestureState.dx > 10) setSwipeDirection("right");
-      else if (gestureState.dx < -10) setSwipeDirection("left");
-      else setSwipeDirection("none");
+    return (
+      <Animated.View style={[styles.actionContainer, animatedStyle]}>
+        <View style={[styles.action, styles.deleteAction]}>
+          <IconSymbol name="trash" size={24} color="#ffffff" />
+          <ThemedText style={styles.actionText}>Supprimer</ThemedText>
+        </View>
+      </Animated.View>
+    );
+  };
 
-      setIsDeleteArmed(gestureState.dx > ACTION_THRESHOLD);
-      setIsEditArmed(gestureState.dx < -ACTION_THRESHOLD);
-    },
-    onPanResponderRelease: (evt, gestureState) => {
-      if (actionLockedRef.current) {
-        resetCardPosition();
-        return;
-      }
+  // Indicateurs visuels uniquement
+  const renderLeftActions = (progress: SharedValue<number>) => {
+    const animatedStyle = useAnimatedStyle(() => {
+      const trans = interpolate(
+        progress.value,
+        [0, 1],
+        [-ACTION_WIDTH, 0],
+        Extrapolation.CLAMP
+      );
+      return {
+        transform: [{ translateX: trans }],
+      };
+    });
 
-      const triggerEdit = gestureState.dx < -ACTION_THRESHOLD && !!onEdit;
-      const triggerDelete = gestureState.dx > ACTION_THRESHOLD && !!onDelete;
-
-      setSwipeDirection("none");
-      translateX.stopAnimation();
-
-      // Feedback + anti-spam + action immédiate
-      if (triggerEdit || triggerDelete) {
-        actionLockedRef.current = true;
-        Vibration.vibrate(10);
-        if (triggerEdit) onEdit?.();
-        if (triggerDelete) onDelete?.();
-      }
-
-      Animated.spring(translateX, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 150,
-        friction: 10,
-        restSpeedThreshold: 0.01,
-        restDisplacementThreshold: 0.01,
-      }).start(() => {
-        translateX.setValue(0);
-        setIsDeleteArmed(false);
-        setIsEditArmed(false);
-        setTimeout(() => {
-          actionLockedRef.current = false;
-        }, 250);
-      });
-    },
-    onPanResponderTerminate: () => {
-      resetCardPosition();
-    },
-  });
+    return (
+      <Animated.View style={[styles.actionContainer, animatedStyle]}>
+        <View style={[styles.action, styles.editAction]}>
+          <IconSymbol name="pencil" size={24} color="#ffffff" />
+          <ThemedText style={styles.actionText}>Modifier</ThemedText>
+        </View>
+      </Animated.View>
+    );
+  };
 
   return (
     <View style={styles.cardContainer}>
-      {/* Icône de suppression (swipe right) */}
-      {swipeDirection === "right" && onDelete && (
-        <View style={[styles.leftIcon, isDeleteArmed && styles.leftIconArmed]}>
-          <Icon
-            name="delete"
-            size={24}
-            color={isDeleteArmed ? "#fff" : "#e74c3c"}
-          />
-        </View>
-      )}
-
-      {/* Icône d'édition (swipe left) */}
-      {swipeDirection === "left" && onEdit && (
-        <View style={[styles.rightIcon, isEditArmed && styles.rightIconArmed]}>
-          <Icon
-            name="edit"
-            size={24}
-            color={isEditArmed ? "#fff" : "#3498db"}
-          />
-        </View>
-      )}
-
-      {/* Swipeable card */}
-      <Animated.View
-        style={[styles.cardWrapper, { transform: [{ translateX }] }]}
-        {...panResponder.panHandlers}
+      <Swipeable
+        ref={swipeableRef}
+        renderRightActions={renderRightActions}
+        renderLeftActions={renderLeftActions}
+        friction={2}
+        overshootFriction={8}
+        rightThreshold={SWIPE_THRESHOLD}
+        leftThreshold={SWIPE_THRESHOLD}
+        onSwipeableOpen={handleSwipeableOpen}
       >
-        <ThemedView style={[styles.card, { borderTopColor }]}>
-          <View style={styles.header}>
-            <ThemedText type="subtitle" style={styles.title}>
-              {title} {cardId}
+        <View style={[styles.card, { borderTopColor }]}>
+          <View style={styles.cardHeader}>
+            <ThemedText style={styles.cardTitle}>
+              {title} #{cardId}
             </ThemedText>
-            <View style={styles.swipeIndicator}>
-              <IconSymbol
-                name="chevron.left.chevron.right"
-                size={16}
-                color="#bdc3c7"
-              />
-            </View>
+            <ThemedText style={styles.swipeHint}>← Glisser →</ThemedText>
           </View>
-
-          <View style={styles.content}>{children}</View>
-        </ThemedView>
-      </Animated.View>
+          <View style={styles.cardContent}>{children}</View>
+        </View>
+      </Swipeable>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   cardContainer: {
-    width: cardWidth,
-    marginBottom: 15,
-    position: "relative",
-  },
-  cardWrapper: {
-    width: cardWidth,
-  },
-  leftIcon: {
-    position: "absolute",
-    left: 20,
-    top: "50%",
-    transform: [{ translateY: -12 }],
-    zIndex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    borderRadius: 20,
-    padding: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  leftIconArmed: {
-    backgroundColor: "#e74c3c",
-  },
-  rightIcon: {
-    position: "absolute",
-    right: 20,
-    top: "50%",
-    transform: [{ translateY: -12 }],
-    zIndex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    borderRadius: 20,
-    padding: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  rightIconArmed: {
-    backgroundColor: "#3498db",
-  },
-  card: {
-    backgroundColor: "#ffffff",
+    width: SCREEN_WIDTH * 0.9,
+    maxWidth: 480,
+    marginBottom: 20,
     borderRadius: 12,
-    borderTopWidth: 4,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  header: {
+  card: {
+    backgroundColor: "#ffffff",
+    borderTopWidth: 5,
+    borderRadius: 12,
+    padding: 16,
+  },
+  cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    backgroundColor: "#f8f9fa",
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
-  title: {
-    fontSize: 18,
-    lineHeight: 22,
-    includeFontPadding: false,
-    marginTop: Platform.OS === "android" ? 1 : 0,
+  cardTitle: {
+    fontSize: 16,
     fontWeight: "600",
-    color: "#2c3e50",
+    color: "#7f8c8d",
   },
-  swipeIndicator: {
-    opacity: 0.5,
+  swipeHint: {
+    fontSize: 12,
+    color: "#bdc3c7",
   },
-  content: {
-    padding: 15,
+  cardContent: {
+    width: "100%",
+  },
+  actionContainer: {
+    width: ACTION_WIDTH,
+    height: "100%",
+  },
+  action: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  editAction: {
+    backgroundColor: "#3498db",
+  },
+  deleteAction: {
+    backgroundColor: "#e74c3c",
+  },
+  actionText: {
+    color: "#ffffff",
+    fontSize: 12,
+    marginTop: 4,
   },
 });
