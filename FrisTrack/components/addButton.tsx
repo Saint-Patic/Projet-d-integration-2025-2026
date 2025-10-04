@@ -11,7 +11,12 @@ interface AddButtonProps {
 export const AddButton: React.FC<AddButtonProps> = ({ onPress, text }) => {
   return (
     <View style={styles.addSection}>
-      <TouchableOpacity style={styles.addButton} onPress={onPress}>
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={text}
+      >
         <IconSymbol name="plus" size={20} color="#ffffff" />
         <ThemedText style={styles.addText}>{text}</ThemedText>
       </TouchableOpacity>

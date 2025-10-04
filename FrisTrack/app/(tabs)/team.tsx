@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { View, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/themed-text";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SwipeableCard } from "@/components/swipeableCard";
 import { ScreenLayout } from "@/components/screenLayout";
 import { AddButton } from "@/components/addButton";
 import { getTeams } from "@/services/getTeams";
+import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
 
 interface Team {
   id: number;
@@ -76,7 +76,7 @@ export default function TeamScreen() {
           <View style={styles.teamNameSection}>
             <ThemedText style={styles.teamName}>{team.name}</ThemedText>
             <View style={styles.playerCountContainer}>
-              <IconSymbol name="person" size={16} color="#7f8c8d" />
+              <MaterialIcons name="person" size={16} color={team.color} />
               <ThemedText style={styles.playerCount}>
                 {team.playerCount}
               </ThemedText>

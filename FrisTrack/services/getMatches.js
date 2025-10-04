@@ -29,7 +29,7 @@ let matches = [
     score1: 0,
     score2: 0,
     date: "2025-10-03",
-    status: "ongoing",
+    status: "scheduled",
     color: "#f39c12",
   },
   {
@@ -82,10 +82,6 @@ export const deleteMatch = (id) => {
   const matchToDelete = matches.find((m) => m.id === id);
   matches = matches.filter((match) => match.id !== id);
   return Promise.resolve(matchToDelete ? { ...matchToDelete } : null);
-};
-
-export const startMatch = (id) => {
-  return updateMatch(id, { status: "ongoing" });
 };
 
 export const finishMatch = (id, score1, score2) => {
