@@ -10,11 +10,11 @@ export default function ProfilScreen() {
     nom: "Lemaire",
     prenom: "Nathan",
     image: require("@/assets/images/nathan.png"),
-    pointure: 36,
+    pointure: 37,
     main: "Droite",
-    poids: 12,
-    taille: 120,
-    age: 23,
+    poids: 52.5,
+    taille: 157,
+    age: 22,
   };
 
   const editProfile = () => {
@@ -45,10 +45,18 @@ export default function ProfilScreen() {
 
         {/* Infos */}
         <View style={styles.infoContainer}>
-          <ThemedText style={styles.infoText}>Pointure : {user.pointure}</ThemedText>
-          <ThemedText style={styles.infoText}>Main dominante : {user.main}</ThemedText>
-          <ThemedText style={styles.infoText}>Poids : {user.poids} kg</ThemedText>
-          <ThemedText style={styles.infoText}>Taille : {user.taille} cm</ThemedText>
+          <ThemedText style={styles.infoText}>
+            Pointure : {user.pointure}
+          </ThemedText>
+          <ThemedText style={styles.infoText}>
+            Main dominante : {user.main}
+          </ThemedText>
+          <ThemedText style={styles.infoText}>
+            Poids : {user.poids} kg
+          </ThemedText>
+          <ThemedText style={styles.infoText}>
+            Taille : {user.taille} cm
+          </ThemedText>
           <ThemedText style={styles.infoText}>Âge : {user.age} ans</ThemedText>
         </View>
 
@@ -58,13 +66,17 @@ export default function ProfilScreen() {
             style={[styles.actionButton, styles.editButton]}
             onPress={editProfile}
           >
-            <ThemedText style={styles.buttonText}>Modifier les informations</ThemedText>
+            <ThemedText style={styles.buttonText}>
+              Modifier les informations
+            </ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, styles.sensorButton]}
             onPress={connectSensor}
           >
-            <ThemedText style={styles.buttonText}>Se connecter à un capteur</ThemedText>
+            <ThemedText style={styles.buttonText}>
+              Se connecter à un capteur
+            </ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, styles.logoutButton]}

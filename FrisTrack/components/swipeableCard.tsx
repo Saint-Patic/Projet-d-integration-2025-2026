@@ -48,7 +48,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   };
 
   // Indicateurs visuels uniquement
-  const renderRightActions = (progress: SharedValue<number>) => {
+  const RenderRightActions = (progress: SharedValue<number>) => {
     const animatedStyle = useAnimatedStyle(() => {
       const trans = interpolate(
         progress.value,
@@ -72,7 +72,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   };
 
   // Indicateurs visuels uniquement
-  const renderLeftActions = (progress: SharedValue<number>) => {
+  const RenderLeftActions = (progress: SharedValue<number>) => {
     const animatedStyle = useAnimatedStyle(() => {
       const trans = interpolate(
         progress.value,
@@ -99,8 +99,8 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
     <View style={styles.cardContainer}>
       <Swipeable
         ref={swipeableRef}
-        renderRightActions={renderRightActions}
-        renderLeftActions={renderLeftActions}
+        renderRightActions={RenderRightActions}
+        renderLeftActions={RenderLeftActions}
         friction={2}
         overshootFriction={8}
         rightThreshold={SWIPE_THRESHOLD}
