@@ -1,112 +1,138 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from "react";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { Image } from "expo-image";
+import { ThemedText } from "@/components/themed-text";
+import { ScreenLayout } from "@/components/screenLayout";
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+export default function ProfilScreen() {
+  // Données fictives pour l'exemple
+  const user = {
+    nom: "Lemaire",
+    prenom: "Nathan",
+    image: require("@/assets/images/nathan.png"),
+    pointure: 36,
+    main: "Droite",
+    poids: 12,
+    taille: 120,
+    age: 23,
+  };
 
-export default function TabTwoScreen() {
+  const editProfile = () => {
+    console.log("Modifier les informations du profil");
+    // Navigation vers la partie édition
+  };
+
+  const connectSensor = () => {
+    console.log("Connexion à un capteur");
+    // Connexion au capteur à implémenter
+  };
+
+  const logout = () => {
+    console.log("Déconnexion");
+    // Déconnexion à implémenter
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
+    <ScreenLayout title="Profil" titleOffset={8}>
+      <View style={styles.container}>
+        {/* Image de profil */}
+        <Image source={user.image} style={styles.profileImage} />
+
+        {/* Nom et prénom */}
+        <ThemedText style={styles.name}>
+          {user.prenom} {user.nom}
         </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+
+        {/* Infos */}
+        <View style={styles.infoContainer}>
+          <ThemedText style={styles.infoText}>Pointure : {user.pointure}</ThemedText>
+          <ThemedText style={styles.infoText}>Main dominante : {user.main}</ThemedText>
+          <ThemedText style={styles.infoText}>Poids : {user.poids} kg</ThemedText>
+          <ThemedText style={styles.infoText}>Taille : {user.taille} cm</ThemedText>
+          <ThemedText style={styles.infoText}>Âge : {user.age} ans</ThemedText>
+        </View>
+
+        {/* Boutons */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.editButton]}
+            onPress={editProfile}
+          >
+            <ThemedText style={styles.buttonText}>Modifier les informations</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.sensorButton]}
+            onPress={connectSensor}
+          >
+            <ThemedText style={styles.buttonText}>Se connecter à un capteur</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.logoutButton]}
+            onPress={logout}
+          >
+            <ThemedText style={styles.buttonText}>Se déconnecter</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    alignItems: "center",
+    paddingTop: 32,
+    flex: 1,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 16,
+    backgroundColor: "#eee",
+  },
+  name: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 18,
+    color: "#2c3e50",
+  },
+  infoContainer: {
+    marginBottom: 32,
+    width: "80%",
+    backgroundColor: "#f5f6fa",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    gap: 6,
+  },
+  infoText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  buttonContainer: {
+    width: "80%",
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  editButton: {
+    backgroundColor: "#3498db",
+  },
+  sensorButton: {
+    backgroundColor: "#27ae60",
+  },
+  logoutButton: {
+    backgroundColor: "#e74c3c",
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
