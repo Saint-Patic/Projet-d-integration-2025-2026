@@ -4,16 +4,17 @@
     "slug": "FrisTrack",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/lezard.png",
     "scheme": "fristrack",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "githubUrl": "https://github.com/Saint-Patic/Projet-d-integration-2025-2026",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
