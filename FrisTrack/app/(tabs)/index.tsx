@@ -7,7 +7,6 @@ import {
   Platform,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SwipeableCard } from "@/components/swipeableCard";
 import { ScreenLayout } from "@/components/screenLayout";
 import { AddButton } from "@/components/addButton";
@@ -91,7 +90,24 @@ export default function HomeScreen() {
         return "#7f8c8d";
     }
   };
+  const getTeamTextColor = (match: Match, isTeam1: boolean) => {
+    if (match.status !== "finished") {
+      return "#f0f0f0"; // Couleur par défaut
+    }
 
+    const team1Score = match.score1;
+    const team2Score = match.score2;
+
+    if (team1Score === team2Score) {
+      return "#f0f0f0"; // Égalité, couleur par défaut
+    }
+
+    const isWinner = isTeam1
+      ? team1Score > team2Score
+      : team2Score > team1Score;
+
+    return isWinner ? "#00e6cc" : "#ff8080"; // Cyan/vert pour gagnant, cyan/rouge pour perdant
+  };
   const MatchCard = ({ match }: { match: Match }) => {
     return (
       <SwipeableCard
@@ -104,7 +120,14 @@ export default function HomeScreen() {
         <View style={styles.matchInfo}>
           <View style={styles.teamsSection}>
             <View style={styles.teamRow}>
-              <ThemedText style={styles.teamName}>{match.team1}</ThemedText>
+              <ThemedText
+                style={[
+                  styles.teamName,
+                  { color: getTeamTextColor(match, true) },
+                ]}
+              >
+                {match.team1}
+              </ThemedText>
               <View style={styles.scoreContainer}>
                 <ThemedText style={styles.score}>{match.score1}</ThemedText>
               </View>
@@ -113,27 +136,17 @@ export default function HomeScreen() {
               <ThemedText style={styles.versus}>VS</ThemedText>
             </View>
             <View style={styles.teamRow}>
-              <ThemedText style={styles.teamName}>{match.team2}</ThemedText>
+              <ThemedText
+                style={[
+                  styles.teamName,
+                  { color: getTeamTextColor(match, false) },
+                ]}
+              >
+                {match.team2}
+              </ThemedText>
               <View style={styles.scoreContainer}>
                 <ThemedText style={styles.score}>{match.score2}</ThemedText>
               </View>
-            </View>
-          </View>
-
-          <View style={styles.matchMeta}>
-            <View style={styles.dateContainer}>
-              <IconSymbol name="calendar" size={16} color="#00cccc" />
-              <ThemedText style={styles.date}>{match.date}</ThemedText>
-            </View>
-            <View
-              style={[
-                styles.statusContainer,
-                { backgroundColor: getStatusColor(match.status) },
-              ]}
-            >
-              <ThemedText style={styles.status}>
-                {getStatusText(match.status)}
-              </ThemedText>
             </View>
           </View>
         </View>
