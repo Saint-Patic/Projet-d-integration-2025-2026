@@ -12,7 +12,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const ACTION_WIDTH = 80;
-const SWIPE_THRESHOLD = 100; // Seuil de déclenchement automatique
+const SWIPE_THRESHOLD = 100;
 
 interface SwipeableCardProps {
   title: string;
@@ -33,12 +33,9 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
 }) => {
   const swipeableRef = useRef<any>(null);
 
-  // Gestion de l'ouverture du swipeable
   const handleSwipeableOpen = (direction: "left" | "right") => {
     if (direction === "right") {
-      // Pour l'action d'édition, exécuter immédiatement et refermer
       onEdit();
-      // Fermer le swipeable après l'action d'édition
     } else if (direction === "left") {
       onDelete();
     }
@@ -47,7 +44,6 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
     }, 300);
   };
 
-  // Indicateurs visuels uniquement
   const RenderRightActions = (progress: SharedValue<number>) => {
     const animatedStyle = useAnimatedStyle(() => {
       const trans = interpolate(
@@ -71,7 +67,6 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
     );
   };
 
-  // Indicateurs visuels uniquement
   const RenderLeftActions = (progress: SharedValue<number>) => {
     const animatedStyle = useAnimatedStyle(() => {
       const trans = interpolate(
@@ -126,37 +121,44 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH * 0.9,
     maxWidth: 480,
     marginBottom: 20,
-    borderRadius: 12,
+    borderRadius: 20,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: "#00b3b3", // Nuance plus douce
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 8,
   },
   card: {
-    backgroundColor: "#ffffff",
-    borderTopWidth: 5,
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.12)", // Légèrement plus opaque
+    borderTopWidth: 4,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0, 230, 230, 0.18)", // Plus lumineux
+    backdropFilter: "blur(10px)",
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
     paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomWidth: 2,
+    borderBottomColor: "rgba(0, 217, 217, 0.25)", // Plus vif
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#7f8c8d",
+    fontWeight: "700",
+    color: "#00d6d6", // Plus lumineux
+    textShadowColor: "rgba(0, 204, 204, 0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   swipeHint: {
     fontSize: 12,
-    color: "#bdc3c7",
+    color: "rgba(255, 255, 255, 0.5)",
+    fontWeight: "600",
   },
   cardContent: {
     width: "100%",
@@ -169,16 +171,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    borderRadius: 20,
+    margin: 2,
   },
   editAction: {
-    backgroundColor: "#3498db",
+    backgroundColor: "#00b8b8", // Nuance plus douce
+    shadowColor: "#00d9d9", // Ombre plus claire
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
   },
   deleteAction: {
-    backgroundColor: "#e74c3c",
+    backgroundColor: "#e85555", // Rouge plus doux
+    shadowColor: "#ff8080", // Ombre plus claire
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
   },
   actionText: {
-    color: "#ffffff",
-    fontSize: 12,
+    color: "#f5f5f5", // Blanc cassé
+    fontSize: 11,
+    fontWeight: "700",
     marginTop: 4,
+    textShadowColor: "rgba(0, 0, 0, 0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
 });

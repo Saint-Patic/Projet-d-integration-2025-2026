@@ -20,8 +20,8 @@ interface Match {
 
 export default function HomeScreen() {
   const [matches, setMatches] = useState<Match[]>([]);
+
   useEffect(() => {
-    // Utiliser le service pour obtenir les données des matchs
     getMatches().then((data) => {
       setMatches(data);
     });
@@ -29,7 +29,6 @@ export default function HomeScreen() {
 
   const editMatch = (matchId: number) => {
     console.log(`Édition du match ${matchId}`);
-    // Navigation vers écran d'édition
   };
 
   const deleteMatch = (matchId: number) => {
@@ -51,17 +50,14 @@ export default function HomeScreen() {
 
   const viewMatchDetails = (matchId: number) => {
     console.log(`Affichage des détails du match ${matchId}`);
-    // Navigation vers écran de détails
   };
 
   const startMatch = (matchId: number) => {
     console.log(`Démarrage du match ${matchId}`);
-    // Logic pour démarrer le match
   };
 
   const createNewMatch = () => {
     console.log("Création d'un nouveau match");
-    // Navigation vers écran de création
   };
 
   const getStatusText = (status: string) => {
@@ -80,11 +76,11 @@ export default function HomeScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "finished":
-        return "#27ae60";
+        return "#00cccc";
       case "ongoing":
-        return "#f39c12";
+        return "#ff6b6b";
       case "scheduled":
-        return "#3498db";
+        return "rgba(255, 255, 255, 0.7)";
       default:
         return "#7f8c8d";
     }
@@ -99,23 +95,28 @@ export default function HomeScreen() {
         onEdit={() => editMatch(match.id)}
         onDelete={() => deleteMatch(match.id)}
       >
-        {/* Match Info */}
         <View style={styles.matchInfo}>
           <View style={styles.teamsSection}>
             <View style={styles.teamRow}>
               <ThemedText style={styles.teamName}>{match.team1}</ThemedText>
-              <ThemedText style={styles.score}>{match.score1}</ThemedText>
+              <View style={styles.scoreContainer}>
+                <ThemedText style={styles.score}>{match.score1}</ThemedText>
+              </View>
             </View>
-            <ThemedText style={styles.versus}>VS</ThemedText>
+            <View style={styles.versusContainer}>
+              <ThemedText style={styles.versus}>VS</ThemedText>
+            </View>
             <View style={styles.teamRow}>
               <ThemedText style={styles.teamName}>{match.team2}</ThemedText>
-              <ThemedText style={styles.score}>{match.score2}</ThemedText>
+              <View style={styles.scoreContainer}>
+                <ThemedText style={styles.score}>{match.score2}</ThemedText>
+              </View>
             </View>
           </View>
 
           <View style={styles.matchMeta}>
             <View style={styles.dateContainer}>
-              <IconSymbol name="calendar" size={16} color="#7f8c8d" />
+              <IconSymbol name="calendar" size={16} color="#00cccc" />
               <ThemedText style={styles.date}>{match.date}</ThemedText>
             </View>
             <View
@@ -131,7 +132,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Actions */}
         <View style={styles.matchActions}>
           <TouchableOpacity
             style={[styles.actionButton, styles.primaryButton]}
@@ -158,14 +158,11 @@ export default function HomeScreen() {
 
   return (
     <ScreenLayout title="Historique des Matchs" titleOffset={8}>
-      {/* Matches Grid */}
       <View style={styles.matchesContainer}>
         {matches.map((match) => (
           <MatchCard key={match.id} match={match} />
         ))}
       </View>
-
-      {/* Add Match Button */}
       <AddButton onPress={createNewMatch} text="Nouveau Match" />
     </ScreenLayout>
   );
@@ -186,6 +183,9 @@ const styles = StyleSheet.create({
   teamsSection: {
     alignItems: "center",
     marginBottom: 15,
+    backgroundColor: "rgba(255, 255, 255, 0.04)", // Plus subtil
+    borderRadius: 15,
+    padding: 15,
   },
   teamRow: {
     flexDirection: "row",
@@ -196,22 +196,43 @@ const styles = StyleSheet.create({
   },
   teamName: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#2c3e50",
+    fontWeight: "700",
+    color: "#f0f0f0", // Blanc cassé
     flex: 1,
+    textShadowColor: "rgba(0, 217, 217, 0.25)", // Plus lumineux
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  scoreContainer: {
+    backgroundColor: "#00b8b8", // Nuance plus douce
+    borderRadius: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    minWidth: 40,
+    alignItems: "center",
+    shadowColor: "#00e6e6", // Plus clair
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
   },
   score: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#2c3e50",
-    minWidth: 30,
+    fontWeight: "800",
+    color: "#f5f5f5", // Blanc cassé
     textAlign: "center",
+  },
+  versusContainer: {
+    backgroundColor: "rgba(0, 217, 217, 0.15)", // Plus lumineux
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    marginVertical: 8,
   },
   versus: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#7f8c8d",
-    marginVertical: 5,
+    fontWeight: "800",
+    color: "#00d6d6", // Plus lumineux
   },
   matchMeta: {
     flexDirection: "row",
@@ -222,21 +243,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.08)", // Plus visible
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 15,
   },
   date: {
     fontSize: 14,
-    color: "#7f8c8d",
-    fontWeight: "500",
+    color: "#e8e8e8", // Gris plus clair
+    fontWeight: "600",
   },
   statusContainer: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   status: {
     fontSize: 12,
-    color: "#ffffff",
-    fontWeight: "600",
+    color: "#f5f5f5", // Blanc cassé
+    fontWeight: "700",
   },
   matchActions: {
     flexDirection: "row",
@@ -244,25 +274,37 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 12,
-    borderRadius: 6,
+    borderRadius: 20,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
   },
   primaryButton: {
-    backgroundColor: "#3498db",
+    backgroundColor: "#00a8a8c0", // Plus transparent et nuancé
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.18)",
   },
   primaryButtonText: {
-    color: "#ffffff",
-    fontWeight: "600",
+    color: "#f0f0f0", // Blanc cassé
+    fontWeight: "700",
+    fontSize: 15,
+    textShadowColor: "rgba(0, 0, 0, 0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   secondaryButton: {
-    backgroundColor: "#ecf0f1",
-    borderWidth: 1,
-    borderColor: "#bdc3c7",
+    backgroundColor: "rgba(255, 255, 255, 0.12)", // Plus visible
+    borderWidth: 2,
+    borderColor: "rgba(0, 217, 217, 0.35)", // Plus lumineux
   },
   secondaryButtonText: {
-    color: "#2c3e50",
-    fontWeight: "600",
+    color: "#00d6d6", // Plus lumineux
+    fontWeight: "700",
+    fontSize: 15,
   },
 });

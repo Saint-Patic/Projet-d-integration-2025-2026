@@ -1,8 +1,8 @@
-import { Link } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { Link } from "expo-router";
+import { StyleSheet } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 
 export default function ModalScreen() {
   return (
@@ -18,12 +18,21 @@ export default function ModalScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 20,
+    backgroundColor: "#4f4f5a",
   },
   link: {
     marginTop: 15,
     paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: "#00cccc",
+    borderRadius: 25,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });

@@ -17,7 +17,9 @@ export const AddButton: React.FC<AddButtonProps> = ({ onPress, text }) => {
         accessibilityRole="button"
         accessibilityLabel={text}
       >
-        <IconSymbol name="plus" size={20} color="#ffffff" />
+        <View style={styles.iconContainer}>
+          <IconSymbol name="plus" size={24} color="#ffffff" />
+        </View>
         <ThemedText style={styles.addText}>{text}</ThemedText>
       </TouchableOpacity>
     </View>
@@ -27,21 +29,44 @@ export const AddButton: React.FC<AddButtonProps> = ({ onPress, text }) => {
 const styles = StyleSheet.create({
   addSection: {
     alignItems: "center",
-    paddingVertical: 20,
+    paddingVertical: 30,
     paddingHorizontal: 20,
   },
   addButton: {
-    backgroundColor: "#27ae60",
+    backgroundColor: "#00b8b8d0", // Nuance plus douce du cyan
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    gap: 8,
+    paddingVertical: 18,
+    paddingHorizontal: 35,
+    borderRadius: 30,
+    gap: 12,
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    shadowColor: "#00e6e6", // Ombre plus claire
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 8,
+    minWidth: 200,
+    justifyContent: "center",
+  },
+  iconContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.25)", // Plus opaque
+    borderRadius: 20,
+    padding: 8,
+    shadowColor: "#004d4d", // Ombre plus foncée
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 4,
   },
   addText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
+    color: "#f5f5f5", // Blanc cassé plus doux
+    fontSize: 18,
+    fontWeight: "700",
+    textShadowColor: "rgba(0, 0, 0, 0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    letterSpacing: 0.5,
   },
 });
