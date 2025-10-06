@@ -18,7 +18,7 @@ interface ScreenLayoutProps {
 export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   title,
   children,
-  titleOffset = Platform.OS === "ios" ? 50 : 6,
+  titleOffset = 0,
 }: ScreenLayoutProps) => {
   return (
     <View
@@ -59,13 +59,14 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "rgba(0, 204, 204, 0.08)",
+    backgroundColor: "#4a4a55",
   },
   titleContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingTop: Platform.OS === "ios" ? 45 : 20,
+    paddingBottom: Platform.OS === "ios" ? 20 : 20,
     alignItems: "center",
-    backgroundColor: "rgba(0, 230, 230, 0.23)",
+    backgroundColor: "rgba(21, 146, 177, 0.23)",
     borderBottomWidth: 2,
     borderBottomColor: "rgba(0, 230, 230, 0.89)",
     overflow: "hidden",

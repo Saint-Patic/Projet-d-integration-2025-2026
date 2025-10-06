@@ -29,7 +29,7 @@ export default function ProfilScreen() {
   };
 
   return (
-    <ScreenLayout title="Profil" titleOffset={8}>
+    <ScreenLayout title="Profil">
       <View style={styles.container}>
         <View style={styles.profileImageContainer}>
           <Image source={user.image} style={styles.profileImage} />

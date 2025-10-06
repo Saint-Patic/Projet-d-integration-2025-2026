@@ -151,7 +151,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScreenLayout title="Historique des Matchs" titleOffset={8}>
+    <ScreenLayout title="Historique des Matchs">
       <View style={styles.matchesContainer}>
         {matches.map((match) => (
           <MatchCard key={match.id} match={match} />
