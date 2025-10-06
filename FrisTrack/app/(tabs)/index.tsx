@@ -65,31 +65,6 @@ export default function HomeScreen() {
     console.log("Création d'un nouveau match");
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "finished":
-        return "Terminé";
-      case "ongoing":
-        return "En cours";
-      case "scheduled":
-        return "Programmé";
-      default:
-        return "Inconnu";
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "finished":
-        return "#00cccc";
-      case "ongoing":
-        return "#ff6b6b";
-      case "scheduled":
-        return "rgba(255, 255, 255, 0.7)";
-      default:
-        return "#7f8c8d";
-    }
-  };
   const getTeamTextColor = (match: Match, isTeam1: boolean) => {
     if (match.status !== "finished") {
       return "#f0f0f0"; // Couleur par défaut
