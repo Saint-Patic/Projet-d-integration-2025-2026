@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import {
+  View,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Platform,
+} from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { SwipeableCard } from "@/components/swipeableCard";
 import { ScreenLayout } from "@/components/screenLayout";
@@ -67,9 +73,11 @@ export default function TeamScreen() {
       >
         <View style={styles.teamInfo}>
           <View style={styles.teamNameSection}>
-            <ThemedText style={styles.teamName}>{team.name}</ThemedText>
+            <ThemedText style={[styles.teamName, { color: team.color }]}>
+              {team.name}
+            </ThemedText>
             <View style={styles.playerCountContainer}>
-              <MaterialIcons name="person" size={16} color="#00cccc" />
+              <MaterialIcons name="person" size={16} color={team.color} />
               <ThemedText style={styles.playerCount}>
                 {team.playerCount}
               </ThemedText>
@@ -109,7 +117,6 @@ export default function TeamScreen() {
   );
 }
 
-// ...existing code...
 const styles = StyleSheet.create({
   teamsContainer: {
     flexDirection: "row",
@@ -118,6 +125,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     gap: 15,
+    backgroundColor: Platform.OS === "android" ? "#4a4a55" : "transparent",
   },
   teamInfo: {
     marginBottom: 20,
@@ -128,9 +136,9 @@ const styles = StyleSheet.create({
   teamName: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#f0f0f0", // Blanc cassé
+    color: "#f0f0f0",
     marginBottom: 8,
-    textShadowColor: "rgba(0, 217, 217, 0.25)", // Plus lumineux
+    textShadowColor: "rgba(0, 217, 217, 0.25)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
@@ -138,16 +146,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.08)", // Plus visible
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.08)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: "rgba(0, 217, 217, 0.25)", // Plus lumineux
+    borderColor: "rgba(0, 217, 217, 0.25)",
+    overflow: "hidden",
   },
   playerCount: {
     fontSize: 16,
-    color: "#e8e8e8", // Gris clair
+    color: "#e8e8e8",
     fontWeight: "600",
   },
   teamActions: {
@@ -160,19 +171,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 20,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    ...(Platform.OS === "ios" && {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+    }),
     elevation: 5,
+    overflow: "hidden",
   },
   primaryButton: {
-    backgroundColor: "#00b8b8", // Nuance plus douce
+    backgroundColor: "#00b8b8",
     borderWidth: 2,
     borderColor: "rgba(255, 255, 255, 0.18)",
   },
   primaryButtonText: {
-    color: "#f0f0f0", // Blanc cassé
+    color: "#f0f0f0",
     fontWeight: "700",
     fontSize: 15,
     textShadowColor: "rgba(0, 0, 0, 0.4)",
@@ -180,12 +194,14 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   secondaryButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.12)", // Plus visible
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.12)",
     borderWidth: 2,
-    borderColor: "rgba(0, 217, 217, 0.35)", // Plus lumineux
+    borderColor: "rgba(0, 217, 217, 0.35)",
   },
   secondaryButtonText: {
-    color: "#00d6d6", // Plus lumineux
+    color: "#00d6d6",
     fontWeight: "700",
     fontSize: 15,
   },

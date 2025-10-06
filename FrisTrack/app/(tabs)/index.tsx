@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { View, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import {
+  View,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Platform,
+} from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SwipeableCard } from "@/components/swipeableCard";
@@ -176,6 +182,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     gap: 15,
+    backgroundColor: Platform.OS === "android" ? "#4a4a55" : "transparent",
   },
   matchInfo: {
     marginBottom: 20,
@@ -183,9 +190,12 @@ const styles = StyleSheet.create({
   teamsSection: {
     alignItems: "center",
     marginBottom: 15,
-    backgroundColor: "rgba(255, 255, 255, 0.04)", // Plus subtil
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.04)",
     borderRadius: 15,
     padding: 15,
+    overflow: "hidden",
   },
   teamRow: {
     flexDirection: "row",
@@ -197,42 +207,48 @@ const styles = StyleSheet.create({
   teamName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#f0f0f0", // Blanc cassé
+    color: "#f0f0f0",
     flex: 1,
-    textShadowColor: "rgba(0, 217, 217, 0.25)", // Plus lumineux
+    textShadowColor: "rgba(0, 217, 217, 0.25)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   scoreContainer: {
-    backgroundColor: "#00b8b8", // Nuance plus douce
+    // Fix Android background
+    backgroundColor: Platform.OS === "android" ? "#00a8a8" : "#00b8b84e",
     borderRadius: 15,
     paddingHorizontal: 12,
     paddingVertical: 6,
     minWidth: 40,
     alignItems: "center",
-    shadowColor: "#00e6e6", // Plus clair
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
+    ...(Platform.OS === "ios" && {
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.35,
+      shadowRadius: 6,
+    }),
     elevation: 4,
+    overflow: "hidden",
   },
   score: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#f5f5f5", // Blanc cassé
+    color: "#f5f5f5",
     textAlign: "center",
   },
   versusContainer: {
-    backgroundColor: "rgba(0, 217, 217, 0.15)", // Plus lumineux
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(0, 217, 217, 0.15)",
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 5,
     marginVertical: 8,
+    overflow: "hidden",
   },
   versus: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#00d6d6", // Plus lumineux
+    color: "#00d6d6",
   },
   matchMeta: {
     flexDirection: "row",
@@ -243,29 +259,35 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.08)", // Plus visible
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.08)",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 15,
+    overflow: "hidden",
   },
   date: {
     fontSize: 14,
-    color: "#e8e8e8", // Gris plus clair
+    color: "#e8e8e8",
     fontWeight: "600",
   },
   statusContainer: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    ...(Platform.OS === "ios" && {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+    }),
     elevation: 3,
+    overflow: "hidden",
   },
   status: {
     fontSize: 12,
-    color: "#f5f5f5", // Blanc cassé
+    color: "#f5f5f5",
     fontWeight: "700",
   },
   matchActions: {
@@ -278,19 +300,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 20,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    ...(Platform.OS === "ios" && {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+    }),
     elevation: 5,
+    overflow: "hidden",
   },
   primaryButton: {
-    backgroundColor: "#00a8a8c0", // Plus transparent et nuancé
+    // Fix Android background
+    backgroundColor: Platform.OS === "android" ? "#00a8a8" : "#00a8a8c0",
     borderWidth: 2,
     borderColor: "rgba(255, 255, 255, 0.18)",
   },
   primaryButtonText: {
-    color: "#f0f0f0", // Blanc cassé
+    color: "#f0f0f0",
     fontWeight: "700",
     fontSize: 15,
     textShadowColor: "rgba(0, 0, 0, 0.4)",
@@ -298,12 +324,14 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   secondaryButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.12)", // Plus visible
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.12)",
     borderWidth: 2,
-    borderColor: "rgba(0, 217, 217, 0.35)", // Plus lumineux
+    borderColor: "rgba(0, 217, 217, 0.35)",
   },
   secondaryButtonText: {
-    color: "#00d6d6", // Plus lumineux
+    color: "#00d6d6",
     fontWeight: "700",
     fontSize: 15,
   },

@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { StyleSheet, View, Dimensions } from "react-native";
+import { StyleSheet, View, Dimensions, Platform } from "react-native";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated, {
   useAnimatedStyle,
@@ -123,20 +123,32 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderRadius: 20,
     overflow: "hidden",
-    shadowColor: "#00b3b3", // Nuance plus douce
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 15,
+    // Android-specific background fix
+    backgroundColor: Platform.OS === "android" ? "#4a4a55" : "transparent",
+    // Supprimer shadowColor sur Android et utiliser elevation uniquement
+    ...(Platform.OS === "ios" && {
+      shadowColor: "#00b3b3",
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.25,
+      shadowRadius: 15,
+    }),
     elevation: 8,
   },
   card: {
-    backgroundColor: "rgba(255, 255, 255, 0.12)", // Légèrement plus opaque
+    // Fix Android background rendering
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.12)",
     borderTopWidth: 4,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(0, 230, 230, 0.18)", // Plus lumineux
-    backdropFilter: "blur(10px)",
+    borderColor: "rgba(0, 230, 230, 0.18)",
+    // Supprimer backdrop-filter qui peut causer des problèmes sur Android
+    ...(Platform.OS === "ios" && {
+      backdropFilter: "blur(10px)",
+    }),
+    // Ajouter overflow hidden pour Android
+    overflow: "hidden",
   },
   cardHeader: {
     flexDirection: "row",
@@ -175,19 +187,29 @@ const styles = StyleSheet.create({
     margin: 2,
   },
   editAction: {
-    backgroundColor: "#00b8b8", // Nuance plus douce
-    shadowColor: "#00d9d9", // Ombre plus claire
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
+    backgroundColor: "#00b8b8",
+    borderRadius: 20,
+    margin: 2,
+    overflow: "hidden", // Ajouter pour Android
+    ...(Platform.OS === "ios" && {
+      shadowColor: "#00d9d9",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+    }),
     elevation: 6,
   },
   deleteAction: {
-    backgroundColor: "#e85555", // Rouge plus doux
-    shadowColor: "#ff8080", // Ombre plus claire
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
+    backgroundColor: "#e85555",
+    borderRadius: 20,
+    margin: 2,
+    overflow: "hidden", // Ajouter pour Android
+    ...(Platform.OS === "ios" && {
+      shadowColor: "#ff8080",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+    }),
     elevation: 6,
   },
   actionText: {

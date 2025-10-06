@@ -31,7 +31,6 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
         },
       ]}
     >
-      {/* Fixed Title */}
       <ThemedView style={styles.titleContainer}>
         <ThemedText
           type="title"
@@ -47,7 +46,6 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
         </ThemedText>
       </ThemedView>
 
-      {/* Scrollable Content */}
       <ScrollView
         style={styles.scrollableContent}
         showsVerticalScrollIndicator={false}
@@ -61,20 +59,23 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#4a4a55", // Nuance plus claire du background
+    backgroundColor: "#4a4a55",
   },
   titleContainer: {
     paddingHorizontal: 20,
     paddingVertical: 20,
     alignItems: "center",
-    backgroundColor: "rgba(0, 204, 204, 0.08)", // Plus subtil
+    backgroundColor: "rgba(0, 204, 204, 0.08)",
     borderBottomWidth: 2,
-    borderBottomColor: "rgba(0, 230, 230, 0.25)", // Plus lumineux
-    shadowColor: "#00d9d9", // Ombre plus vive
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
+    borderBottomColor: "rgba(0, 230, 230, 0.25)",
+    ...(Platform.OS === "ios" && {
+      shadowColor: "#00d9d9",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.18,
+      shadowRadius: 10,
+    }),
     elevation: 8,
+    overflow: "hidden",
   },
   scrollableContent: {
     flex: 1,
@@ -82,8 +83,8 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#f0f0f0", // Blanc cassé
-    textShadowColor: "rgba(0, 230, 230, 0.5)", // Plus lumineux
+    color: "#f0f0f0",
+    textShadowColor: "rgba(0, 230, 230, 0.5)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
     letterSpacing: 1,

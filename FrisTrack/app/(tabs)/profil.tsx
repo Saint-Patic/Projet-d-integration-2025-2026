@@ -1,5 +1,5 @@
 import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/screenLayout";
@@ -92,12 +92,12 @@ export default function ProfilScreen() {
   );
 }
 
-// ...existing code...
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     paddingTop: 32,
     flex: 1,
+    backgroundColor: Platform.OS === "android" ? "#4a4a55" : "transparent",
   },
   profileImageContainer: {
     position: "relative",
@@ -107,46 +107,64 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    borderWidth: 4,
-    borderColor: "#00b8b8", // Nuance plus douce
-    shadowColor: "#00d9d9", // Plus lumineux
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
+    // Supprimer borderWidth et borderColor sur Android
+    ...(Platform.OS === "ios"
+      ? {
+          borderWidth: 4,
+          borderColor: "#00b8b8",
+          shadowColor: "#00d9d9",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.4,
+          shadowRadius: 12,
+        }
+      : {
+          // Sur Android, utiliser une approche différente
+          backgroundColor: "#00b8b8",
+        }),
     elevation: 8,
   },
   imageGlow: {
     position: "absolute",
-    top: -5,
-    left: -5,
-    right: -5,
-    bottom: -5,
-    borderRadius: 65,
-    backgroundColor: "rgba(0, 217, 217, 0.15)", // Plus lumineux
+    // Ajuster pour Android
+    top: Platform.OS === "android" ? -2 : -5,
+    left: Platform.OS === "android" ? -2 : -5,
+    right: Platform.OS === "android" ? -2 : -5,
+    bottom: Platform.OS === "android" ? -2 : -5,
+    borderRadius: Platform.OS === "android" ? 62 : 65,
+    backgroundColor: "rgba(0, 217, 217, 0.15)",
     zIndex: -1,
   },
   name: {
     fontSize: 26,
     fontWeight: "800",
     marginBottom: 24,
-    color: "#f0f0f0", // Blanc cassé
-    textShadowColor: "rgba(0, 230, 230, 0.4)", // Plus lumineux
+    color: "#f0f0f0",
+    textShadowColor: "rgba(0, 230, 230, 0.5)",
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+    textShadowRadius: 8,
+    letterSpacing: 1,
   },
   infoContainer: {
     marginBottom: 32,
     width: "85%",
-    backgroundColor: "rgba(255, 255, 255, 0.08)", // Plus visible
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.08)",
     borderRadius: 20,
     padding: 20,
-    borderWidth: 1,
-    borderColor: "rgba(0, 217, 217, 0.25)", // Plus lumineux
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
+    // Supprimer borderWidth et borderColor sur Android
+    ...(Platform.OS === "ios"
+      ? {
+          borderWidth: 1,
+          borderColor: "rgba(0, 217, 217, 0.25)",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.25,
+          shadowRadius: 10,
+        }
+      : {}),
     elevation: 6,
+    overflow: "hidden",
   },
   infoRow: {
     flexDirection: "row",
@@ -154,16 +172,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 217, 217, 0.15)", // Plus lumineux
+    borderBottomColor: "rgba(0, 217, 217, 0.15)",
   },
   infoLabel: {
     fontSize: 16,
-    color: "#e8e8e8", // Gris clair
+    color: "#e8e8e8",
     fontWeight: "600",
   },
   infoValue: {
     fontSize: 16,
-    color: "#00d6d6", // Plus lumineux
+    color: "#00d6d6",
     fontWeight: "700",
   },
   buttonContainer: {
@@ -174,27 +192,46 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 25,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
+    // Supprimer borderWidth sur Android
+    ...(Platform.OS === "ios"
+      ? {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.25,
+          shadowRadius: 10,
+          borderWidth: 2,
+        }
+      : {}),
     elevation: 6,
-    borderWidth: 2,
+    overflow: "hidden",
   },
   editButton: {
-    backgroundColor: "#00b8b8", // Nuance plus douce
-    borderColor: "rgba(255, 255, 255, 0.25)",
+    backgroundColor: "#00b8b8",
+    // Appliquer borderColor seulement sur iOS
+    ...(Platform.OS === "ios" && {
+      borderColor: "rgba(255, 255, 255, 0.25)",
+    }),
   },
   sensorButton: {
-    backgroundColor: "rgba(0, 184, 184, 0.7)", // Plus transparent
-    borderColor: "rgba(255, 255, 255, 0.18)",
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#00a0a0" : "rgba(0, 184, 184, 0.7)",
+    // Appliquer borderColor seulement sur iOS
+    ...(Platform.OS === "ios" && {
+      borderColor: "rgba(255, 255, 255, 0.18)",
+    }),
   },
   logoutButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.08)", // Plus subtil
-    borderColor: "rgba(232, 85, 85, 0.5)", // Rouge plus doux
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.08)",
+    // Appliquer borderColor seulement sur iOS
+    ...(Platform.OS === "ios" && {
+      borderColor: "rgba(232, 85, 85, 0.5)",
+    }),
   },
   buttonText: {
-    color: "#f0f0f0", // Blanc cassé
+    color: "#f0f0f0",
     fontWeight: "700",
     fontSize: 16,
     textShadowColor: "rgba(0, 0, 0, 0.4)",
