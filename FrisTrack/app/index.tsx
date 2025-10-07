@@ -16,9 +16,38 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // Regex pour valider l'email
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+  // Regex pour valider le mot de passe
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
+
+  function validateEmail(email: string): boolean {
+    return emailRegex.test(email);
+  }
+
+  function validateMdp(mdp: string): boolean {
+    return passwordRegex.test(mdp);
+  }
 
   function handleSubmit() {
+    setErrorMessage(""); // Reset error message
+
     if (isLogin) {
+      if (password === "" || email === "") {
+        setErrorMessage("Email et/ou mot de passe non fourni");
+        return;
+      }
+
+      // Vérifier le format de l'email
+      if (!validateEmail(email)) {
+        setErrorMessage("Veuillez entrer une adresse email valide");
+        return;
+      }
+
       // Rediriger vers l'app principale après connexion réussie
       Alert.alert("Connexion", `Tentative de connexion avec ${email}`, [
         {
@@ -27,10 +56,30 @@ export default function AuthPage() {
         },
       ]);
     } else {
-      if (password !== confirmPassword) {
-        Alert.alert("Erreur", "Les mots de passe ne correspondent pas !");
+      if (password === "" || email === "" || confirmPassword === "") {
+        setErrorMessage("Tous les champs sont obligatoires");
         return;
       }
+
+      // Vérifier le format de l'email
+      if (!validateEmail(email)) {
+        setErrorMessage("Veuillez entrer une adresse email valide");
+        return;
+      }
+
+      // Vérifier la force du mot de passe
+      if (!validateMdp(password)) {
+        setErrorMessage(
+          "Le mot de passe doit contenir au moins :\n• 10 caractères\n• 1 majuscule\n• 1 minuscule\n• 1 chiffre\n• 1 caractère spécial (@$!%*?&)"
+        );
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setErrorMessage("Les mots de passe ne correspondent pas !");
+        return;
+      }
+
       Alert.alert(
         "Inscription",
         `Création d'un nouvel utilisateur : ${email}`,
@@ -46,6 +95,7 @@ export default function AuthPage() {
 
   function toggleMode() {
     setIsLogin(!isLogin);
+    setErrorMessage(""); // Reset error message when switching modes
   }
 
   return (
@@ -61,7 +111,10 @@ export default function AuthPage() {
           placeholder="Email"
           placeholderTextColor="rgba(255, 255, 255, 0.6)"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(text) => {
+            setEmail(text);
+            setErrorMessage(""); // Clear error when user types
+          }}
           style={styles.input}
           keyboardType="email-address"
           autoCapitalize="none"
@@ -71,7 +124,10 @@ export default function AuthPage() {
           placeholder="Mot de passe"
           placeholderTextColor="rgba(255, 255, 255, 0.6)"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(text) => {
+            setPassword(text);
+            setErrorMessage(""); // Clear error when user types
+          }}
           style={styles.input}
           secureTextEntry
         />
@@ -81,10 +137,17 @@ export default function AuthPage() {
             placeholder="Confirmez le mot de passe"
             placeholderTextColor="rgba(255, 255, 255, 0.6)"
             value={confirmPassword}
-            onChangeText={setConfirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              setErrorMessage(""); // Clear error when user types
+            }}
             style={styles.input}
             secureTextEntry
           />
+        )}
+
+        {errorMessage !== "" && (
+          <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
         )}
 
         <TouchableOpacity onPress={handleSubmit} style={styles.button}>
@@ -167,6 +230,15 @@ const styles = StyleSheet.create({
     }),
     elevation: 4,
     overflow: "hidden",
+  },
+  errorText: {
+    color: "#ff4444",
+    fontSize: 12,
+    fontWeight: "500",
+    marginBottom: 15,
+    marginTop: -5,
+    paddingHorizontal: 5,
+    lineHeight: 16,
   },
   button: {
     // Fix Android background
