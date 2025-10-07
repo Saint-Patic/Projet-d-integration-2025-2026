@@ -1,11 +1,16 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import { TextInput, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useThemeColor } from "@/hooks/use-theme-color";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const tint = useThemeColor({}, "tint");
+  const linkColor = useThemeColor({}, "tint");
 
   function handleSubmit() {
     if (isLogin) {
@@ -24,12 +29,15 @@ export default function AuthPage() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{isLogin ? "Connexion" : "Créer un compte"}</Text>
+    <ThemedView style={styles.container}>
+      <ThemedText type="title" style={styles.title}>
+        {isLogin ? "Connexion" : "Créer un compte"}
+      </ThemedText>
 
-      <View style={styles.form}>
+      <ThemedView style={styles.form}>
         <TextInput
           placeholder="Email"
+          placeholderTextColor="#888"
           value={email}
           onChangeText={setEmail}
           style={styles.input}
@@ -39,6 +47,7 @@ export default function AuthPage() {
 
         <TextInput
           placeholder="Mot de passe"
+          placeholderTextColor="#888"
           value={password}
           onChangeText={setPassword}
           style={styles.input}
@@ -48,6 +57,7 @@ export default function AuthPage() {
         {!isLogin && (
           <TextInput
             placeholder="Confirmez le mot de passe"
+            placeholderTextColor="#888"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             style={styles.input}
@@ -55,24 +65,24 @@ export default function AuthPage() {
           />
         )}
 
-        <TouchableOpacity onPress={handleSubmit} style={styles.button}>
-          <Text style={styles.buttonText}>
+        <TouchableOpacity onPress={handleSubmit} style={[styles.button, { backgroundColor: tint }]}>
+          <ThemedText style={styles.buttonText}>
             {isLogin ? "Se connecter" : "S’inscrire"}
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
-      </View>
+      </ThemedView>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
+      <ThemedView style={styles.footer}>
+        <ThemedText style={styles.footerText}>
           {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}
-        </Text>
+        </ThemedText>
         <TouchableOpacity onPress={toggleMode}>
-          <Text style={styles.linkText}>
+          <ThemedText style={[styles.linkText, { color: linkColor }]}>
             {isLogin ? "Créer un compte" : "Se connecter"}
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
-      </View>
-    </View>
+      </ThemedView>
+    </ThemedView>
   );
 }
 
