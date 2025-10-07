@@ -1,22 +1,43 @@
 import React, { useEffect } from "react";
-import { View, Image, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import {
+  View,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/screenLayout";
-import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useNavigation } from "expo-router";
+import { BackButton } from "@/components/BackButton";
 
 // Exemple de données fictives
 const fakeMembers = [
-  { id: 1, name: "Nathan Lemaire", image: require("@/assets/images/nathan.png") },
-  { id: 2, name: "Antoine Bontems", image: require("@/assets/images/lezard.png") },
-  { id: 3, name: "Alexis Demarcq", image: require("@/assets/images/react-logo.png") },
-  { id: 4, name: "Cyril Lamand", image: require("@/assets/images/partial-react-logo.png") },
+  {
+    id: 1,
+    name: "Nathan Lemaire",
+    image: require("@/assets/images/nathan.png"),
+  },
+  {
+    id: 2,
+    name: "Antoine Bontems",
+    image: require("@/assets/images/lezard.png"),
+  },
+  {
+    id: 3,
+    name: "Alexis Demarcq",
+    image: require("@/assets/images/react-logo.png"),
+  },
+  {
+    id: 4,
+    name: "Cyril Lamand",
+    image: require("@/assets/images/partial-react-logo.png"),
+  },
   { id: 5, name: "Jiale Wu", image: require("@/assets/images/react-logo.png") },
 ];
 
 export default function TeamDetailsScreen() {
   const { teamId, teamName } = useLocalSearchParams();
-  const router = useRouter();
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -35,20 +56,16 @@ export default function TeamDetailsScreen() {
     console.log("Ajouter un joueur à l'équipe", teamId);
   };
 
-  const handleGoBack = () => {
-    router.back();
-  };
-
-  const BackButton = () => (
-    <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 4, marginRight: 8 }}>
-      <Ionicons name="arrow-back" size={28} color="#00b8b8" />
-    </TouchableOpacity>
-  );
-
   return (
     <ScreenLayout
       title={"Détails de l'équipe"}
-      headerLeft={<BackButton />}
+      headerLeft={
+        <BackButton
+          color="#00b8b8"
+          size={28}
+          style={{ marginLeft: 4, marginRight: 8 }}
+        />
+      }
     >
       <View style={styles.headerRow}>
         <ThemedText style={styles.headerTitle}>{teamName}</ThemedText>
@@ -65,7 +82,9 @@ export default function TeamDetailsScreen() {
             {row.map((item) => (
               <View style={styles.memberContainer} key={item.id}>
                 <TouchableOpacity
-                  onPress={() => console.log(`Joueur: ${item.name}, id: ${item.id}`)}
+                  onPress={() =>
+                    console.log(`Joueur: ${item.name}, id: ${item.id}`)
+                  }
                   activeOpacity={0.7}
                 >
                   <Image source={item.image} style={styles.memberImage} />

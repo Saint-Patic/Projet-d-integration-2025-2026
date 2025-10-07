@@ -1,16 +1,10 @@
 import React, { useState } from "react";
-import {
-  View,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-  Switch,
-} from "react-native";
+import { View, StyleSheet, Platform, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/screenLayout";
+import { BackButton } from "@/components/BackButton";
 
 export default function SettingsScreen() {
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -36,12 +30,6 @@ export default function SettingsScreen() {
     setSelectedColor(color);
     console.log("Couleur sélectionnée:", color);
   };
-
-  const BackButton = () => (
-    <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 16 }}>
-      <Ionicons name="arrow-back" size={24} color="#00d6d6" />
-    </TouchableOpacity>
-  );
 
   return (
     <ScreenLayout title="Paramètres" headerLeft={<BackButton />}>
@@ -133,6 +121,7 @@ export default function SettingsScreen() {
   );
 }
 
+// ...existing code... (styles restent identiques)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
