@@ -1,112 +1,253 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from "react";
+import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { ThemedText } from "@/components/themed-text";
+import { ScreenLayout } from "@/components/screenLayout";
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+export default function ProfilScreen() {
+  const user = {
+    nom: "Lemaire",
+    prenom: "Nathan",
+    image: require("@/assets/images/nathan.png"),
+    pointure: 37,
+    main: "Droite",
+    poids: 52.5,
+    taille: 157,
+    age: 22,
+  };
 
-export default function TabTwoScreen() {
+  const editProfile = () => {
+    console.log("Modifier les informations du profil");
+  };
+
+  const connectSensor = () => {
+    console.log("Connexion à un capteur");
+  };
+
+  const logout = () => {
+    console.log("Déconnexion");
+  };
+
+  const settings = () => {
+    router.push("/settings");
+  };
+
+  const HeaderRight = () => (
+    <TouchableOpacity onPress={settings} style={{ marginRight: 16 }}>
+      <Ionicons name="settings-outline" size={24} color="#00d6d6" />
+    </TouchableOpacity>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
+    <ScreenLayout title="Profil" headerRight={<HeaderRight />}>
+      <View style={styles.container}>
+        <View style={styles.profileImageContainer}>
+          <Image source={user.image} style={styles.profileImage} />
+          <View style={styles.imageGlow} />
+        </View>
+
+        <ThemedText style={styles.name}>
+          {user.prenom} {user.nom}
         </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
+
+        <View style={styles.infoContainer}>
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Pointure</ThemedText>
+            <ThemedText style={styles.infoValue}>{user.pointure}</ThemedText>
+          </View>
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Main dominante</ThemedText>
+            <ThemedText style={styles.infoValue}>{user.main}</ThemedText>
+          </View>
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Poids</ThemedText>
+            <ThemedText style={styles.infoValue}>{user.poids} kg</ThemedText>
+          </View>
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Taille</ThemedText>
+            <ThemedText style={styles.infoValue}>{user.taille} cm</ThemedText>
+          </View>
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Âge</ThemedText>
+            <ThemedText style={styles.infoValue}>{user.age} ans</ThemedText>
+          </View>
+        </View>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.editButton]}
+            onPress={editProfile}
+          >
+            <ThemedText style={styles.buttonText}>
+              Modifier les informations
             </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.sensorButton]}
+            onPress={connectSensor}
+          >
+            <ThemedText style={styles.buttonText}>
+              Se connecter à un capteur
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.logoutButton]}
+            onPress={logout}
+          >
+            <ThemedText style={styles.buttonText}>Se déconnecter</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    alignItems: "center",
+    paddingTop: 32,
+    flex: 1,
+    backgroundColor: Platform.OS === "android" ? "#4a4a55" : "transparent",
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  profileImageContainer: {
+    position: "relative",
+    marginBottom: 24,
+  },
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    // Supprimer borderWidth et borderColor sur Android
+    ...(Platform.OS === "ios"
+      ? {
+          borderWidth: 4,
+          borderColor: "#00b8b8",
+          shadowColor: "#00d9d9",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.4,
+          shadowRadius: 12,
+        }
+      : {
+          // Sur Android, utiliser une approche différente
+          backgroundColor: "#00b8b8",
+        }),
+    elevation: 8,
+  },
+  imageGlow: {
+    position: "absolute",
+    // Ajuster pour Android
+    top: Platform.OS === "android" ? -2 : -5,
+    left: Platform.OS === "android" ? -2 : -5,
+    right: Platform.OS === "android" ? -2 : -5,
+    bottom: Platform.OS === "android" ? -2 : -5,
+    borderRadius: Platform.OS === "android" ? 62 : 65,
+    backgroundColor: "rgba(0, 217, 217, 0.15)",
+    zIndex: -1,
+  },
+  name: {
+    fontSize: 26,
+    fontWeight: "800",
+    marginBottom: 24,
+    color: "#f0f0f0",
+    textShadowColor: "rgba(0, 230, 230, 0.5)",
+    textShadowOffset: { width: 0, height: 2 },
+    letterSpacing: 1,
+  },
+  infoContainer: {
+    marginBottom: 32,
+    width: "85%",
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.08)",
+    borderRadius: 20,
+    padding: 20,
+    // Supprimer borderWidth et borderColor sur Android
+    ...(Platform.OS === "ios"
+      ? {
+          borderWidth: 1,
+          borderColor: "rgba(0, 217, 217, 0.25)",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.25,
+          shadowRadius: 10,
+        }
+      : {}),
+    elevation: 6,
+    overflow: "hidden",
+  },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 217, 217, 0.15)",
+  },
+  infoLabel: {
+    fontSize: 16,
+    color: "#e8e8e8",
+    fontWeight: "600",
+  },
+  infoValue: {
+    fontSize: 16,
+    color: "#00d6d6",
+    fontWeight: "700",
+  },
+  buttonContainer: {
+    width: "85%",
+    gap: 16,
+  },
+  actionButton: {
+    paddingVertical: 16,
+    borderRadius: 25,
+    alignItems: "center",
+    // Supprimer borderWidth sur Android
+    ...(Platform.OS === "ios"
+      ? {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.25,
+          shadowRadius: 10,
+          borderWidth: 2,
+        }
+      : {}),
+    elevation: 6,
+    overflow: "hidden",
+  },
+  editButton: {
+    backgroundColor: "#00b8b8",
+    // Appliquer borderColor seulement sur iOS
+    ...(Platform.OS === "ios" && {
+      borderColor: "rgba(255, 255, 255, 0.25)",
+    }),
+  },
+  sensorButton: {
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#00a0a0" : "rgba(0, 184, 184, 0.7)",
+    // Appliquer borderColor seulement sur iOS
+    ...(Platform.OS === "ios" && {
+      borderColor: "rgba(255, 255, 255, 0.18)",
+    }),
+  },
+  logoutButton: {
+    marginBottom: 10,
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.08)",
+    // Appliquer borderColor seulement sur iOS
+    ...(Platform.OS === "ios" && {
+      borderColor: "rgba(232, 85, 85, 0.5)",
+    }),
+  },
+  buttonText: {
+    color: "#f0f0f0",
+    fontWeight: "700",
+    fontSize: 16,
+    textShadowColor: "rgba(0, 0, 0, 0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
 });

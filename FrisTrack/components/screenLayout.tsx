@@ -13,27 +13,30 @@ interface ScreenLayoutProps {
   title: string;
   children: React.ReactNode;
   titleOffset?: number;
+  headerRight?: React.ReactNode;
+  headerLeft?: React.ReactNode;
 }
 
 export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   title,
   children,
-  titleOffset = 6,
+  titleOffset = 0,
+  headerRight,
+  headerLeft,
 }: ScreenLayoutProps) => {
   return (
     <View
       style={[
         styles.container,
         {
-          // Ajoute la hauteur de la status bar Android + offset demandé
           paddingTop:
             (Platform.OS === "android" ? StatusBar.currentHeight ?? 0 : 0) +
             titleOffset,
         },
       ]}
     >
-      {/* Fixed Title */}
       <ThemedView style={styles.titleContainer}>
+        {headerLeft && <View style={styles.headerLeft}>{headerLeft}</View>}
         <ThemedText
           type="title"
           style={[
@@ -46,9 +49,9 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
         >
           {title}
         </ThemedText>
+        {headerRight && <View style={styles.headerRight}>{headerRight}</View>}
       </ThemedView>
 
-      {/* Scrollable Content */}
       <ScrollView
         style={styles.scrollableContent}
         showsVerticalScrollIndicator={false}
@@ -62,22 +65,41 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#4a4a55",
   },
   titleContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingTop: Platform.OS === "ios" ? 45 : 20,
+    paddingBottom: Platform.OS === "ios" ? 20 : 20,
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e3e3e3",
+    backgroundColor: "rgba(21, 146, 177, 0.23)",
+    borderBottomWidth: 2,
+    borderBottomColor: "rgba(0, 230, 230, 0.89)",
+    overflow: "hidden",
+    position: "relative",
+  },
+  headerLeft: {
+    position: "absolute",
+    left: 20,
+    top: Platform.OS === "ios" ? 45 : 20,
+    bottom: Platform.OS === "ios" ? 20 : 20,
+    justifyContent: "center",
+  },
+  headerRight: {
+    position: "absolute",
+    right: 20,
+    top: Platform.OS === "ios" ? 45 : 20,
+    bottom: Platform.OS === "ios" ? 20 : 20,
+    justifyContent: "center",
   },
   scrollableContent: {
     flex: 1,
+    backgroundColor: "#4a4a55",
   },
   mainTitle: {
     fontSize: 28,
-    fontWeight: "bold",
-    color: "#2c3e50",
+    fontWeight: "800",
+    color: "#f0f0f0",
+    letterSpacing: 1,
   },
 });
