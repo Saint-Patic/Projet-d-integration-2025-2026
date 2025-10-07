@@ -49,7 +49,6 @@ export default function TeamDetailsScreen() {
     <ScreenLayout
       title={"Détails de l'équipe"}
       headerLeft={<BackButton />}
-      style={{ backgroundColor: "#23242a" }}
     >
       <View style={styles.headerRow}>
         <ThemedText style={styles.headerTitle}>{teamName}</ThemedText>
