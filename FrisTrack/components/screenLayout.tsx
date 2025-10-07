@@ -13,12 +13,16 @@ interface ScreenLayoutProps {
   title: string;
   children: React.ReactNode;
   titleOffset?: number;
+  headerRight?: React.ReactNode;
+  headerLeft?: React.ReactNode;
 }
 
 export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   title,
   children,
   titleOffset = 0,
+  headerRight,
+  headerLeft,
 }: ScreenLayoutProps) => {
   return (
     <View
@@ -32,6 +36,7 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
       ]}
     >
       <ThemedView style={styles.titleContainer}>
+        {headerLeft && <View style={styles.headerLeft}>{headerLeft}</View>}
         <ThemedText
           type="title"
           style={[
@@ -44,6 +49,7 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
         >
           {title}
         </ThemedText>
+        {headerRight && <View style={styles.headerRight}>{headerRight}</View>}
       </ThemedView>
 
       <ScrollView
@@ -70,6 +76,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "rgba(0, 230, 230, 0.89)",
     overflow: "hidden",
+    position: "relative",
+  },
+  headerLeft: {
+    position: "absolute",
+    left: 20,
+    top: Platform.OS === "ios" ? 45 : 20,
+    bottom: Platform.OS === "ios" ? 20 : 20,
+    justifyContent: "center",
+  },
+  headerRight: {
+    position: "absolute",
+    right: 20,
+    top: Platform.OS === "ios" ? 45 : 20,
+    bottom: Platform.OS === "ios" ? 20 : 20,
+    justifyContent: "center",
   },
   scrollableContent: {
     flex: 1,

@@ -1,6 +1,8 @@
 import React from "react";
 import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/screenLayout";
 
@@ -28,8 +30,18 @@ export default function ProfilScreen() {
     console.log("Déconnexion");
   };
 
+  const settings = () => {
+    router.push("/settings");
+  };
+
+  const HeaderRight = () => (
+    <TouchableOpacity onPress={settings} style={{ marginRight: 16 }}>
+      <Ionicons name="settings-outline" size={24} color="#00d6d6" />
+    </TouchableOpacity>
+  );
+
   return (
-    <ScreenLayout title="Profil">
+    <ScreenLayout title="Profil" headerRight={<HeaderRight />}>
       <View style={styles.container}>
         <View style={styles.profileImageContainer}>
           <Image source={user.image} style={styles.profileImage} />
@@ -141,7 +153,6 @@ const styles = StyleSheet.create({
     color: "#f0f0f0",
     textShadowColor: "rgba(0, 230, 230, 0.5)",
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
     letterSpacing: 1,
   },
   infoContainer: {
@@ -222,6 +233,7 @@ const styles = StyleSheet.create({
     }),
   },
   logoutButton: {
+    marginBottom: 10,
     // Fix Android background
     backgroundColor:
       Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.08)",
