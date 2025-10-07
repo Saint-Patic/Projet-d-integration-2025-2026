@@ -12,6 +12,7 @@ import { ScreenLayout } from "@/components/screenLayout";
 import { AddButton } from "@/components/addButton";
 import { getTeams } from "@/services/getTeams";
 import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
+import { useRouter } from "expo-router";
 
 interface Team {
   id: number;
@@ -22,6 +23,7 @@ interface Team {
 
 export default function TeamScreen() {
   const [teams, setTeams] = useState<Team[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     getTeams().then((data) => {
@@ -50,8 +52,8 @@ export default function TeamScreen() {
     );
   };
 
-  const viewTeamDetails = (teamId: number) => {
-    console.log(`Affichage des détails de l'équipe ${teamId}`);
+  const viewTeamDetails = (teamId: number, teamName: string) => {
+    router.push({ pathname: "/team-details", params: { teamId, teamName } });
   };
 
   const addPlayer = (teamId: number) => {
@@ -88,7 +90,7 @@ export default function TeamScreen() {
         <View style={styles.teamActions}>
           <TouchableOpacity
             style={[styles.actionButton, styles.primaryButton]}
-            onPress={() => viewTeamDetails(team.id)}
+            onPress={() => viewTeamDetails(team.id, team.name)}
           >
             <ThemedText style={styles.primaryButtonText}>
               Voir détails
