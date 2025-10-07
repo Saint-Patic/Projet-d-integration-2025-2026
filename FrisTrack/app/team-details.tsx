@@ -39,13 +39,19 @@ export default function TeamDetailsScreen() {
     router.back();
   };
 
+  const BackButton = () => (
+    <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 4, marginRight: 8 }}>
+      <Ionicons name="arrow-back" size={28} color="#00b8b8" />
+    </TouchableOpacity>
+  );
+
   return (
-    <ScreenLayout title={teamName}>
-      {/* Header custom avec bouton retour et nom de l'équipe */}
+    <ScreenLayout
+      title={"Détails de l'équipe"}
+      headerLeft={<BackButton />}
+      style={{ backgroundColor: "#23242a" }}
+    >
       <View style={styles.headerRow}>
-        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color="#00b8b8" />
-        </TouchableOpacity>
         <ThemedText style={styles.headerTitle}>{teamName}</ThemedText>
       </View>
       <View style={styles.listContent}>
@@ -84,17 +90,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
-    marginTop: 8,
-    marginLeft: 8,
-  },
-  backButton: {
-    marginRight: 8,
-    padding: 4,
+    marginTop: 16,
+    marginLeft: 16,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#00b8b8",
+    marginLeft: 8, // espace entre la flèche et le titre
   },
   listContent: {
     paddingHorizontal: 24,
