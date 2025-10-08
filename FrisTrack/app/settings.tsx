@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, StyleSheet, Platform, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/screenLayout";
 import { BackButton } from "@/components/BackButton";
+import { useNavigation } from "expo-router";
 
 export default function SettingsScreen() {
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -21,22 +22,54 @@ export default function SettingsScreen() {
     { label: "Marron", value: "#795548" },
   ];
 
+  // Fonction pour obtenir les couleurs du thème
+  const getThemeColors = () => {
+    return {
+      primary: selectedColor,
+      background: isDarkMode ? "#4a4a55" : "#f5f5f5",
+      surface: isDarkMode ? "#5a5a65" : "#ffffff",
+      text: isDarkMode ? "#f0f0f0" : "#333333",
+      textSecondary: isDarkMode ? "#a8a8a8" : "#666666",
+      border: isDarkMode ? `${selectedColor}40` : `${selectedColor}30`,
+    };
+  };
+
+  const theme = getThemeColors();
+
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
-    console.log("Mode sombre:", !isDarkMode);
   };
 
   const selectColor = (color: string) => {
     setSelectedColor(color);
-    console.log("Couleur sélectionnée:", color);
   };
 
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
+
   return (
-    <ScreenLayout title="Paramètres" headerLeft={<BackButton />}>
-      <View style={styles.container}>
+    <ScreenLayout
+      title="Paramètres"
+      headerLeft={<BackButton theme={theme} />}
+      theme={theme}
+    >
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Theme Section */}
-        <View style={styles.sectionContainer}>
-          <ThemedText style={styles.sectionTitle}>Apparence</ThemedText>
+        <View
+          style={[
+            styles.sectionContainer,
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
+            Apparence
+          </ThemedText>
 
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
@@ -47,8 +80,17 @@ export default function SettingsScreen() {
                 style={styles.settingIcon}
               />
               <View>
-                <ThemedText style={styles.settingLabel}>Mode sombre</ThemedText>
-                <ThemedText style={styles.settingDescription}>
+                <ThemedText
+                  style={[styles.settingLabel, { color: theme.text }]}
+                >
+                  Mode sombre
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.settingDescription,
+                    { color: theme.textSecondary },
+                  ]}
+                >
                   {isDarkMode ? "Activé" : "Désactivé"}
                 </ThemedText>
               </View>
@@ -63,22 +105,42 @@ export default function SettingsScreen() {
         </View>
 
         {/* Color Section */}
-        <View style={styles.sectionContainer}>
-          <ThemedText style={styles.sectionTitle}>Couleur du thème</ThemedText>
+        <View
+          style={[
+            styles.sectionContainer,
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
+            Couleur du thème
+          </ThemedText>
 
-          <View style={styles.pickerContainer}>
+          <View
+            style={[
+              styles.pickerContainer,
+              {
+                backgroundColor: isDarkMode ? "#6a6a75" : "#f0f0f0",
+                borderColor: theme.border,
+              },
+            ]}
+          >
             <Picker
               selectedValue={selectedColor}
               onValueChange={(itemValue) => selectColor(itemValue)}
-              style={styles.picker}
+              style={[styles.picker, { color: theme.text }]}
               dropdownIconColor={selectedColor}
+              mode="dropdown"
+              itemStyle={styles.pickerItem}
             >
               {themeColors.map((color, index) => (
                 <Picker.Item
                   key={index}
                   label={color.label}
                   value={color.value}
-                  color={Platform.OS === "ios" ? "#000" : "#fff"}
+                  color={isDarkMode ? "#fff" : "#000"}
                 />
               ))}
             </Picker>
@@ -91,15 +153,27 @@ export default function SettingsScreen() {
                 { backgroundColor: selectedColor },
               ]}
             />
-            <ThemedText style={styles.colorPreview}>
+            <ThemedText
+              style={[styles.colorPreview, { color: theme.textSecondary }]}
+            >
               Couleur actuelle: {selectedColor.toUpperCase()}
             </ThemedText>
           </View>
         </View>
 
         {/* About Section */}
-        <View style={styles.sectionContainer}>
-          <ThemedText style={styles.sectionTitle}>À propos</ThemedText>
+        <View
+          style={[
+            styles.sectionContainer,
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
+            À propos
+          </ThemedText>
 
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
@@ -110,8 +184,19 @@ export default function SettingsScreen() {
                 style={styles.settingIcon}
               />
               <View>
-                <ThemedText style={styles.settingLabel}>Version</ThemedText>
-                <ThemedText style={styles.settingDescription}>1.0.0</ThemedText>
+                <ThemedText
+                  style={[styles.settingLabel, { color: theme.text }]}
+                >
+                  Version
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.settingDescription,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  1.0.0
+                </ThemedText>
               </View>
             </View>
           </View>
@@ -121,23 +206,18 @@ export default function SettingsScreen() {
   );
 }
 
-// ...existing code... (styles restent identiques)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: Platform.OS === "android" ? "#4a4a55" : "transparent",
   },
   sectionContainer: {
     marginBottom: 32,
-    backgroundColor:
-      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.08)",
     borderRadius: 20,
     padding: 20,
+    borderWidth: 1,
     ...(Platform.OS === "ios"
       ? {
-          borderWidth: 1,
-          borderColor: "rgba(0, 217, 217, 0.25)",
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.25,
@@ -149,7 +229,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#f0f0f0",
     marginBottom: 16,
     letterSpacing: 0.5,
   },
@@ -169,25 +248,26 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontSize: 16,
-    color: "#e8e8e8",
     fontWeight: "600",
   },
   settingDescription: {
     fontSize: 14,
-    color: "#a8a8a8",
     marginTop: 2,
   },
   pickerContainer: {
-    backgroundColor:
-      Platform.OS === "android" ? "#6a6a75" : "rgba(255, 255, 255, 0.1)",
     borderRadius: 15,
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: "rgba(0, 217, 217, 0.3)",
+    overflow: "hidden",
   },
   picker: {
     height: 50,
-    color: Platform.OS === "android" ? "#fff" : "#000",
+    backgroundColor: "transparent",
+  },
+  pickerItem: {
+    height: Platform.OS === "ios" ? 50 : undefined,
+    fontSize: 16,
+    textAlign: "center",
   },
   colorPreviewContainer: {
     flexDirection: "row",
@@ -205,7 +285,6 @@ const styles = StyleSheet.create({
   },
   colorPreview: {
     fontSize: 14,
-    color: "#a8a8a8",
     fontStyle: "italic",
   },
 });

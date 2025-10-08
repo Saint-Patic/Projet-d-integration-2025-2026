@@ -15,6 +15,14 @@ interface ScreenLayoutProps {
   titleOffset?: number;
   headerRight?: React.ReactNode;
   headerLeft?: React.ReactNode;
+  theme?: {
+    primary: string;
+    background: string;
+    surface: string;
+    text: string;
+    textSecondary: string;
+    border: string;
+  };
 }
 
 export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
@@ -23,25 +31,48 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   titleOffset = 0,
   headerRight,
   headerLeft,
+  theme,
 }: ScreenLayoutProps) => {
+  // Couleurs par défaut si aucun thème n'est passé
+  const defaultTheme = {
+    primary: "#00d6d6",
+    background: "#4a4a55",
+    surface: "#5a5a65",
+    text: "#f0f0f0",
+    textSecondary: "#a8a8a8",
+    border: "#00d6d640",
+  };
+
+  const currentTheme = theme || defaultTheme;
+
   return (
     <View
       style={[
         styles.container,
         {
+          backgroundColor: currentTheme.background,
           paddingTop:
             (Platform.OS === "android" ? StatusBar.currentHeight ?? 0 : 0) +
             titleOffset,
         },
       ]}
     >
-      <ThemedView style={styles.titleContainer}>
+      <ThemedView
+        style={[
+          styles.titleContainer,
+          {
+            backgroundColor: `${currentTheme.primary}23`,
+            borderBottomColor: `${currentTheme.primary}89`,
+          },
+        ]}
+      >
         {headerLeft && <View style={styles.headerLeft}>{headerLeft}</View>}
         <ThemedText
           type="title"
           style={[
             styles.mainTitle,
             {
+              color: currentTheme.text,
               includeFontPadding: false,
               marginTop: Platform.OS === "android" ? 2 : 0,
             },
@@ -53,7 +84,10 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
       </ThemedView>
 
       <ScrollView
-        style={styles.scrollableContent}
+        style={[
+          styles.scrollableContent,
+          { backgroundColor: currentTheme.background },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {children}
@@ -65,16 +99,13 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#4a4a55",
   },
   titleContainer: {
     paddingHorizontal: 20,
     paddingTop: Platform.OS === "ios" ? 45 : 20,
     paddingBottom: Platform.OS === "ios" ? 20 : 20,
     alignItems: "center",
-    backgroundColor: "rgba(21, 146, 177, 0.23)",
     borderBottomWidth: 2,
-    borderBottomColor: "rgba(0, 230, 230, 0.89)",
     overflow: "hidden",
     position: "relative",
   },
@@ -94,12 +125,10 @@ const styles = StyleSheet.create({
   },
   scrollableContent: {
     flex: 1,
-    backgroundColor: "#4a4a55",
   },
   mainTitle: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#f0f0f0",
     letterSpacing: 1,
   },
 });

@@ -8,13 +8,22 @@ interface BackButtonProps {
   size?: number;
   style?: object;
   onPress?: () => void;
+  theme?: {
+    primary: string;
+    background: string;
+    surface: string;
+    text: string;
+    textSecondary: string;
+    border: string;
+  };
 }
 
 export const BackButton: React.FC<BackButtonProps> = ({
-  color = "#00d6d6",
+  color,
   size = 24,
   style = {},
   onPress,
+  theme,
 }) => {
   const handlePress = () => {
     if (onPress) {
@@ -24,12 +33,14 @@ export const BackButton: React.FC<BackButtonProps> = ({
     }
   };
 
+  const buttonColor = color || theme?.primary || "#00d6d6";
+
   return (
     <TouchableOpacity
       onPress={handlePress}
       style={[styles.defaultStyle, style]}
     >
-      <Ionicons name="arrow-back" size={size} color={color} />
+      <Ionicons name="arrow-back" size={size} color={buttonColor} />
     </TouchableOpacity>
   );
 };
