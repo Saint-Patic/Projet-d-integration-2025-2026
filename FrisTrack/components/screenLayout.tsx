@@ -13,32 +13,66 @@ interface ScreenLayoutProps {
   title: string;
   children: React.ReactNode;
   titleOffset?: number;
+  headerRight?: React.ReactNode;
+  headerLeft?: React.ReactNode;
+  theme?: {
+    primary: string;
+    background: string;
+    surface: string;
+    text: string;
+    textSecondary: string;
+    border: string;
+  };
 }
 
 export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   title,
   children,
-  titleOffset = 6,
+  titleOffset = 0,
+  headerRight,
+  headerLeft,
+  theme,
 }: ScreenLayoutProps) => {
+  // Couleurs par défaut si aucun thème n'est passé
+  const defaultTheme = {
+    primary: "#00d6d6",
+    background: "#4a4a55",
+    surface: "#5a5a65",
+    text: "#f0f0f0",
+    textSecondary: "#a8a8a8",
+    border: "#00d6d640",
+  };
+
+  const currentTheme = theme || defaultTheme;
+
   return (
     <View
       style={[
         styles.container,
         {
-          // Ajoute la hauteur de la status bar Android + offset demandé
+          backgroundColor: currentTheme.background,
           paddingTop:
             (Platform.OS === "android" ? StatusBar.currentHeight ?? 0 : 0) +
             titleOffset,
         },
       ]}
     >
-      {/* Fixed Title */}
-      <ThemedView style={styles.titleContainer}>
+      <ThemedView
+        style={[
+          styles.titleContainer,
+          {
+            backgroundColor: `${currentTheme.primary}23`,
+            borderBottomColor: `${currentTheme.primary}89`,
+          },
+        ]}
+      >
+        {headerLeft && <View style={styles.headerLeft}>{headerLeft}</View>}
         <ThemedText
           type="title"
           style={[
             styles.mainTitle,
             {
+              color: currentTheme.text,
               includeFontPadding: false,
               marginTop: Platform.OS === "android" ? 2 : 0,
             },
@@ -46,11 +80,14 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
         >
           {title}
         </ThemedText>
+        {headerRight && <View style={styles.headerRight}>{headerRight}</View>}
       </ThemedView>
 
-      {/* Scrollable Content */}
       <ScrollView
-        style={styles.scrollableContent}
+        style={[
+          styles.scrollableContent,
+          { backgroundColor: currentTheme.background },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {children}
@@ -62,22 +99,36 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
   },
   titleContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingTop: Platform.OS === "ios" ? 45 : 20,
+    paddingBottom: Platform.OS === "ios" ? 20 : 20,
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e3e3e3",
+    borderBottomWidth: 2,
+    overflow: "hidden",
+    position: "relative",
+  },
+  headerLeft: {
+    position: "absolute",
+    left: 20,
+    top: Platform.OS === "ios" ? 45 : 20,
+    bottom: Platform.OS === "ios" ? 20 : 20,
+    justifyContent: "center",
+  },
+  headerRight: {
+    position: "absolute",
+    right: 20,
+    top: Platform.OS === "ios" ? 45 : 20,
+    bottom: Platform.OS === "ios" ? 20 : 20,
+    justifyContent: "center",
   },
   scrollableContent: {
     flex: 1,
   },
   mainTitle: {
     fontSize: 28,
-    fontWeight: "bold",
-    color: "#2c3e50",
+    fontWeight: "800",
+    letterSpacing: 1,
   },
 });

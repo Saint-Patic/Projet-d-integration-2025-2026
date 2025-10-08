@@ -94,7 +94,7 @@ export const removePlayerFromTeam = (teamId, playerName) => {
 
 // Stats functions
 export const getTeamStats = (teamId) => {
-  const teamMatches = matches.filter(
+  const teamMatches = teams.filter(
     (m) =>
       m.team1 === teams.find((t) => t.id === teamId)?.name ||
       m.team2 === teams.find((t) => t.id === teamId)?.name

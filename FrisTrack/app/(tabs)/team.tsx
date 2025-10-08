@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { View, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import {
+  View,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Platform,
+} from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { SwipeableCard } from "@/components/swipeableCard";
 import { ScreenLayout } from "@/components/screenLayout";
 import { AddButton } from "@/components/addButton";
 import { getTeams } from "@/services/getTeams";
 import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
+import { useRouter } from "expo-router";
 
 interface Team {
   id: number;
@@ -16,10 +23,9 @@ interface Team {
 
 export default function TeamScreen() {
   const [teams, setTeams] = useState<Team[]>([]);
+  const router = useRouter();
 
-  // Charger les équipes au montage du composant
   useEffect(() => {
-    // Utiliser le service pour obtenir les données des équipes
     getTeams().then((data) => {
       setTeams(data);
     });
@@ -27,7 +33,6 @@ export default function TeamScreen() {
 
   const editTeam = (teamId: number) => {
     console.log(`Édition de l'équipe ${teamId}`);
-    // Navigation vers écran d'édition
   };
 
   const deleteTeam = (teamId: number) => {
@@ -47,19 +52,16 @@ export default function TeamScreen() {
     );
   };
 
-  const viewTeamDetails = (teamId: number) => {
-    console.log(`Affichage des détails de l'équipe ${teamId}`);
-    // Navigation vers écran de détails
+  const viewTeamDetails = (teamId: number, teamName: string) => {
+    router.push({ pathname: "/team-details", params: { teamId, teamName } });
   };
 
   const addPlayer = (teamId: number) => {
     console.log(`Ajout d'un joueur à l'équipe ${teamId}`);
-    // Navigation vers écran d'ajout de joueur
   };
 
   const createNewTeam = () => {
     console.log("Création d'une nouvelle équipe");
-    // Navigation vers écran de création
   };
 
   const TeamCard = ({ team }: { team: Team }) => {
@@ -71,10 +73,11 @@ export default function TeamScreen() {
         onEdit={() => editTeam(team.id)}
         onDelete={() => deleteTeam(team.id)}
       >
-        {/* Team Info */}
         <View style={styles.teamInfo}>
           <View style={styles.teamNameSection}>
-            <ThemedText style={styles.teamName}>{team.name}</ThemedText>
+            <ThemedText style={[styles.teamName, { color: team.color }]}>
+              {team.name}
+            </ThemedText>
             <View style={styles.playerCountContainer}>
               <MaterialIcons name="person" size={16} color={team.color} />
               <ThemedText style={styles.playerCount}>
@@ -84,11 +87,10 @@ export default function TeamScreen() {
           </View>
         </View>
 
-        {/* Actions */}
         <View style={styles.teamActions}>
           <TouchableOpacity
             style={[styles.actionButton, styles.primaryButton]}
-            onPress={() => viewTeamDetails(team.id)}
+            onPress={() => viewTeamDetails(team.id, team.name)}
           >
             <ThemedText style={styles.primaryButtonText}>
               Voir détails
@@ -106,15 +108,12 @@ export default function TeamScreen() {
   };
 
   return (
-    <ScreenLayout title="Gestion des Équipes" titleOffset={8}>
-      {/* Teams Grid */}
+    <ScreenLayout title="Gestion des Équipes">
       <View style={styles.teamsContainer}>
         {teams.map((team) => (
           <TeamCard key={team.id} team={team} />
         ))}
       </View>
-
-      {/* Add Team Button */}
       <AddButton onPress={createNewTeam} text="Nouvelle Équipe" />
     </ScreenLayout>
   );
@@ -128,6 +127,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     gap: 15,
+    backgroundColor: Platform.OS === "android" ? "#4a4a55" : "transparent",
   },
   teamInfo: {
     marginBottom: 20,
@@ -137,19 +137,31 @@ const styles = StyleSheet.create({
   },
   teamName: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#2c3e50",
+    fontWeight: "700",
+    color: "#f0f0f0",
     marginBottom: 8,
+    textShadowColor: "rgba(0, 217, 217, 0.25)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   playerCountContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.08)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: "rgba(0, 217, 217, 0.25)",
+    overflow: "hidden",
   },
   playerCount: {
     fontSize: 16,
-    color: "#7f8c8d",
-    fontWeight: "500",
+    color: "#e8e8e8",
+    fontWeight: "600",
   },
   teamActions: {
     flexDirection: "row",
@@ -157,25 +169,42 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 12,
-    borderRadius: 6,
+    borderRadius: 20,
     alignItems: "center",
+    ...(Platform.OS === "ios" && {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+    }),
+    elevation: 5,
+    overflow: "hidden",
   },
   primaryButton: {
-    backgroundColor: "#3498db",
+    backgroundColor: "#00b8b8",
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.18)",
   },
   primaryButtonText: {
-    color: "#ffffff",
-    fontWeight: "600",
+    color: "#f0f0f0",
+    fontWeight: "700",
+    fontSize: 15,
+    textShadowColor: "rgba(0, 0, 0, 0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   secondaryButton: {
-    backgroundColor: "#ecf0f1",
-    borderWidth: 1,
-    borderColor: "#bdc3c7",
+    // Fix Android background
+    backgroundColor:
+      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.12)",
+    borderWidth: 2,
+    borderColor: "rgba(0, 217, 217, 0.35)",
   },
   secondaryButtonText: {
-    color: "#2c3e50",
-    fontWeight: "600",
+    color: "#00d6d6",
+    fontWeight: "700",
+    fontSize: 15,
   },
 });
