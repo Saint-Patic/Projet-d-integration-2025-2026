@@ -62,7 +62,7 @@ export default function ProfilScreen() {
     poids: 52.5,
     taille: 157,
     age: 22,
-  };
+  });
 
   const editProfile = () => {
     console.log("Modifier les informations du profil");
