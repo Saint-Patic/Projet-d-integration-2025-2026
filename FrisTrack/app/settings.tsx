@@ -16,7 +16,6 @@ import { useNavigation } from "expo-router";
 export default function SettingsScreen() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [selectedColor, setSelectedColor] = useState("#00d6d6");
-  const [showColorPicker, setShowColorPicker] = useState(false);
 
   const themeColors = [
     { label: "Cyan (Défaut)", value: "#00d6d6" },
