@@ -1,15 +1,21 @@
-import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Platform, Switch } from "react-native";
+import React, { useEffect } from "react";
+import {
+  View,
+  StyleSheet,
+  Platform,
+  Switch,
+  TouchableOpacity,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/screenLayout";
 import { BackButton } from "@/components/BackButton";
 import { useNavigation } from "expo-router";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function SettingsScreen() {
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [selectedColor, setSelectedColor] = useState("#00d6d6");
+  const { theme, isDarkMode, selectedColor, setIsDarkMode, setSelectedColor } =
+    useTheme();
 
   const themeColors = [
     { label: "Cyan (Défaut)", value: "#00d6d6" },
@@ -21,20 +27,6 @@ export default function SettingsScreen() {
     { label: "Orange foncé", value: "#FF5722" },
     { label: "Marron", value: "#795548" },
   ];
-
-  // Fonction pour obtenir les couleurs du thème
-  const getThemeColors = () => {
-    return {
-      primary: selectedColor,
-      background: isDarkMode ? "#4a4a55" : "#f5f5f5",
-      surface: isDarkMode ? "#5a5a65" : "#ffffff",
-      text: isDarkMode ? "#f0f0f0" : "#333333",
-      textSecondary: isDarkMode ? "#a8a8a8" : "#666666",
-      border: isDarkMode ? `${selectedColor}40` : `${selectedColor}30`,
-    };
-  };
-
-  const theme = getThemeColors();
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -118,32 +110,16 @@ export default function SettingsScreen() {
             Couleur du thème
           </ThemedText>
 
-          <View
-            style={[
-              styles.pickerContainer,
-              {
-                backgroundColor: isDarkMode ? "#6a6a75" : "#f0f0f0",
-                borderColor: theme.border,
-              },
-            ]}
-          >
-            <Picker
-              selectedValue={selectedColor}
-              onValueChange={(itemValue) => selectColor(itemValue)}
-              style={[styles.picker, { color: theme.text }]}
-              dropdownIconColor={selectedColor}
-              mode="dropdown"
-              itemStyle={styles.pickerItem}
-            >
-              {themeColors.map((color, index) => (
-                <Picker.Item
-                  key={index}
-                  label={color.label}
-                  value={color.value}
-                  color={isDarkMode ? "#fff" : "#000"}
-                />
-              ))}
-            </Picker>
+          <View style={styles.colorGrid}>
+            {themeColors.map((color, index) => (
+              <ColorOption
+                key={index}
+                color={color}
+                label={color.label}
+                isSelected={selectedColor === color.value}
+                onSelect={selectColor}
+              />
+            ))}
           </View>
 
           <View style={styles.colorPreviewContainer}>
@@ -206,6 +182,7 @@ export default function SettingsScreen() {
   );
 }
 
+// ...existing code...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -286,5 +263,47 @@ const styles = StyleSheet.create({
   colorPreview: {
     fontSize: 14,
     fontStyle: "italic",
+  },
+  colorGrid: {
+    gap: 12,
+  },
+  colorOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 12,
+    marginVertical: 4,
+    ...(Platform.OS === "ios"
+      ? {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.1,
+          shadowRadius: 2,
+        }
+      : {}),
+  },
+  colorDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 12,
+    borderWidth: Platform.OS === "ios" ? 2 : 1,
+    borderColor:
+      Platform.OS === "ios"
+        ? "rgba(255, 255, 255, 0.8)"
+        : "rgba(255, 255, 255, 0.3)",
+    ...(Platform.OS === "ios"
+      ? {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.3,
+          shadowRadius: 2,
+        }
+      : {}),
+  },
+  colorLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: Platform.OS === "ios" ? "600" : "500",
   },
 });

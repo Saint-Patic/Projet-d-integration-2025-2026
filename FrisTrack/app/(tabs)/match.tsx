@@ -11,6 +11,7 @@ import { SwipeableCard } from "@/components/swipeableCard";
 import { ScreenLayout } from "@/components/screenLayout";
 import { AddButton } from "@/components/addButton";
 import { getMatches } from "@/services/getMatches";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Match {
   id: number;
@@ -25,6 +26,7 @@ interface Match {
 
 export default function HomeScreen() {
   const [matches, setMatches] = useState<Match[]>([]);
+  const { theme } = useTheme();
 
   useEffect(() => {
     getMatches().then((data) => {
@@ -67,33 +69,37 @@ export default function HomeScreen() {
 
   const getTeamTextColor = (match: Match, isTeam1: boolean) => {
     if (match.status !== "finished") {
-      return "#f0f0f0"; // Couleur par défaut
+      return theme.text;
     }
 
     const team1Score = match.score1;
     const team2Score = match.score2;
 
     if (team1Score === team2Score) {
-      return "#f0f0f0"; // Égalité, couleur par défaut
+      return theme.text;
     }
 
     const isWinner = isTeam1
       ? team1Score > team2Score
       : team2Score > team1Score;
 
-    return isWinner ? "#00e6cc" : "#ff8080"; // Cyan/vert pour gagnant, cyan/rouge pour perdant
+    return isWinner ? "#00e6cc" : "#ff8080";
   };
+
   const MatchCard = ({ match }: { match: Match }) => {
     return (
       <SwipeableCard
         title="Match"
         cardId={match.id}
-        borderTopColor={match.color}
+        borderTopColor={theme.primary}
         onEdit={() => editMatch(match.id)}
         onDelete={() => deleteMatch(match.id)}
+        theme={theme}
       >
         <View style={styles.matchInfo}>
-          <View style={styles.teamsSection}>
+          <View
+            style={[styles.teamsSection, { backgroundColor: theme.surface }]}
+          >
             <View style={styles.teamRow}>
               <ThemedText
                 style={[
@@ -103,12 +109,24 @@ export default function HomeScreen() {
               >
                 {match.team1}
               </ThemedText>
-              <View style={styles.scoreContainer}>
+              <View
+                style={[
+                  styles.scoreContainer,
+                  { backgroundColor: theme.primary },
+                ]}
+              >
                 <ThemedText style={styles.score}>{match.score1}</ThemedText>
               </View>
             </View>
-            <View style={styles.versusContainer}>
-              <ThemedText style={styles.versus}>VS</ThemedText>
+            <View
+              style={[
+                styles.versusContainer,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+            >
+              <ThemedText style={[styles.versus, { color: theme.primary }]}>
+                VS
+              </ThemedText>
             </View>
             <View style={styles.teamRow}>
               <ThemedText
@@ -119,7 +137,12 @@ export default function HomeScreen() {
               >
                 {match.team2}
               </ThemedText>
-              <View style={styles.scoreContainer}>
+              <View
+                style={[
+                  styles.scoreContainer,
+                  { backgroundColor: theme.primary },
+                ]}
+              >
                 <ThemedText style={styles.score}>{match.score2}</ThemedText>
               </View>
             </View>
@@ -128,7 +151,11 @@ export default function HomeScreen() {
 
         <View style={styles.matchActions}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.primaryButton]}
+            style={[
+              styles.actionButton,
+              styles.primaryButton,
+              { backgroundColor: theme.primary },
+            ]}
             onPress={() => viewMatchDetails(match.id)}
           >
             <ThemedText style={styles.primaryButtonText}>
@@ -137,10 +164,16 @@ export default function HomeScreen() {
           </TouchableOpacity>
           {match.status === "scheduled" && (
             <TouchableOpacity
-              style={[styles.actionButton, styles.secondaryButton]}
+              style={[
+                styles.actionButton,
+                styles.secondaryButton,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
               onPress={() => startMatch(match.id)}
             >
-              <ThemedText style={styles.secondaryButtonText}>
+              <ThemedText
+                style={[styles.secondaryButtonText, { color: theme.primary }]}
+              >
                 Démarrer
               </ThemedText>
             </TouchableOpacity>
@@ -151,17 +184,20 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScreenLayout title="Historique des Matchs">
-      <View style={styles.matchesContainer}>
+    <ScreenLayout title="Historique des Matchs" theme={theme}>
+      <View
+        style={[styles.matchesContainer, { backgroundColor: theme.background }]}
+      >
         {matches.map((match) => (
           <MatchCard key={match.id} match={match} />
         ))}
       </View>
-      <AddButton onPress={createNewMatch} text="Nouveau Match" />
+      <AddButton onPress={createNewMatch} text="Nouveau Match" theme={theme} />
     </ScreenLayout>
   );
 }
 
+// ...existing code...
 const styles = StyleSheet.create({
   matchesContainer: {
     flexDirection: "row",
@@ -170,7 +206,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     gap: 15,
-    backgroundColor: Platform.OS === "android" ? "#4a4a55" : "transparent",
   },
   matchInfo: {
     marginBottom: 20,
@@ -178,9 +213,6 @@ const styles = StyleSheet.create({
   teamsSection: {
     alignItems: "center",
     marginBottom: 15,
-    // Fix Android background
-    backgroundColor:
-      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.04)",
     borderRadius: 15,
     padding: 15,
     overflow: "hidden",
@@ -195,15 +227,12 @@ const styles = StyleSheet.create({
   teamName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#f0f0f0",
     flex: 1,
     textShadowColor: "rgba(0, 217, 217, 0.25)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   scoreContainer: {
-    // Fix Android background
-    backgroundColor: Platform.OS === "android" ? "#00a8a8" : "#00b8b84e",
     borderRadius: 15,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -224,59 +253,16 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   versusContainer: {
-    // Fix Android background
-    backgroundColor:
-      Platform.OS === "android" ? "#5a5a65" : "rgba(0, 217, 217, 0.15)",
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 5,
     marginVertical: 8,
+    borderWidth: 1,
     overflow: "hidden",
   },
   versus: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#00d6d6",
-  },
-  matchMeta: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  dateContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    // Fix Android background
-    backgroundColor:
-      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.08)",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 15,
-    overflow: "hidden",
-  },
-  date: {
-    fontSize: 14,
-    color: "#e8e8e8",
-    fontWeight: "600",
-  },
-  statusContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    ...(Platform.OS === "ios" && {
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.15,
-      shadowRadius: 6,
-    }),
-    elevation: 3,
-    overflow: "hidden",
-  },
-  status: {
-    fontSize: 12,
-    color: "#f5f5f5",
-    fontWeight: "700",
   },
   matchActions: {
     flexDirection: "row",
@@ -298,8 +284,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   primaryButton: {
-    // Fix Android background
-    backgroundColor: Platform.OS === "android" ? "#00a8a8" : "#00a8a8c0",
     borderWidth: 2,
     borderColor: "rgba(255, 255, 255, 0.18)",
   },
@@ -312,14 +296,9 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   secondaryButton: {
-    // Fix Android background
-    backgroundColor:
-      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.12)",
     borderWidth: 2,
-    borderColor: "rgba(0, 217, 217, 0.35)",
   },
   secondaryButtonText: {
-    color: "#00d6d6",
     fontWeight: "700",
     fontSize: 15,
   },
