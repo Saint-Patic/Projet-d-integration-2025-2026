@@ -1,5 +1,12 @@
-import React, { useEffect } from "react";
-import { View, StyleSheet, Platform, Switch } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  StyleSheet,
+  Platform,
+  Switch,
+  TouchableOpacity,
+} from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
@@ -36,6 +43,40 @@ export default function SettingsScreen() {
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
+
+  type ColorOptionProps = {
+    color: { label: string; value: string };
+    label: string;
+    isSelected: boolean;
+    onSelect: (colorValue: string) => void;
+  };
+
+  const ColorOption: React.FC<ColorOptionProps> = ({
+    color,
+    label,
+    isSelected,
+    onSelect,
+  }) => (
+    <TouchableOpacity
+      style={[
+        styles.colorOption,
+        {
+          backgroundColor: theme.surface,
+          borderColor: isSelected ? color.value : theme.border,
+          borderWidth: isSelected ? 2 : 1,
+        },
+      ]}
+      onPress={() => onSelect(color.value)}
+    >
+      <View style={[styles.colorDot, { backgroundColor: color.value }]} />
+      <ThemedText style={[styles.colorLabel, { color: theme.text }]}>
+        {color.label}
+      </ThemedText>
+      {isSelected && (
+        <Ionicons name="checkmark-circle" size={20} color={color.value} />
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <ScreenLayout
@@ -105,16 +146,32 @@ export default function SettingsScreen() {
             Couleur du thème
           </ThemedText>
 
-          <View style={styles.colorGrid}>
-            {themeColors.map((color, index) => (
-              <ColorOption
-                key={index}
-                color={color}
-                label={color.label}
-                isSelected={selectedColor === color.value}
-                onSelect={selectColor}
-              />
-            ))}
+          <View
+            style={[
+              styles.pickerContainer,
+              {
+                backgroundColor: isDarkMode ? "#6a6a75" : "#f0f0f0",
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Picker
+              selectedValue={selectedColor}
+              onValueChange={(itemValue) => selectColor(itemValue)}
+              style={[styles.picker, { color: theme.text }]}
+              dropdownIconColor={selectedColor}
+              mode="dropdown"
+              itemStyle={styles.pickerItem}
+            >
+              {themeColors.map((color, index) => (
+                <Picker.Item
+                  key={index}
+                  label={color.label}
+                  value={color.value}
+                  color={isDarkMode ? "#fff" : "#000"}
+                />
+              ))}
+            </Picker>
           </View>
 
           <View style={styles.colorPreviewContainer}>
@@ -242,8 +299,5 @@ const styles = StyleSheet.create({
   colorPreview: {
     fontSize: 14,
     fontStyle: "italic",
-  },
-  colorGrid: {
-    gap: 12,
   },
 });
