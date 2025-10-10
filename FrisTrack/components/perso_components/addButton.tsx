@@ -2,17 +2,51 @@ import React from "react";
 import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
+import { Theme } from "@/contexts/ThemeContext";
 
 interface AddButtonProps {
   onPress: () => void;
   text: string;
+  theme?: Theme;
 }
 
-export const AddButton: React.FC<AddButtonProps> = ({ onPress, text }) => {
+export const AddButton: React.FC<AddButtonProps> = ({
+  onPress,
+  text,
+  theme,
+}) => {
+  const getStyles = () => {
+    if (!theme) {
+      // Styles par défaut si pas de thème
+      return {
+        addSection: {
+          backgroundColor:
+            Platform.OS === "android" ? "#4a4a55" : "transparent",
+        },
+        addButton: {
+          backgroundColor: Platform.OS === "android" ? "#00a8a8" : "#00b8b8d0",
+        },
+      };
+    }
+
+    return {
+      addSection: {
+        backgroundColor:
+          Platform.OS === "android" ? theme.background : "transparent",
+      },
+      addButton: {
+        backgroundColor:
+          Platform.OS === "android" ? theme.primary : `${theme.primary}d0`,
+      },
+    };
+  };
+
+  const dynamicStyles = getStyles();
+
   return (
-    <View style={styles.addSection}>
+    <View style={[styles.addSection, dynamicStyles.addSection]}>
       <TouchableOpacity
-        style={styles.addButton}
+        style={[styles.addButton, dynamicStyles.addButton]}
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={text}
@@ -26,23 +60,20 @@ export const AddButton: React.FC<AddButtonProps> = ({ onPress, text }) => {
   );
 };
 
+// ...existing code...
 const styles = StyleSheet.create({
   addSection: {
     alignItems: "center",
     paddingVertical: 30,
     paddingHorizontal: 20,
-    backgroundColor: Platform.OS === "android" ? "#4a4a55" : "transparent",
   },
   addButton: {
-    // Fix Android button background
-    backgroundColor: Platform.OS === "android" ? "#00a8a8" : "#00b8b8d0",
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 18,
     paddingHorizontal: 35,
     borderRadius: 30,
     gap: 12,
-    // Supprimer borderWidth sur Android
     ...(Platform.OS === "ios"
       ? {
           borderWidth: 2,
