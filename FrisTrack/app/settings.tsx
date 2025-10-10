@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Platform, Switch } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Platform,
+  Switch,
+  TouchableOpacity,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { ThemedText } from "@/components/themed-text";
@@ -49,6 +55,40 @@ export default function SettingsScreen() {
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
+
+  type ColorOptionProps = {
+    color: { label: string; value: string };
+    label: string;
+    isSelected: boolean;
+    onSelect: (colorValue: string) => void;
+  };
+
+  const ColorOption: React.FC<ColorOptionProps> = ({
+    color,
+    label,
+    isSelected,
+    onSelect,
+  }) => (
+    <TouchableOpacity
+      style={[
+        styles.colorOption,
+        {
+          backgroundColor: theme.surface,
+          borderColor: isSelected ? color.value : theme.border,
+          borderWidth: isSelected ? 2 : 1,
+        },
+      ]}
+      onPress={() => onSelect(color.value)}
+    >
+      <View style={[styles.colorDot, { backgroundColor: color.value }]} />
+      <ThemedText style={[styles.colorLabel, { color: theme.text }]}>
+        {color.label}
+      </ThemedText>
+      {isSelected && (
+        <Ionicons name="checkmark-circle" size={20} color={color.value} />
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <ScreenLayout
@@ -118,32 +158,17 @@ export default function SettingsScreen() {
             Couleur du thème
           </ThemedText>
 
-          <View
-            style={[
-              styles.pickerContainer,
-              {
-                backgroundColor: isDarkMode ? "#6a6a75" : "#f0f0f0",
-                borderColor: theme.border,
-              },
-            ]}
-          >
-            <Picker
-              selectedValue={selectedColor}
-              onValueChange={(itemValue) => selectColor(itemValue)}
-              style={[styles.picker, { color: theme.text }]}
-              dropdownIconColor={selectedColor}
-              mode="dropdown"
-              itemStyle={styles.pickerItem}
-            >
-              {themeColors.map((color, index) => (
-                <Picker.Item
-                  key={index}
-                  label={color.label}
-                  value={color.value}
-                  color={isDarkMode ? "#fff" : "#000"}
-                />
-              ))}
-            </Picker>
+          {/* Interface personnalisée pour iOS et Android */}
+          <View style={styles.colorGrid}>
+            {themeColors.map((color, index) => (
+              <ColorOption
+                key={index}
+                color={color}
+                label={color.label}
+                isSelected={selectedColor === color.value}
+                onSelect={selectColor}
+              />
+            ))}
           </View>
 
           <View style={styles.colorPreviewContainer}>
@@ -254,21 +279,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 2,
   },
-  pickerContainer: {
-    borderRadius: 15,
-    marginVertical: 10,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  picker: {
-    height: 50,
-    backgroundColor: "transparent",
-  },
-  pickerItem: {
-    height: Platform.OS === "ios" ? 50 : undefined,
-    fontSize: 16,
-    textAlign: "center",
-  },
   colorPreviewContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -286,5 +296,49 @@ const styles = StyleSheet.create({
   colorPreview: {
     fontSize: 14,
     fontStyle: "italic",
+  },
+  colorGrid: {
+    gap: 12,
+  },
+  colorOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 12,
+    marginVertical: 4,
+    // Amélioration pour iOS
+    ...(Platform.OS === "ios"
+      ? {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.1,
+          shadowRadius: 2,
+        }
+      : {}),
+  },
+  colorDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 12,
+    borderWidth: Platform.OS === "ios" ? 2 : 1,
+    borderColor:
+      Platform.OS === "ios"
+        ? "rgba(255, 255, 255, 0.8)"
+        : "rgba(255, 255, 255, 0.3)",
+    // Ombre pour iOS pour mieux faire ressortir les couleurs
+    ...(Platform.OS === "ios"
+      ? {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.3,
+          shadowRadius: 2,
+        }
+      : {}),
+  },
+  colorLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: Platform.OS === "ios" ? "600" : "500",
   },
 });
