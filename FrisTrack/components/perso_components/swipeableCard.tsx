@@ -9,6 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Theme } from "@/contexts/ThemeContext";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const ACTION_WIDTH = 80;
@@ -21,6 +22,7 @@ interface SwipeableCardProps {
   onEdit: () => void;
   onDelete: () => void;
   children: React.ReactNode;
+  theme?: Theme;
 }
 
 export const SwipeableCard: React.FC<SwipeableCardProps> = ({
@@ -30,8 +32,45 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   onEdit,
   onDelete,
   children,
+  theme,
 }) => {
   const swipeableRef = useRef<any>(null);
+
+  const getStyles = () => {
+    if (!theme) {
+      return {
+        cardContainer: {
+          backgroundColor:
+            Platform.OS === "android" ? "#4a4a55" : "transparent",
+        },
+        card: {
+          backgroundColor:
+            Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.12)",
+          borderColor: "rgba(0, 230, 230, 0.18)",
+        },
+        cardTitle: {
+          color: "#00d6d6",
+        },
+      };
+    }
+
+    return {
+      cardContainer: {
+        backgroundColor:
+          Platform.OS === "android" ? theme.background : "transparent",
+      },
+      card: {
+        backgroundColor:
+          Platform.OS === "android" ? theme.surface : `${theme.surface}CC`,
+        borderColor: theme.border,
+      },
+      cardTitle: {
+        color: theme.primary,
+      },
+    };
+  };
+
+  const dynamicStyles = getStyles();
 
   const handleSwipeableOpen = (direction: "left" | "right") => {
     if (direction === "right") {
@@ -82,7 +121,13 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
 
     return (
       <Animated.View style={[styles.actionContainer, animatedStyle]}>
-        <View style={[styles.action, styles.editAction]}>
+        <View
+          style={[
+            styles.action,
+            styles.editAction,
+            { backgroundColor: theme?.primary || "#00b8b8" },
+          ]}
+        >
           <IconSymbol name="pencil" size={24} color="#ffffff" />
           <ThemedText style={styles.actionText}>Modifier</ThemedText>
         </View>
@@ -91,7 +136,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   };
 
   return (
-    <View style={styles.cardContainer}>
+    <View style={[styles.cardContainer, dynamicStyles.cardContainer]}>
       <Swipeable
         ref={swipeableRef}
         renderRightActions={RenderRightActions}
@@ -102,9 +147,14 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
         leftThreshold={SWIPE_THRESHOLD}
         onSwipeableOpen={handleSwipeableOpen}
       >
-        <View style={[styles.card, { borderTopColor }]}>
-          <View style={styles.cardHeader}>
-            <ThemedText style={styles.cardTitle}>
+        <View style={[styles.card, dynamicStyles.card, { borderTopColor }]}>
+          <View
+            style={[
+              styles.cardHeader,
+              { borderBottomColor: theme?.border || "rgba(0, 217, 217, 0.25)" },
+            ]}
+          >
+            <ThemedText style={[styles.cardTitle, dynamicStyles.cardTitle]}>
               {title} #{cardId}
             </ThemedText>
             <ThemedText style={styles.swipeHint}>← Glisser →</ThemedText>
@@ -116,6 +166,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   );
 };
 
+// ...existing code...
 const styles = StyleSheet.create({
   cardContainer: {
     width: SCREEN_WIDTH * 0.9,
@@ -123,9 +174,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderRadius: 20,
     overflow: "hidden",
-    // Android-specific background fix
-    backgroundColor: Platform.OS === "android" ? "#4a4a55" : "transparent",
-    // Supprimer shadowColor sur Android et utiliser elevation uniquement
     ...(Platform.OS === "ios" && {
       shadowColor: "#00b3b3",
       shadowOffset: { width: 0, height: 6 },
@@ -135,19 +183,13 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   card: {
-    // Fix Android background rendering
-    backgroundColor:
-      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.12)",
     borderTopWidth: 4,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: "rgba(0, 230, 230, 0.18)",
-    // Supprimer backdrop-filter qui peut causer des problèmes sur Android
     ...(Platform.OS === "ios" && {
       backdropFilter: "blur(10px)",
     }),
-    // Ajouter overflow hidden pour Android
     overflow: "hidden",
   },
   cardHeader: {
@@ -157,12 +199,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 2,
-    borderBottomColor: "rgba(0, 217, 217, 0.25)", // Plus vif
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#00d6d6", // Plus lumineux
     textShadowColor: "rgba(0, 204, 204, 0.4)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
@@ -187,10 +227,9 @@ const styles = StyleSheet.create({
     margin: 2,
   },
   editAction: {
-    backgroundColor: "#00b8b8",
     borderRadius: 20,
     margin: 2,
-    overflow: "hidden", // Ajouter pour Android
+    overflow: "hidden",
     ...(Platform.OS === "ios" && {
       shadowColor: "#00d9d9",
       shadowOffset: { width: 0, height: 4 },
@@ -203,7 +242,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#e85555",
     borderRadius: 20,
     margin: 2,
-    overflow: "hidden", // Ajouter pour Android
+    overflow: "hidden",
     ...(Platform.OS === "ios" && {
       shadowColor: "#ff8080",
       shadowOffset: { width: 0, height: 4 },
@@ -213,7 +252,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   actionText: {
-    color: "#f5f5f5", // Blanc cassé
+    color: "#f5f5f5",
     fontSize: 11,
     fontWeight: "700",
     marginTop: 4,

@@ -7,12 +7,13 @@ import {
   Platform,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
-import { SwipeableCard } from "@/components/swipeableCard";
-import { ScreenLayout } from "@/components/screenLayout";
-import { AddButton } from "@/components/addButton";
+import { SwipeableCard } from "@/components/perso_components/swipeableCard";
+import { ScreenLayout } from "@/components/perso_components/screenLayout";
+import { AddButton } from "@/components/perso_components/addButton";
 import { getTeams } from "@/services/getTeams";
 import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
 import { useRouter } from "expo-router";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Team {
   id: number;
@@ -24,6 +25,7 @@ interface Team {
 export default function TeamScreen() {
   const [teams, setTeams] = useState<Team[]>([]);
   const router = useRouter();
+  const { theme } = useTheme();
 
   useEffect(() => {
     getTeams().then((data) => {
@@ -69,18 +71,24 @@ export default function TeamScreen() {
       <SwipeableCard
         title="Team"
         cardId={team.id}
-        borderTopColor={team.color}
+        borderTopColor={theme.primary}
         onEdit={() => editTeam(team.id)}
         onDelete={() => deleteTeam(team.id)}
+        theme={theme}
       >
         <View style={styles.teamInfo}>
           <View style={styles.teamNameSection}>
-            <ThemedText style={[styles.teamName, { color: team.color }]}>
+            <ThemedText style={[styles.teamName, { color: theme.primary }]}>
               {team.name}
             </ThemedText>
-            <View style={styles.playerCountContainer}>
-              <MaterialIcons name="person" size={16} color={team.color} />
-              <ThemedText style={styles.playerCount}>
+            <View
+              style={[
+                styles.playerCountContainer,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+            >
+              <MaterialIcons name="person" size={16} color={theme.primary} />
+              <ThemedText style={[styles.playerCount, { color: theme.text }]}>
                 {team.playerCount}
               </ThemedText>
             </View>
@@ -89,7 +97,11 @@ export default function TeamScreen() {
 
         <View style={styles.teamActions}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.primaryButton]}
+            style={[
+              styles.actionButton,
+              styles.primaryButton,
+              { backgroundColor: theme.primary },
+            ]}
             onPress={() => viewTeamDetails(team.id, team.name)}
           >
             <ThemedText style={styles.primaryButtonText}>
@@ -97,10 +109,18 @@ export default function TeamScreen() {
             </ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionButton, styles.secondaryButton]}
+            style={[
+              styles.actionButton,
+              styles.secondaryButton,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
             onPress={() => addPlayer(team.id)}
           >
-            <ThemedText style={styles.secondaryButtonText}>+ Joueur</ThemedText>
+            <ThemedText
+              style={[styles.secondaryButtonText, { color: theme.primary }]}
+            >
+              + Joueur
+            </ThemedText>
           </TouchableOpacity>
         </View>
       </SwipeableCard>
@@ -108,17 +128,20 @@ export default function TeamScreen() {
   };
 
   return (
-    <ScreenLayout title="Gestion des Équipes">
-      <View style={styles.teamsContainer}>
+    <ScreenLayout title="Gestion des Équipes" theme={theme}>
+      <View
+        style={[styles.teamsContainer, { backgroundColor: theme.background }]}
+      >
         {teams.map((team) => (
           <TeamCard key={team.id} team={team} />
         ))}
       </View>
-      <AddButton onPress={createNewTeam} text="Nouvelle Équipe" />
+      <AddButton onPress={createNewTeam} text="Nouvelle Équipe" theme={theme} />
     </ScreenLayout>
   );
 }
 
+// ...existing code...
 const styles = StyleSheet.create({
   teamsContainer: {
     flexDirection: "row",
@@ -127,7 +150,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     gap: 15,
-    backgroundColor: Platform.OS === "android" ? "#4a4a55" : "transparent",
   },
   teamInfo: {
     marginBottom: 20,
@@ -138,7 +160,6 @@ const styles = StyleSheet.create({
   teamName: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#f0f0f0",
     marginBottom: 8,
     textShadowColor: "rgba(0, 217, 217, 0.25)",
     textShadowOffset: { width: 0, height: 1 },
@@ -148,19 +169,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    // Fix Android background
-    backgroundColor:
-      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.08)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: "rgba(0, 217, 217, 0.25)",
     overflow: "hidden",
   },
   playerCount: {
     fontSize: 16,
-    color: "#e8e8e8",
     fontWeight: "600",
   },
   teamActions: {
@@ -183,7 +199,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   primaryButton: {
-    backgroundColor: "#00b8b8",
     borderWidth: 2,
     borderColor: "rgba(255, 255, 255, 0.18)",
   },
@@ -196,14 +211,9 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   secondaryButton: {
-    // Fix Android background
-    backgroundColor:
-      Platform.OS === "android" ? "#5a5a65" : "rgba(255, 255, 255, 0.12)",
     borderWidth: 2,
-    borderColor: "rgba(0, 217, 217, 0.35)",
   },
   secondaryButtonText: {
-    color: "#00d6d6",
     fontWeight: "700",
     fontSize: 15,
   },

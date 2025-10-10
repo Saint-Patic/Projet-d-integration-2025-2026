@@ -1,44 +1,45 @@
 import React, { useEffect } from "react";
-import {
-  View,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from "react-native";
+import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
-import { ScreenLayout } from "@/components/screenLayout";
+import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { useLocalSearchParams, useNavigation } from "expo-router";
-import { BackButton } from "@/components/BackButton";
+import { BackButton } from "@/components/perso_components/BackButton";
+import { useTheme } from "@/contexts/ThemeContext";
 
-// Exemple de données fictives
+// Exemple de données fictives - utilisation des mêmes images que dans profil.tsx
 const fakeMembers = [
   {
     id: 1,
     name: "Nathan Lemaire",
-    image: require("@/assets/images/nathan.png"),
+    image: require("@/assets/images/profile_pictures/nathan.png"),
   },
   {
     id: 2,
     name: "Antoine Bontems",
-    image: require("@/assets/images/lezard.png"),
+    image: require("@/assets/images/profile_pictures/lezard.png"),
   },
   {
     id: 3,
     name: "Alexis Demarcq",
-    image: require("@/assets/images/react-logo.png"),
+    image: require("@/assets/images/profile_pictures/default.png"),
   },
   {
     id: 4,
     name: "Cyril Lamand",
-    image: require("@/assets/images/partial-react-logo.png"),
+    image: require("@/assets/images/profile_pictures/chien.png"),
   },
-  { id: 5, name: "Jiale Wu", image: require("@/assets/images/react-logo.png") },
+  {
+    id: 5,
+    name: "Jiale Wu",
+    image: require("@/assets/images/profile_pictures/chat.png"),
+  },
 ];
 
 export default function TeamDetailsScreen() {
   const { teamId, teamName } = useLocalSearchParams();
   const navigation = useNavigation();
+  const { theme } = useTheme();
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -58,69 +59,96 @@ export default function TeamDetailsScreen() {
 
   return (
     <ScreenLayout
-      title={"Détails de l'équipe"}
-      headerLeft={
-        <BackButton
-          color="#00b8b8"
-          size={28}
-          style={{ marginLeft: 4, marginRight: 8 }}
-        />
-      }
+      title="Détails de l'équipe"
+      headerLeft={<BackButton theme={theme} />}
+      theme={theme}
     >
-      <View style={styles.headerRow}>
-        <ThemedText style={styles.headerTitle}>{teamName}</ThemedText>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.headerRow}>
+          <ThemedText style={[styles.headerTitle, { color: theme.primary }]}>
+            {teamName}
+          </ThemedText>
+        </View>
+
+        <View style={styles.listContent}>
+          {rows.map((row, idx) => (
+            <View
+              style={[
+                styles.row,
+                row.length === 1 && { justifyContent: "center" },
+              ]}
+              key={idx}
+            >
+              {row.map((item) => (
+                <View style={styles.memberContainer} key={item.id}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      console.log(`Joueur: ${item.name}, id: ${item.id}`)
+                    }
+                    activeOpacity={0.7}
+                    style={styles.memberImageContainer}
+                  >
+                    <Image
+                      source={item.image}
+                      style={[
+                        styles.memberImage,
+                        { borderColor: theme.primary },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.imageGlow,
+                        { backgroundColor: `${theme.primary}15` },
+                      ]}
+                    />
+                  </TouchableOpacity>
+                  <ThemedText
+                    style={[styles.memberName, { color: theme.text }]}
+                  >
+                    {item.name}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: theme.primary }]}
+          onPress={handleAddPlayer}
+        >
+          <ThemedText style={styles.addButtonText}>
+            Ajouter un joueur
+          </ThemedText>
+        </TouchableOpacity>
       </View>
-      <View style={styles.listContent}>
-        {rows.map((row, idx) => (
-          <View
-            style={[
-              styles.row,
-              row.length === 1 && { justifyContent: "center" }, // Centrer si un seul joueur
-            ]}
-            key={idx}
-          >
-            {row.map((item) => (
-              <View style={styles.memberContainer} key={item.id}>
-                <TouchableOpacity
-                  onPress={() =>
-                    console.log(`Joueur: ${item.name}, id: ${item.id}`)
-                  }
-                  activeOpacity={0.7}
-                >
-                  <Image source={item.image} style={styles.memberImage} />
-                </TouchableOpacity>
-                <ThemedText style={styles.memberName}>{item.name}</ThemedText>
-              </View>
-            ))}
-            {/* Si la ligne n'a qu'un membre, on n'ajoute rien pour garder le centrage */}
-          </View>
-        ))}
-      </View>
-      <TouchableOpacity style={styles.addButton} onPress={handleAddPlayer}>
-        <ThemedText style={styles.addButtonText}>Ajouter un joueur</ThemedText>
-      </TouchableOpacity>
     </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: 16,
+  },
   headerRow: {
-    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
-    marginTop: 16,
-    marginLeft: 16,
+    marginBottom: 24,
+    marginTop: 8,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#00b8b8",
-    marginLeft: 8, // espace entre la flèche et le titre
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: 1,
+    textShadowColor: "rgba(0, 230, 230, 0.5)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
   },
   listContent: {
     paddingHorizontal: 24,
     paddingTop: 12,
-    paddingBottom: 100,
+    paddingBottom: 120,
+    flex: 1,
   },
   row: {
     flexDirection: "row",
@@ -132,38 +160,73 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 8,
   },
+  memberImageContainer: {
+    position: "relative",
+    marginBottom: 16,
+    alignItems: "center",
+  },
   memberImage: {
     width: 90,
     height: 90,
     borderRadius: 45,
-    marginBottom: 10,
-    backgroundColor: "#eee",
+    ...(Platform.OS === "ios"
+      ? {
+          borderWidth: 3,
+          shadowColor: "#00d9d9",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.4,
+          shadowRadius: 10,
+        }
+      : {
+          backgroundColor: "#fff",
+        }),
+    elevation: 6,
+  },
+  imageGlow: {
+    position: "absolute",
+    top: Platform.OS === "android" ? -2 : -4,
+    left: Platform.OS === "android" ? -2 : -4,
+    right: Platform.OS === "android" ? -2 : -4,
+    bottom: Platform.OS === "android" ? -2 : -4,
+    borderRadius: Platform.OS === "android" ? 47 : 49,
+    zIndex: -1,
   },
   memberName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#f0f0f0",
+    fontSize: 16,
+    fontWeight: "700",
     textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   addButton: {
     position: "absolute",
     bottom: 30,
     alignSelf: "center",
-    backgroundColor: "#00b8b8",
     paddingVertical: 16,
     paddingHorizontal: 32,
-    borderRadius: 24,
-    elevation: 5,
-    ...(Platform.OS === "ios" && {
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.15,
-      shadowRadius: 8,
-    }),
+    borderRadius: 25,
+    alignItems: "center",
+    ...(Platform.OS === "ios"
+      ? {
+          borderWidth: 2,
+          borderColor: "rgba(255, 255, 255, 0.25)",
+          shadowColor: "#00e6e6",
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.35,
+          shadowRadius: 14,
+        }
+      : {}),
+    elevation: 8,
+    overflow: "hidden",
   },
   addButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
+    color: "#f0f0f0",
+    fontWeight: "700",
     fontSize: 17,
+    textShadowColor: "rgba(0, 0, 0, 0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    letterSpacing: 0.5,
   },
 });
