@@ -1,15 +1,10 @@
 import React, { useEffect } from "react";
-import {
-  View,
-  StyleSheet,
-  Platform,
-  Switch,
-  TouchableOpacity,
-} from "react-native";
+import { View, StyleSheet, Platform, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/themed-text";
-import { ScreenLayout } from "@/components/screenLayout";
-import { BackButton } from "@/components/BackButton";
+import { ScreenLayout } from "@/components/perso_components/screenLayout";
+import { BackButton } from "@/components/perso_components/BackButton";
+import { ColorOption } from "@/components/perso_components/ColorOption";
 import { useNavigation } from "expo-router";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -182,7 +177,6 @@ export default function SettingsScreen() {
   );
 }
 
-// ...existing code...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -231,21 +225,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 2,
   },
-  pickerContainer: {
-    borderRadius: 15,
-    marginVertical: 10,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  picker: {
-    height: 50,
-    backgroundColor: "transparent",
-  },
-  pickerItem: {
-    height: Platform.OS === "ios" ? 50 : undefined,
-    fontSize: 16,
-    textAlign: "center",
-  },
   colorPreviewContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -266,44 +245,5 @@ const styles = StyleSheet.create({
   },
   colorGrid: {
     gap: 12,
-  },
-  colorOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-    marginVertical: 4,
-    ...(Platform.OS === "ios"
-      ? {
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.1,
-          shadowRadius: 2,
-        }
-      : {}),
-  },
-  colorDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: 12,
-    borderWidth: Platform.OS === "ios" ? 2 : 1,
-    borderColor:
-      Platform.OS === "ios"
-        ? "rgba(255, 255, 255, 0.8)"
-        : "rgba(255, 255, 255, 0.3)",
-    ...(Platform.OS === "ios"
-      ? {
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.3,
-          shadowRadius: 2,
-        }
-      : {}),
-  },
-  colorLabel: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: Platform.OS === "ios" ? "600" : "500",
   },
 });

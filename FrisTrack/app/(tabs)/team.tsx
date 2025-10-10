@@ -7,9 +7,9 @@ import {
   Platform,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
-import { SwipeableCard } from "@/components/swipeableCard";
-import { ScreenLayout } from "@/components/screenLayout";
-import { AddButton } from "@/components/addButton";
+import { SwipeableCard } from "@/components/perso_components/swipeableCard";
+import { ScreenLayout } from @/components/perso_components/screenLayout";
+import { AddButton } from "@/components/perso_components/addButton";
 import { getTeams } from "@/services/getTeams";
 import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
 import { useRouter } from "expo-router";

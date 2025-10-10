@@ -12,7 +12,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
-import { ScreenLayout } from "@/components/screenLayout";
+import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { useTheme } from "@/contexts/ThemeContext";
 
 // Liste manuelle des images du dossier profile_pictures

@@ -2,9 +2,9 @@ import React, { useEffect } from "react";
 import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
-import { ScreenLayout } from "@/components/screenLayout";
+import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { useLocalSearchParams, useNavigation } from "expo-router";
-import { BackButton } from "@/components/BackButton";
+import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 
 // Exemple de données fictives - utilisation des mêmes images que dans profil.tsx

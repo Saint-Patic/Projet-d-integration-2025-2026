@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Platform } from "react-native";
+// import { Platform } from "react-native";
 
 export interface Theme {
   primary: string;
