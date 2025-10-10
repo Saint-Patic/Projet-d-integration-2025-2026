@@ -50,9 +50,9 @@ function getImageSource(imageName: string) {
 
 export default function ProfilScreen() {
   const { theme } = useTheme();
-  const [editMode, setEditMode] = useState(false);
+  const [editMode] = useState(false);
   const [showImagePicker, setShowImagePicker] = useState(false);
-  const [user, setUser] = useState({
+  const [user] = useState({
     id: 1,
     nom: "Lemaire",
     prenom: "Nathan",
