@@ -1,22 +1,77 @@
-import React from "react";
-import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  TextInput,
+  KeyboardAvoidingView,
+  ScrollView,
+} from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
+const profilePictures = [
+  {
+    name: "chat.png",
+    src: require("@/assets/images/profile_pictures/chat.png"),
+  },
+  {
+    name: "chien.png",
+    src: require("@/assets/images/profile_pictures/chien.png"),
+  },
+  {
+    name: "default.png",
+    src: require("@/assets/images/profile_pictures/default.png"),
+  },
+  {
+    name: "Frisbee.png",
+    src: require("@/assets/images/profile_pictures/Frisbee.png"),
+  },
+  {
+    name: "lezard.png",
+    src: require("@/assets/images/profile_pictures/lezard.png"),
+  },
+  {
+    name: "nathan.png",
+    src: require("@/assets/images/profile_pictures/nathan.png"),
+  },
+];
+function getImageSource(imageName: string) {
+  const found = profilePictures.find((img) => img.name === imageName);
+  return found ? found.src : profilePictures[0].src;
+}
+
+// Fonction de filtrage pour les champs numériques (pas de min/max ici)
+function filterNumericInput(text: string, type: "int" | "float"): string {
+  let filtered = text.replace(type === "int" ? /[^0-9]/g : /[^0-9.,]/g, "");
+  if (type === "float") filtered = filtered.replace(",", ".");
+  return filtered;
+}
 
 export default function ProfilScreen() {
-  const user = {
+  const [editMode, setEditMode] = useState(false);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [user, setUser] = useState({
+    id: 1,
     nom: "Lemaire",
     prenom: "Nathan",
-    imageName: "nathan.png",
+    imageName: "nathan.png", // On stocke le nom du fichier
     pointure: 37,
-    main: "Droite", // "Gauche", "Droite" ou "Ambidextre"
+    main: "Droite",
     poids: 52.5,
     taille: 157,
     age: 22,
-  };
+  });
+  const [form, setForm] = useState({ ...user });
+
+  // Etats temporaires pour les champs numériques
+  const [poidsInput, setPoidsInput] = useState(user.poids.toString());
+  const [pointureInput, setPointureInput] = useState(user.pointure.toString());
+  const [tailleInput, setTailleInput] = useState(user.taille.toString());
+  const [ageInput, setAgeInput] = useState(user.age.toString());
 
   const editProfile = () => {
     setForm({ ...user });
@@ -24,13 +79,6 @@ export default function ProfilScreen() {
     setPointureInput(user.pointure.toString());
     setTailleInput(user.taille.toString());
     setAgeInput(user.age.toString());
-    setMainSelection(
-      user.main === "Ambidextre"
-        ? { gauche: true, droite: true }
-        : user.main === "Gauche"
-        ? { gauche: true, droite: false }
-        : { gauche: false, droite: true }
-    );
     setEditMode(true);
     setShowImagePicker(false);
   };
@@ -48,14 +96,9 @@ export default function ProfilScreen() {
   };
 
   const handleSave = () => {
-    // Détermine la valeur à sauvegarder pour main
-    let mainValue = "Droite";
-    if (mainSelection.gauche && mainSelection.droite) mainValue = "Ambidextre";
-    else if (mainSelection.gauche) mainValue = "Gauche";
-    // else mainValue = "Droite" (défaut)
-    const newForm = { ...form, main: mainValue };
-    console.log("Enregistrer profil :", { ...newForm });
-    setUser({ ...newForm });
+    // Affiche les nouvelles données en console (nom du fichier image)
+    console.log("Enregistrer profil :", { ...form });
+    setUser({ ...form });
     setEditMode(false);
     setShowImagePicker(false);
   };
@@ -67,78 +110,293 @@ export default function ProfilScreen() {
 
   const HeaderRight = () => (
     <TouchableOpacity onPress={settings} style={{ marginRight: 16 }}>
-      <Ionicons name="settings-outline" size={24} color={theme.primary} />
+      <Ionicons name="settings-outline" size={24} color="#00d6d6" />
     </TouchableOpacity>
   );
 
+  if (editMode) {
+    return (
+      <ScreenLayout title="Profil" headerRight={<HeaderRight />}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <ScrollView contentContainerStyle={styles.container}>
+            {showImagePicker ? (
+              <View style={styles.imagePickerContainer}>
+                <ThemedText style={styles.editPhotoText}>
+                  Choisissez une photo de profil
+                </ThemedText>
+                <View style={styles.imagePickerGrid}>
+                  {profilePictures.map((img, idx) => (
+                    <TouchableOpacity
+                      key={img.name}
+                      onPress={() => {
+                        setForm((f) => ({ ...f, imageName: img.name }));
+                        setShowImagePicker(false);
+                      }}
+                    >
+                      <Image
+                        source={img.src}
+                        style={styles.profileImageSmall}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowImagePicker(false)}
+                  style={styles.cancelPickerButton}
+                >
+                  <ThemedText style={styles.cancelPickerText}>
+                    Annuler
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.profileImageContainer}>
+                <TouchableOpacity
+                  onPress={() => setShowImagePicker(true)}
+                  activeOpacity={0.7}
+                >
+                  <Image
+                    source={getImageSource(form.imageName)}
+                    style={styles.profileImage}
+                  />
+                </TouchableOpacity>
+                <ThemedText style={styles.editPhotoText}>
+                  Cliquez sur la photo pour la changer
+                </ThemedText>
+              </View>
+            )}
+            <View style={styles.infoContainer}>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>Prénom</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  value={form.prenom}
+                  onChangeText={(text) =>
+                    setForm((f) => ({ ...f, prenom: text }))
+                  }
+                  placeholder="Prénom"
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>Nom</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  value={form.nom}
+                  onChangeText={(text) => setForm((f) => ({ ...f, nom: text }))}
+                  placeholder="Nom"
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>Pointure</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  value={pointureInput}
+                  onChangeText={(text) => {
+                    const filtered = text.replace(/[^0-9]/g, "");
+                    setPointureInput(filtered);
+                    if (filtered !== "") {
+                      setForm((f) => ({ ...f, pointure: parseInt(filtered) }));
+                    }
+                  }}
+                  onBlur={() => {
+                    if (pointureInput === "") {
+                      setPointureInput(user.pointure.toString());
+                      setForm((f) => ({ ...f, pointure: user.pointure }));
+                    }
+                  }}
+                  keyboardType="numeric"
+                  placeholder="Pointure"
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>Main dominante</ThemedText>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <TouchableOpacity
+                    style={[
+                      styles.choiceButton,
+                      form.main === "Gauche" && styles.choiceButtonSelected,
+                    ]}
+                    onPress={() => setForm((f) => ({ ...f, main: "Gauche" }))}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.choiceButtonText,
+                        form.main === "Gauche" &&
+                          styles.choiceButtonTextSelected,
+                      ]}
+                    >
+                      Gauche
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.choiceButton,
+                      form.main === "Droite" && styles.choiceButtonSelected,
+                    ]}
+                    onPress={() => setForm((f) => ({ ...f, main: "Droite" }))}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.choiceButtonText,
+                        form.main === "Droite" &&
+                          styles.choiceButtonTextSelected,
+                      ]}
+                    >
+                      Droite
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>Poids</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  value={poidsInput}
+                  onChangeText={(text) => {
+                    // Autorise chiffres, point, virgule
+                    const filtered = text.replace(/[^0-9.,]/g, "");
+                    setPoidsInput(filtered);
+                    if (
+                      filtered !== "" &&
+                      filtered !== "." &&
+                      filtered !== ","
+                    ) {
+                      setForm((f) => ({
+                        ...f,
+                        poids: parseFloat(filtered.replace(",", ".")),
+                      }));
+                    }
+                  }}
+                  onBlur={() => {
+                    if (
+                      poidsInput === "" ||
+                      poidsInput === "." ||
+                      poidsInput === ","
+                    ) {
+                      setPoidsInput(user.poids.toString());
+                      setForm((f) => ({ ...f, poids: user.poids }));
+                    }
+                  }}
+                  keyboardType="numeric"
+                  placeholder="Poids"
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>Taille</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  value={tailleInput}
+                  onChangeText={(text) => {
+                    const filtered = text.replace(/[^0-9]/g, "");
+                    setTailleInput(filtered);
+                    if (filtered !== "") {
+                      setForm((f) => ({ ...f, taille: parseInt(filtered) }));
+                    }
+                  }}
+                  onBlur={() => {
+                    if (tailleInput === "") {
+                      setTailleInput(user.taille.toString());
+                      setForm((f) => ({ ...f, taille: user.taille }));
+                    }
+                  }}
+                  keyboardType="numeric"
+                  placeholder="Taille"
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>Âge</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  value={ageInput}
+                  onChangeText={(text) => {
+                    const filtered = text.replace(/[^0-9]/g, "");
+                    setAgeInput(filtered);
+                    if (filtered !== "") {
+                      setForm((f) => ({ ...f, age: parseInt(filtered) }));
+                    }
+                  }}
+                  onBlur={() => {
+                    if (ageInput === "") {
+                      setAgeInput(user.age.toString());
+                      setForm((f) => ({ ...f, age: user.age }));
+                    }
+                  }}
+                  keyboardType="numeric"
+                  placeholder="Âge"
+                  placeholderTextColor="#aaa"
+                />
+              </View>
+            </View>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.editButton]}
+                onPress={handleSave}
+              >
+                <ThemedText style={styles.buttonText}>Enregistrer</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.logoutButton]}
+                onPress={handleCancel}
+              >
+                <ThemedText style={styles.buttonText}>Annuler</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </ScreenLayout>
+    );
+  }
+
+  // Affichage normal du profil
   return (
-    <ScreenLayout title="Profil" headerRight={<HeaderRight />} theme={theme}>
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <ScreenLayout title="Profil" headerRight={<HeaderRight />}>
+      <View style={styles.container}>
         <View style={styles.profileImageContainer}>
-          <Image source={user.image} style={styles.profileImage} />
+          <Image
+            source={getImageSource(user.imageName)}
+            style={styles.profileImage}
+          />
           <View style={styles.imageGlow} />
         </View>
 
-        <ThemedText
-          style={[
-            styles.name,
-            { color: theme.text, textShadowColor: `${theme.primary}50` },
-          ]}
-        >
+        <ThemedText style={styles.name}>
           {user.prenom} {user.nom}
         </ThemedText>
 
-        <View
-          style={[
-            styles.infoContainer,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-          ]}
-        >
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Pointure
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.pointure}
-            </ThemedText>
+        <View style={styles.infoContainer}>
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Pointure</ThemedText>
+            <ThemedText style={styles.infoValue}>{user.pointure}</ThemedText>
           </View>
           <View style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>Main dominante</ThemedText>
             <ThemedText style={styles.infoValue}>{user.main}</ThemedText>
           </View>
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Poids
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.poids} kg
-            </ThemedText>
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Poids</ThemedText>
+            <ThemedText style={styles.infoValue}>{user.poids} kg</ThemedText>
           </View>
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Taille
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.taille} cm
-            </ThemedText>
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Taille</ThemedText>
+            <ThemedText style={styles.infoValue}>{user.taille} cm</ThemedText>
           </View>
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Âge
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.age} ans
-            </ThemedText>
+          <View style={styles.infoRow}>
+            <ThemedText style={styles.infoLabel}>Âge</ThemedText>
+            <ThemedText style={styles.infoValue}>{user.age} ans</ThemedText>
           </View>
         </View>
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.editButton,
-              { backgroundColor: theme.primary },
-            ]}
+            style={[styles.actionButton, styles.editButton]}
             onPress={editProfile}
           >
             <ThemedText style={styles.buttonText}>
@@ -146,11 +404,7 @@ export default function ProfilScreen() {
             </ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.sensorButton,
-              { backgroundColor: `${theme.primary}B0` },
-            ]}
+            style={[styles.actionButton, styles.sensorButton]}
             onPress={connectSensor}
           >
             <ThemedText style={styles.buttonText}>
@@ -158,11 +412,7 @@ export default function ProfilScreen() {
             </ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.logoutButton,
-              { backgroundColor: theme.surface, borderColor: "#e85555" },
-            ]}
+            style={[styles.actionButton, styles.logoutButton]}
             onPress={logout}
           >
             <ThemedText style={styles.buttonText}>Se déconnecter</ThemedText>
