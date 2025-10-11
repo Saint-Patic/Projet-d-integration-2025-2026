@@ -16,37 +16,19 @@ import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { useTheme } from "@/contexts/ThemeContext";
 
 const profilePictures = [
-  {
-    name: "chat.png",
-    src: require("@/assets/images/profile_pictures/chat.png"),
-  },
-  {
-    name: "chien.png",
-    src: require("@/assets/images/profile_pictures/chien.png"),
-  },
-  {
-    name: "default.png",
-    src: require("@/assets/images/profile_pictures/default.png"),
-  },
-  {
-    name: "Frisbee.png",
-    src: require("@/assets/images/profile_pictures/Frisbee.png"),
-  },
-  {
-    name: "lezard.png",
-    src: require("@/assets/images/profile_pictures/lezard.png"),
-  },
-  {
-    name: "nathan.png",
-    src: require("@/assets/images/profile_pictures/nathan.png"),
-  },
+  { name: "chat.png", src: require("@/assets/images/profile_pictures/chat.png") },
+  { name: "chien.png", src: require("@/assets/images/profile_pictures/chien.png") },
+  { name: "default.png", src: require("@/assets/images/profile_pictures/default.png") },
+  { name: "Frisbee.png", src: require("@/assets/images/profile_pictures/Frisbee.png") },
+  { name: "lezard.png", src: require("@/assets/images/profile_pictures/lezard.png") },
+  { name: "nathan.png", src: require("@/assets/images/profile_pictures/nathan.png") },
 ];
+
 function getImageSource(imageName: string) {
   const found = profilePictures.find((img) => img.name === imageName);
   return found ? found.src : profilePictures[0].src;
 }
 
-// Fonction de filtrage pour les champs numériques (pas de min/max ici)
 function filterNumericInput(text: string, type: "int" | "float"): string {
   let filtered = text.replace(type === "int" ? /[^0-9]/g : /[^0-9.,]/g, "");
   if (type === "float") filtered = filtered.replace(",", ".");
@@ -61,7 +43,6 @@ export default function ProfilScreen() {
     id: 1,
     nom: "Lemaire",
     prenom: "Nathan",
-    image: require("@/assets/images/nathan.png"),
     imageName: "nathan.png",
     pointure: 37,
     main: "Droite",
@@ -77,12 +58,28 @@ export default function ProfilScreen() {
   const [tailleInput, setTailleInput] = useState(user.taille.toString());
   const [ageInput, setAgeInput] = useState(user.age.toString());
 
+  // Pour la main dominante (ambidextre)
+  const [mainSelection, setMainSelection] = useState(
+    user.main === "Ambidextre"
+      ? { gauche: true, droite: true }
+      : user.main === "Gauche"
+      ? { gauche: true, droite: false }
+      : { gauche: false, droite: true }
+  );
+
   const editProfile = () => {
     setForm({ ...user });
     setPoidsInput(user.poids.toString());
     setPointureInput(user.pointure.toString());
     setTailleInput(user.taille.toString());
     setAgeInput(user.age.toString());
+    setMainSelection(
+      user.main === "Ambidextre"
+        ? { gauche: true, droite: true }
+        : user.main === "Gauche"
+        ? { gauche: true, droite: false }
+        : { gauche: false, droite: true }
+    );
     setEditMode(true);
     setShowImagePicker(false);
   };
@@ -100,9 +97,11 @@ export default function ProfilScreen() {
   };
 
   const handleSave = () => {
-    // Affiche les nouvelles données en console (nom du fichier image)
-    console.log("Enregistrer profil :", { ...form });
-    setUser({ ...form });
+    let mainValue = "Droite";
+    if (mainSelection.gauche && mainSelection.droite) mainValue = "Ambidextre";
+    else if (mainSelection.gauche) mainValue = "Gauche";
+    const newForm = { ...form, main: mainValue };
+    setUser({ ...newForm });
     setEditMode(false);
     setShowImagePicker(false);
   };
@@ -133,13 +132,11 @@ export default function ProfilScreen() {
           >
             {showImagePicker ? (
               <View style={styles.imagePickerContainer}>
-                <ThemedText
-                  style={[styles.editPhotoText, { color: theme.primary }]}
-                >
+                <ThemedText style={[styles.editPhotoText, { color: theme.primary }]}>
                   Choisissez une photo de profil
                 </ThemedText>
                 <View style={styles.imagePickerGrid}>
-                  {profilePictures.map((img, idx) => (
+                  {profilePictures.map((img) => (
                     <TouchableOpacity
                       key={img.name}
                       onPress={() => {
@@ -164,9 +161,7 @@ export default function ProfilScreen() {
                     { backgroundColor: theme.surface },
                   ]}
                 >
-                  <ThemedText
-                    style={[styles.cancelPickerText, { color: theme.text }]}
-                  >
+                  <ThemedText style={[styles.cancelPickerText, { color: theme.text }]}>
                     Annuler
                   </ThemedText>
                 </TouchableOpacity>
@@ -185,9 +180,7 @@ export default function ProfilScreen() {
                     ]}
                   />
                 </TouchableOpacity>
-                <ThemedText
-                  style={[styles.editPhotoText, { color: theme.primary }]}
-                >
+                <ThemedText style={[styles.editPhotoText, { color: theme.primary }]}>
                   Cliquez sur la photo pour la changer
                 </ThemedText>
               </View>
@@ -198,7 +191,7 @@ export default function ProfilScreen() {
                 { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
             >
-              <View style={styles.infoRow}>
+              <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
                 <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
                   Prénom
                 </ThemedText>
@@ -213,14 +206,12 @@ export default function ProfilScreen() {
                     },
                   ]}
                   value={form.prenom}
-                  onChangeText={(text) =>
-                    setForm((f) => ({ ...f, prenom: text }))
-                  }
+                  onChangeText={(text) => setForm((f) => ({ ...f, prenom: text }))}
                   placeholder="Prénom"
                   placeholderTextColor="#aaa"
                 />
               </View>
-              <View style={styles.infoRow}>
+              <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
                 <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
                   Nom
                 </ThemedText>
@@ -240,7 +231,7 @@ export default function ProfilScreen() {
                   placeholderTextColor="#aaa"
                 />
               </View>
-              <View style={styles.infoRow}>
+              <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
                 <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
                   Pointure
                 </ThemedText>
@@ -256,24 +247,24 @@ export default function ProfilScreen() {
                   ]}
                   value={pointureInput}
                   onChangeText={(text) => {
-                    const filtered = text.replace(/[^0-9]/g, "");
+                    const filtered = filterNumericInput(text, "int");
                     setPointureInput(filtered);
-                    if (filtered !== "") {
-                      setForm((f) => ({ ...f, pointure: parseInt(filtered) }));
-                    }
+                    if (filtered !== "") setForm((f) => ({ ...f, pointure: parseInt(filtered) }));
                   }}
                   onBlur={() => {
-                    if (pointureInput === "") {
-                      setPointureInput(user.pointure.toString());
-                      setForm((f) => ({ ...f, pointure: user.pointure }));
-                    }
+                    let value = parseInt(pointureInput);
+                    if (isNaN(value)) value = user.pointure;
+                    if (value < 15) value = 15;
+                    if (value > 65) value = 65;
+                    setPointureInput(value.toString());
+                    setForm((f) => ({ ...f, pointure: value }));
                   }}
                   keyboardType="numeric"
                   placeholder="Pointure"
                   placeholderTextColor="#aaa"
                 />
               </View>
-              <View style={styles.infoRow}>
+              <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
                 <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
                   Main dominante
                 </ThemedText>
@@ -281,20 +272,25 @@ export default function ProfilScreen() {
                   <TouchableOpacity
                     style={[
                       styles.choiceButton,
-                      form.main === "Gauche"
-                        ? { backgroundColor: theme.primary }
-                        : {
-                            backgroundColor: theme.surface,
-                            borderColor: theme.border,
-                            borderWidth: 1,
-                          },
+                      mainSelection.gauche && { backgroundColor: theme.primary },
+                      !mainSelection.gauche && {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        borderWidth: 1,
+                      },
                     ]}
-                    onPress={() => setForm((f) => ({ ...f, main: "Gauche" }))}
+                    onPress={() => {
+                      setMainSelection((sel) => {
+                        const newSel = { ...sel, gauche: !sel.gauche };
+                        if (!newSel.gauche && !newSel.droite) newSel.gauche = true;
+                        return newSel;
+                      });
+                    }}
                   >
                     <ThemedText
                       style={[
                         styles.choiceButtonText,
-                        form.main === "Gauche"
+                        mainSelection.gauche
                           ? { color: "#fff" }
                           : { color: theme.text },
                       ]}
@@ -305,20 +301,25 @@ export default function ProfilScreen() {
                   <TouchableOpacity
                     style={[
                       styles.choiceButton,
-                      form.main === "Droite"
-                        ? { backgroundColor: theme.primary }
-                        : {
-                            backgroundColor: theme.surface,
-                            borderColor: theme.border,
-                            borderWidth: 1,
-                          },
+                      mainSelection.droite && { backgroundColor: theme.primary },
+                      !mainSelection.droite && {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        borderWidth: 1,
+                      },
                     ]}
-                    onPress={() => setForm((f) => ({ ...f, main: "Droite" }))}
+                    onPress={() => {
+                      setMainSelection((sel) => {
+                        const newSel = { ...sel, droite: !sel.droite };
+                        if (!newSel.gauche && !newSel.droite) newSel.droite = true;
+                        return newSel;
+                      });
+                    }}
                   >
                     <ThemedText
                       style={[
                         styles.choiceButtonText,
-                        form.main === "Droite"
+                        mainSelection.droite
                           ? { color: "#fff" }
                           : { color: theme.text },
                       ]}
@@ -327,8 +328,15 @@ export default function ProfilScreen() {
                     </ThemedText>
                   </TouchableOpacity>
                 </View>
+                <ThemedText style={{ color: theme.primary, marginLeft: 8 }}>
+                  {(mainSelection.gauche && mainSelection.droite)
+                    ? "Ambidextre"
+                    : mainSelection.gauche
+                    ? "Gauche"
+                    : "Droite"}
+                </ThemedText>
               </View>
-              <View style={styles.infoRow}>
+              <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
                 <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
                   Poids
                 </ThemedText>
@@ -344,35 +352,25 @@ export default function ProfilScreen() {
                   ]}
                   value={poidsInput}
                   onChangeText={(text) => {
-                    const filtered = text.replace(/[^0-9.,]/g, "");
+                    const filtered = filterNumericInput(text, "float");
                     setPoidsInput(filtered);
-                    if (
-                      filtered !== "" &&
-                      filtered !== "." &&
-                      filtered !== ","
-                    ) {
-                      setForm((f) => ({
-                        ...f,
-                        poids: parseFloat(filtered.replace(",", ".")),
-                      }));
-                    }
+                    if (filtered !== "" && filtered !== "." && filtered !== ",")
+                      setForm((f) => ({ ...f, poids: parseFloat(filtered) }));
                   }}
                   onBlur={() => {
-                    if (
-                      poidsInput === "" ||
-                      poidsInput === "." ||
-                      poidsInput === ","
-                    ) {
-                      setPoidsInput(user.poids.toString());
-                      setForm((f) => ({ ...f, poids: user.poids }));
-                    }
+                    let value = parseFloat(poidsInput);
+                    if (isNaN(value)) value = user.poids;
+                    if (value < 10) value = 10;
+                    if (value > 300) value = 300;
+                    setPoidsInput(value.toString());
+                    setForm((f) => ({ ...f, poids: value }));
                   }}
                   keyboardType="numeric"
                   placeholder="Poids"
                   placeholderTextColor="#aaa"
                 />
               </View>
-              <View style={styles.infoRow}>
+              <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
                 <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
                   Taille
                 </ThemedText>
@@ -388,24 +386,24 @@ export default function ProfilScreen() {
                   ]}
                   value={tailleInput}
                   onChangeText={(text) => {
-                    const filtered = text.replace(/[^0-9]/g, "");
+                    const filtered = filterNumericInput(text, "int");
                     setTailleInput(filtered);
-                    if (filtered !== "") {
-                      setForm((f) => ({ ...f, taille: parseInt(filtered) }));
-                    }
+                    if (filtered !== "") setForm((f) => ({ ...f, taille: parseInt(filtered) }));
                   }}
                   onBlur={() => {
-                    if (tailleInput === "") {
-                      setTailleInput(user.taille.toString());
-                      setForm((f) => ({ ...f, taille: user.taille }));
-                    }
+                    let value = parseInt(tailleInput);
+                    if (isNaN(value)) value = user.taille;
+                    if (value < 50) value = 50;
+                    if (value > 250) value = 250;
+                    setTailleInput(value.toString());
+                    setForm((f) => ({ ...f, taille: value }));
                   }}
                   keyboardType="numeric"
                   placeholder="Taille"
                   placeholderTextColor="#aaa"
                 />
               </View>
-              <View style={styles.infoRow}>
+              <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
                 <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
                   Âge
                 </ThemedText>
@@ -421,17 +419,17 @@ export default function ProfilScreen() {
                   ]}
                   value={ageInput}
                   onChangeText={(text) => {
-                    const filtered = text.replace(/[^0-9]/g, "");
+                    const filtered = filterNumericInput(text, "int");
                     setAgeInput(filtered);
-                    if (filtered !== "") {
-                      setForm((f) => ({ ...f, age: parseInt(filtered) }));
-                    }
+                    if (filtered !== "") setForm((f) => ({ ...f, age: parseInt(filtered) }));
                   }}
                   onBlur={() => {
-                    if (ageInput === "") {
-                      setAgeInput(user.age.toString());
-                      setForm((f) => ({ ...f, age: user.age }));
-                    }
+                    let value = parseInt(ageInput);
+                    if (isNaN(value)) value = user.age;
+                    if (value < 1) value = 1;
+                    if (value > 120) value = 120;
+                    setAgeInput(value.toString());
+                    setForm((f) => ({ ...f, age: value }));
                   }}
                   keyboardType="numeric"
                   placeholder="Âge"
@@ -701,7 +699,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 217, 217, 0.15)",
+    // borderBottomColor: "rgba(0, 217, 217, 0.15)", // supprimé pour thème dynamique
   },
   infoLabel: {
     fontSize: 16,
