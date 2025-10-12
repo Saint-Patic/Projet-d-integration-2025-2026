@@ -7,6 +7,8 @@ import {
   TextInput,
   KeyboardAvoidingView,
   ScrollView,
+  Dimensions,
+  Pressable,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +16,7 @@ import { router } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { useTheme } from "@/contexts/ThemeContext";
+import { BackButton } from "@/components/perso_components/BackButton";
 
 const profilePictures = [
   { name: "chat.png", src: require("@/assets/images/profile_pictures/chat.png") },
@@ -39,6 +42,7 @@ export default function ProfilScreen() {
   const { theme } = useTheme();
   const [editMode, setEditMode] = useState(false);
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [showFullImage, setShowFullImage] = useState(false);
   const [user, setUser] = useState({
     id: 1,
     nom: "Lemaire",
@@ -116,6 +120,39 @@ export default function ProfilScreen() {
       <Ionicons name="settings-outline" size={24} color={theme.primary} />
     </TouchableOpacity>
   );
+
+  // Affichage de l'image en grand (overlay modal)
+  if (showFullImage) {
+    const { width } = Dimensions.get("window");
+    return (
+      <Pressable
+        style={styles.fullImageOverlay}
+        onPress={() => setShowFullImage(false)}
+      >
+        <BackButton
+          onPress={() => setShowFullImage(false)}
+          style={styles.fullImageBack}
+          color="#fff"
+        />
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setShowFullImage(false)}
+        >
+          <Image
+            source={getImageSource(user.imageName)}
+            style={{
+              width: width * 0.8,
+              height: width * 0.8,
+              borderRadius: width * 0.4,
+              borderWidth: 4,
+              borderColor: theme.primary,
+              backgroundColor: "#222",
+            }}
+          />
+        </TouchableOpacity>
+      </Pressable>
+    );
+  }
 
   if (editMode) {
     return (
@@ -476,10 +513,12 @@ export default function ProfilScreen() {
     <ScreenLayout title="Profil" headerRight={<HeaderRight />} theme={theme}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.profileImageContainer}>
-          <Image
-            source={getImageSource(user.imageName)}
-            style={[styles.profileImage, { borderColor: theme.primary }]}
-          />
+          <TouchableOpacity onPress={() => setShowFullImage(true)}>
+            <Image
+              source={getImageSource(user.imageName)}
+              style={[styles.profileImage, { borderColor: theme.primary }]}
+            />
+          </TouchableOpacity>
           <View
             style={[
               styles.imageGlow,
@@ -634,6 +673,21 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 217, 217, 0.15)",
     zIndex: -1,
   },
+  fullImageOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.92)",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 100,
+  },
+  fullImageBack: {
+    position: "absolute",
+    top: 40,
+    left: 20,
+    zIndex: 101,
+  },
   imagePickerContainer: {
     alignItems: "center",
     marginBottom: 16,
@@ -699,7 +753,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    // borderBottomColor: "rgba(0, 217, 217, 0.15)", // supprimé pour thème dynamique
   },
   infoLabel: {
     fontSize: 16,
