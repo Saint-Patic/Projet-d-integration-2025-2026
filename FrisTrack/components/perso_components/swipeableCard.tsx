@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { StyleSheet, View, Dimensions, Platform } from "react-native";
+import { StyleSheet, View, Dimensions, Platform, TouchableOpacity } from "react-native";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated, {
   useAnimatedStyle,
@@ -23,6 +23,12 @@ interface SwipeableCardProps {
   onDelete: () => void;
   children: React.ReactNode;
   theme?: Theme;
+  actions?: Array<{
+    text: string;
+    onPress: () => void;
+    color: string;
+    disabled?: boolean;
+  }>;
 }
 
 export const SwipeableCard: React.FC<SwipeableCardProps> = ({
@@ -33,6 +39,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   onDelete,
   children,
   theme,
+  actions = [],
 }) => {
   const swipeableRef = useRef<any>(null);
 
@@ -140,7 +147,32 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
       <Swipeable
         ref={swipeableRef}
         renderRightActions={RenderRightActions}
-        renderLeftActions={RenderLeftActions}
+        renderLeftActions={RenderLeftActions}>
+        <View style={[styles.card, dynamicStyles.card]}>
+          <View style={[styles.cardHeader, { borderTopColor }]}>
+            <ThemedText style={styles.title}>{title}</ThemedText>
+          </View>
+          {children}
+          {actions.length > 0 && (
+            <View style={styles.actionsContainer}>
+              {actions.map((action, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: action.color },
+                    action.disabled && { opacity: 0.5 }
+                  ]}
+                  onPress={action.onPress}
+                  disabled={action.disabled}
+                >
+                  <ThemedText style={styles.actionButtonText}>
+                    {action.text}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         friction={2}
         overshootFriction={8}
         rightThreshold={SWIPE_THRESHOLD}

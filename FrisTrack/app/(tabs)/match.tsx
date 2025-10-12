@@ -10,7 +10,9 @@ import { ThemedText } from "@/components/themed-text";
 import { SwipeableCard } from "@/components/perso_components/swipeableCard";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { AddButton } from "@/components/perso_components/addButton";
+import { RecordingControls } from "@/components/perso_components/RecordingControls";
 import { getMatches } from "@/services/getMatches";
+import { startRecording, stopRecording, savePositions } from "@/services/recordingService";
 import { useTheme } from "@/contexts/ThemeContext";
 
 interface Match {
@@ -22,10 +24,18 @@ interface Match {
   date: string;
   status: string;
   color: string;
+  recording?: {
+    isRecording: boolean;
+    startTime?: number;
+    endTime?: number;
+    recordingData?: any[]; // Will store movement data
+  };
 }
 
 export default function HomeScreen() {
   const [matches, setMatches] = useState<Match[]>([]);
+  const [currentRecordingId, setCurrentRecordingId] = useState<number | null>(null);
+  const [positionInterval, setPositionInterval] = useState<NodeJS.Timer | null>(null);
   const { theme } = useTheme();
 
   useEffect(() => {
@@ -60,7 +70,91 @@ export default function HomeScreen() {
   };
 
   const startMatch = (matchId: number) => {
-    console.log(`Démarrage du match ${matchId}`);
+    setMatches(matches.map(match => {
+      if (match.id === matchId) {
+        return {
+          ...match,
+          status: 'recording',
+          recording: {
+            isRecording: true,
+            startTime: Date.now(),
+            recordingData: []
+          }
+        };
+      }
+      return match;
+    }));
+
+    // Start recording movement data
+    startRecordingMovement(matchId);
+  };
+
+  const stopMatch = (matchId: number) => {
+    setMatches(matches.map(match => {
+      if (match.id === matchId) {
+        return {
+          ...match,
+          status: 'finished',
+          recording: {
+            ...match.recording,
+            isRecording: false,
+            endTime: Date.now()
+          }
+        };
+      }
+      return match;
+    }));
+
+    // Stop recording movement data and save
+    stopRecordingMovement(matchId);
+  };
+
+  // L'état a été déplacé en haut
+  
+  const startRecordingMovement = async (matchId: number) => {
+    try {
+      const recording = await startRecording(matchId);
+      setCurrentRecordingId(recording.id);
+      
+      // Start position tracking
+      const positionInterval = setInterval(async () => {
+        if (currentRecordingId) {
+          // Ici, nous devrions obtenir les données de position réelles des capteurs
+          // Pour l'instant, nous utilisons des données de test
+          const testPositions = [{
+            x: Math.random() * 100,
+            y: Math.random() * 100,
+            z: Math.random() * 10
+          }];
+          
+          await savePositions(currentRecordingId, testPositions);
+        }
+      }, 1000); // Enregistrer toutes les secondes
+      
+      // Sauvegarder l'intervalle pour l'arrêter plus tard
+      setPositionInterval(positionInterval);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      Alert.alert('Error', 'Failed to start recording');
+    }
+  };
+
+  const stopRecordingMovement = async (matchId: number) => {
+    try {
+      if (currentRecordingId) {
+        // Arrêter l'intervalle de suivi de position
+        if (positionInterval) {
+          clearInterval(positionInterval);
+          setPositionInterval(null);
+        }
+        
+        await stopRecording(matchId);
+        setCurrentRecordingId(null);
+      }
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      Alert.alert('Error', 'Failed to stop recording');
+    }
   };
 
   const createNewMatch = () => {
@@ -94,7 +188,20 @@ export default function HomeScreen() {
         borderTopColor={theme.primary}
         onEdit={() => editMatch(match.id)}
         onDelete={() => deleteMatch(match.id)}
-        theme={theme}
+        theme={theme}>
+        actions={[
+          {
+            text: match.recording?.isRecording ? "Stop" : "Start",
+            onPress: () => match.recording?.isRecording ? stopMatch(match.id) : startMatch(match.id),
+            color: match.recording?.isRecording ? "#ff4444" : "#44ff44"
+          },
+          {
+            text: "Review",
+            onPress: () => viewMatchDetails(match.id),
+            color: "#4444ff",
+            disabled: !match.recording || match.recording.isRecording
+          }
+        ]}
       >
         <View style={styles.matchInfo}>
           <View
@@ -267,6 +374,24 @@ const styles = StyleSheet.create({
   matchActions: {
     flexDirection: "row",
     gap: 8,
+  },
+  recordingControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+  },
+  recordButton: {
+    padding: 10,
+    borderRadius: 5,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  reviewButton: {
+    padding: 10,
+    borderRadius: 5,
+    minWidth: 100,
+    alignItems: 'center',
   },
   actionButton: {
     flex: 1,
