@@ -147,12 +147,25 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
       <Swipeable
         ref={swipeableRef}
         renderRightActions={RenderRightActions}
-        renderLeftActions={RenderLeftActions}>
-        <View style={[styles.card, dynamicStyles.card]}>
-          <View style={[styles.cardHeader, { borderTopColor }]}>
-            <ThemedText style={styles.title}>{title}</ThemedText>
+        renderLeftActions={RenderLeftActions}
+        friction={2}
+        overshootFriction={8}
+        rightThreshold={SWIPE_THRESHOLD}
+        leftThreshold={SWIPE_THRESHOLD}
+        onSwipeableOpen={handleSwipeableOpen}>
+        <View style={[styles.card, dynamicStyles.card, { borderTopColor }]}>
+          <View
+            style={[
+              styles.cardHeader,
+              { borderBottomColor: theme?.border || "rgba(0, 217, 217, 0.25)" },
+            ]}
+          >
+            <ThemedText style={[styles.cardTitle, dynamicStyles.cardTitle]}>
+              {title} #{cardId}
+            </ThemedText>
+            <ThemedText style={styles.swipeHint}>← Glisser →</ThemedText>
           </View>
-          {children}
+          <View style={styles.cardContent}>{children}</View>
           {actions.length > 0 && (
             <View style={styles.actionsContainer}>
               {actions.map((action, index) => (
@@ -173,25 +186,6 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
               ))}
             </View>
           )}
-        friction={2}
-        overshootFriction={8}
-        rightThreshold={SWIPE_THRESHOLD}
-        leftThreshold={SWIPE_THRESHOLD}
-        onSwipeableOpen={handleSwipeableOpen}
-      >
-        <View style={[styles.card, dynamicStyles.card, { borderTopColor }]}>
-          <View
-            style={[
-              styles.cardHeader,
-              { borderBottomColor: theme?.border || "rgba(0, 217, 217, 0.25)" },
-            ]}
-          >
-            <ThemedText style={[styles.cardTitle, dynamicStyles.cardTitle]}>
-              {title} #{cardId}
-            </ThemedText>
-            <ThemedText style={styles.swipeHint}>← Glisser →</ThemedText>
-          </View>
-          <View style={styles.cardContent}>{children}</View>
         </View>
       </Swipeable>
     </View>
@@ -232,6 +226,11 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 2,
   },
+  title: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#00d6d6",
+  },
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
@@ -250,6 +249,22 @@ const styles = StyleSheet.create({
   actionContainer: {
     width: ACTION_WIDTH,
     height: "100%",
+  },
+  actionsContainer: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 10,
+  },
+  actionButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 15,
+    marginLeft: 10,
+  },
+  actionButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "600",
   },
   action: {
     flex: 1,

@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { View, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { SwipeableCard } from "@/components/swipeableCard";
-import { ScreenLayout } from "@/components/screenLayout";
-import { AddButton } from "@/components/addButton";
+import { SwipeableCard } from "@/components/perso_components/swipeableCard";
+import { ScreenLayout } from "@/components/perso_components/screenLayout";
+import { AddButton } from "@/components/perso_components/addButton";
 import { getMatches } from "@/services/getMatches";
 
 interface Match {
@@ -70,7 +70,7 @@ export default function HomeScreen() {
         return "Terminé";
       case "ongoing":
         return "En cours";
-      case "schedule
+      case "schedule":
         return "Programmé";
       default:
         return "Inconnu";

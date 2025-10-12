@@ -35,7 +35,7 @@ interface Match {
 export default function HomeScreen() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [currentRecordingId, setCurrentRecordingId] = useState<number | null>(null);
-  const [positionInterval, setPositionInterval] = useState<NodeJS.Timer | null>(null);
+  const [positionInterval, setPositionInterval] = useState<number | null>(null);
   const { theme } = useTheme();
 
   useEffect(() => {
@@ -114,20 +114,25 @@ export default function HomeScreen() {
   const startRecordingMovement = async (matchId: number) => {
     try {
       const recording = await startRecording(matchId);
-      setCurrentRecordingId(recording.id);
+      const recordingId = recording.id;
+      setCurrentRecordingId(recordingId);
       
       // Start position tracking
       const positionInterval = setInterval(async () => {
-        if (currentRecordingId) {
-          // Ici, nous devrions obtenir les données de position réelles des capteurs
-          // Pour l'instant, nous utilisons des données de test
-          const testPositions = [{
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            z: Math.random() * 10
-          }];
-          
-          await savePositions(currentRecordingId, testPositions);
+        // Ici, nous devrions obtenir les données de position réelles des capteurs
+        // Pour l'instant, nous utilisons des données de test
+        const testPositions = [{
+          x: Math.random() * 100,
+          y: Math.random() * 100,
+          z: Math.random() * 10
+        }];
+        
+        try {
+          await savePositions(recordingId, testPositions);
+        } catch (error) {
+          console.error('Error saving positions:', error);
+          clearInterval(positionInterval);
+          setPositionInterval(null);
         }
       }, 1000); // Enregistrer toutes les secondes
       
@@ -188,7 +193,7 @@ export default function HomeScreen() {
         borderTopColor={theme.primary}
         onEdit={() => editMatch(match.id)}
         onDelete={() => deleteMatch(match.id)}
-        theme={theme}>
+        theme={theme}
         actions={[
           {
             text: match.recording?.isRecording ? "Stop" : "Start",
