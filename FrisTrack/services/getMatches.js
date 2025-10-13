@@ -11,6 +11,7 @@ let matches = [
     date: "2025-10-01",
     status: "finished",
     color: "#27ae60",
+    venue: "indoor",
   },
   {
     id: 2,
@@ -21,6 +22,7 @@ let matches = [
     date: "2025-10-02",
     status: "finished",
     color: "#e74c3c",
+    venue: "outdoor",
   },
   {
     id: 3,
@@ -31,6 +33,7 @@ let matches = [
     date: "2025-10-03",
     status: "scheduled",
     color: "#f39c12",
+    venue: "outdoor",
   },
   {
     id: 4,
@@ -41,6 +44,7 @@ let matches = [
     date: "2025-10-10",
     status: "scheduled",
     color: "#3498db",
+    venue: "indoor",
   },
 ];
 
@@ -61,6 +65,7 @@ export const createMatch = (match) => {
     status: match.status || "scheduled",
     score1: match.score1 || 0,
     score2: match.score2 || 0,
+    venue: match.venue || "outdoor",
   };
   matches = [...matches, newMatch];
   return Promise.resolve({ ...newMatch });
