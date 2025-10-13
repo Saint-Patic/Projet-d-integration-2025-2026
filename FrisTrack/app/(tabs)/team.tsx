@@ -34,7 +34,17 @@ export default function TeamScreen() {
   }, []);
 
   const editTeam = (teamId: number) => {
-    console.log(`Édition de l'équipe ${teamId}`);
+    const team = teams.find((t) => t.id === teamId);
+    if (team) {
+      router.push({
+        pathname: "/team-details",
+        params: {
+          teamId: teamId.toString(),
+          teamName: team.name,
+          editMode: "true",
+        },
+      });
+    }
   };
 
   const deleteTeam = (teamId: number) => {
