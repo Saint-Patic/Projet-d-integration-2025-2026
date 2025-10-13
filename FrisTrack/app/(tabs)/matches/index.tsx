@@ -58,7 +58,7 @@ export default function HomeScreen() {
   };
 
   const viewMatchDetails = (matchId: number) => {
-    router.push({ pathname: "./match-details", params: { matchId } });
+    router.push({ pathname: "./matches/match-details", params: { matchId } });
   };
 
   const startMatch = (matchId: number) => {
