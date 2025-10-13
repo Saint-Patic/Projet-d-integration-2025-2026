@@ -67,9 +67,6 @@ export default function MatchDetailsScreen() {
     <ScreenLayout title="Détails du match" headerLeft={<BackButton theme={theme} />} theme={theme}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.headerRow}>
-          <ThemedText style={[styles.headerTitle, { color: theme.primary }]}>
-            {match.team1} vs {match.team2}
-          </ThemedText>
           <ThemedText style={[styles.dateText, { color: theme.text }]}>Date: {match.date}</ThemedText>
         </View>
 
