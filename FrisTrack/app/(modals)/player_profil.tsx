@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Platform } from "react-native";
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  Dimensions,
+  Pressable,
+} from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
@@ -113,9 +120,10 @@ function getImageSource(imageName: string) {
 export default function PlayerProfilScreen() {
   const { theme } = useTheme();
   const { playerId } = useLocalSearchParams();
-  const navigation = useNavigation();
   const currentPlayerId = playerId ? parseInt(playerId as string) : 1;
+  const [showFullImage, setShowFullImage] = useState(false);
 
+  const navigation = useNavigation();
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
@@ -126,10 +134,41 @@ export default function PlayerProfilScreen() {
   }, [currentPlayerId]);
 
   const [user, setUser] = useState(getUserData());
-
   useEffect(() => {
     setUser(getUserData());
   }, [getUserData]);
+
+  if (showFullImage) {
+    const { width } = Dimensions.get("window");
+    return (
+      <Pressable
+        style={styles.fullImageOverlay}
+        onPress={() => setShowFullImage(false)}
+      >
+        <BackButton
+          onPress={() => setShowFullImage(false)}
+          style={styles.fullImageBack}
+          color="#fff"
+        />
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setShowFullImage(false)}
+        >
+          <Image
+            source={getImageSource(user.imageName)}
+            style={{
+              width: width * 0.8,
+              height: width * 0.8,
+              borderRadius: width * 0.4,
+              borderWidth: 4,
+              borderColor: theme.primary,
+              backgroundColor: "#222",
+            }}
+          />
+        </TouchableOpacity>
+      </Pressable>
+    );
+  }
 
   return (
     <ScreenLayout
@@ -139,10 +178,12 @@ export default function PlayerProfilScreen() {
     >
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.profileImageContainer}>
-          <Image
-            source={getImageSource(user.imageName)}
-            style={[styles.profileImage, { borderColor: theme.primary }]}
-          />
+          <TouchableOpacity onPress={() => setShowFullImage(true)}>
+            <Image
+              source={getImageSource(user.imageName)}
+              style={[styles.profileImage, { borderColor: theme.primary }]}
+            />
+          </TouchableOpacity>
           <View
             style={[
               styles.imageGlow,
@@ -297,5 +338,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#00d6d6",
     fontWeight: "700",
+  },
+  fullImageOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.92)",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+  },
+  fullImageBack: {
+    position: "absolute",
+    top: 40,
+    left: 20,
+    zIndex: 101,
   },
 });

@@ -148,6 +148,7 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 230, 230, 0.5)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 3,
+    paddingVertical: 10,
   },
   listContent: {
     paddingHorizontal: 24,
