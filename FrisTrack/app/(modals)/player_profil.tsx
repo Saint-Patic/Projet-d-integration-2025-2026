@@ -5,7 +5,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useNavigation } from "expo-router";
 
 const profilePictures = [
   {
@@ -110,11 +110,15 @@ function getImageSource(imageName: string) {
   return found ? found.src : profilePictures[0].src;
 }
 
-export default function ProfilScreen() {
+export default function PlayerProfilScreen() {
   const { theme } = useTheme();
   const { playerId } = useLocalSearchParams();
-
+  const navigation = useNavigation();
   const currentPlayerId = playerId ? parseInt(playerId as string) : 1;
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
   // Get user data based on playerId
   const getUserData = React.useCallback(() => {
