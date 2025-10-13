@@ -115,7 +115,7 @@ export default function ProfilScreen() {
   };
 
   const settings = () => {
-    router.push("/profile/settings");
+    router.push("./profile/settings");
   };
 
   const handleSave = () => {

@@ -37,7 +37,7 @@ export default function TeamScreen() {
     const team = teams.find((t) => t.id === teamId);
     if (team) {
       router.push({
-        pathname: "/(tabs)/teams/[id]",
+        pathname: "./(tabs)/teams/[id]",
         params: {
           id: teamId.toString(),
           teamId: teamId.toString(),
@@ -67,7 +67,7 @@ export default function TeamScreen() {
 
   const viewTeamDetails = (teamId: number, teamName: string) => {
     router.push({
-      pathname: "/(tabs)/teams/[id]",
+      pathname: "./(tabs)/teams/[id]",
       params: {
         id: teamId.toString(), // Changé de teamId vers id
         teamName,

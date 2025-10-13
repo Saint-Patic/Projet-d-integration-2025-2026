@@ -67,7 +67,7 @@ export default function TeamDetailsScreen() {
 
   const handlePlayerPress = (playerId: number) => {
     router.push({
-      pathname: "/(modals)/player-profile",
+      pathname: "./(modals)/player-profile",
       params: { playerId: playerId.toString() },
     });
   };
