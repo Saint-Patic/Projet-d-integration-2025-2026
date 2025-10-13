@@ -3,7 +3,7 @@ import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -57,6 +57,13 @@ export default function TeamDetailsScreen() {
     console.log("Ajouter un joueur à l'équipe", teamId);
   };
 
+  const handlePlayerPress = (playerId: number) => {
+    router.push({
+      pathname: "./(modals)/player_profil",
+      params: { playerId: playerId.toString() },
+    });
+  };
+
   return (
     <ScreenLayout
       title="Détails de l'équipe"
@@ -82,9 +89,7 @@ export default function TeamDetailsScreen() {
               {row.map((item) => (
                 <View style={styles.memberContainer} key={item.id}>
                   <TouchableOpacity
-                    onPress={() =>
-                      console.log(`Joueur: ${item.name}, id: ${item.id}`)
-                    }
+                    onPress={() => handlePlayerPress(item.id)}
                     activeOpacity={0.7}
                     style={styles.memberImageContainer}
                   >
@@ -143,6 +148,7 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 230, 230, 0.5)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 3,
+    paddingVertical: 10,
   },
   listContent: {
     paddingHorizontal: 24,
