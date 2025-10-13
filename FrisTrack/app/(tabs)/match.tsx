@@ -12,6 +12,7 @@ import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { AddButton } from "@/components/perso_components/addButton";
 import { getMatches } from "@/services/getMatches";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useRouter } from "expo-router";
 
 interface Match {
   id: number;
@@ -27,6 +28,7 @@ interface Match {
 export default function HomeScreen() {
   const [matches, setMatches] = useState<Match[]>([]);
   const { theme } = useTheme();
+  const router = useRouter();
 
   useEffect(() => {
     getMatches().then((data) => {
@@ -56,7 +58,7 @@ export default function HomeScreen() {
   };
 
   const viewMatchDetails = (matchId: number) => {
-    console.log(`Affichage des détails du match ${matchId}`);
+    router.push({ pathname: "/match-details", params: { matchId } });
   };
 
   const startMatch = (matchId: number) => {
