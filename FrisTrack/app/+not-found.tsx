@@ -1,10 +1,19 @@
-import { Link, Stack } from "expo-router";
-import { StyleSheet, View, Text } from "react-native";
+import { Link, Stack, useRouter } from "expo-router";
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "@/contexts/ThemeContext";
 
 export default function NotFoundScreen() {
   const { theme } = useTheme();
+  const router = useRouter();
+
+  const goBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(tabs)/matches");
+    }
+  };
 
   return (
     <>
@@ -30,21 +39,21 @@ export default function NotFoundScreen() {
         </Text>
 
         <Text style={[styles.description, { color: theme.textSecondary }]}>
-          La page que vous recherchez n&#39;existe pas ou a été déplacée.
+          La page que vous recherchez n&apos;existe pas ou a été déplacée.
         </Text>
 
         <Link
-          href="./(tabs)/matches"
+          href="/(tabs)/matches"
           style={[styles.button, { backgroundColor: theme.primary }]}
         >
           <Text style={styles.buttonText}>Retourner aux matchs</Text>
         </Link>
 
-        <Link href="/" style={styles.secondaryButton}>
+        <TouchableOpacity onPress={goBack} style={styles.secondaryButton}>
           <Text style={[styles.secondaryButtonText, { color: theme.primary }]}>
-            Aller à l&#39;accueil
+            Retourner à la page précédente
           </Text>
-        </Link>
+        </TouchableOpacity>
       </View>
     </>
   );
