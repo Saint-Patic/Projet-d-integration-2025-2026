@@ -189,7 +189,34 @@ INSERT INTO users (
     'right',
     'profile_pics/alo.jpg',
     'coach'
+),
+(
+    'Noah',
+    'Audag',
+    'AkameSudo',
+    '2003-05-16',
+    'n.audag@students.ephec.be',
+    '$2y$10$ExempleDeHashDeMotDePasse1234567890', -- Exemple bcrypt
+    115.0,
+    1.91,
+    48,
+    'right',
+    'profile_pics/AkameSudo.jpg',
+    'playeronly'
+),
+(
+    'William',
+    'Stevant',
+    'STIVY',
+    '2005-09-11',
+    'w.stevant@students.ephec.be',
+    '$2y$10$ExempleDeHashDeMotDePasse0987654321', -- Exemple bcrypt
+    68.0,
+    1.89,
+    45,
+    'right',
+    'profile_pics/STIVY.jpg',
+    'playeronly'
 );
 INSERT INTO team (team_name, logo, coach_id) VALUES
 ('EPHEC Ultimate', 'team_logos/ephec_ultimate.png', 6);
-
