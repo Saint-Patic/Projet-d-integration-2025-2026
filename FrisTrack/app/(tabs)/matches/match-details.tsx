@@ -86,13 +86,6 @@ export default function MatchDetailsScreen() {
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Statut: {match.status}</ThemedText>
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Lieu: {match.venue === "indoor" ? "Intérieur" : "Extérieur"}</ThemedText>
         </View>
-
-        <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: theme.primary }]}
-          onPress={handleBack}
-        >
-          <ThemedText style={styles.backButtonText}>Retour</ThemedText>
-        </TouchableOpacity>
       </View>
     </ScreenLayout>
   );
