@@ -62,7 +62,13 @@ export default function TeamDetailsScreen() {
   }
 
   const handleAddPlayer = () => {
-    console.log("Ajouter un joueur à l'équipe", id);
+    router.push({
+      pathname: "./add-player",
+      params: {
+        teamId: id,
+        teamName: teamName,
+      },
+    });
   };
 
   const handlePlayerPress = (playerId: number) => {
