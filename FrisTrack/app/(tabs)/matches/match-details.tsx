@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import * as Location from "expo-location";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
@@ -12,6 +13,10 @@ export default function MatchDetailsScreen() {
   const matchId = params.matchId ? parseInt(params.matchId as string, 10) : null;
   const navigation = useNavigation();
   const { theme } = useTheme();
+
+  const [location, setLocation] = useState<any | null>(null);
+  const [locLoading, setLocLoading] = useState(false);
+  const [locError, setLocError] = useState<string | null>(null);
 
   // undefined = loading, null = not found, object = loaded
   const [match, setMatch] = useState<any | undefined>(undefined);
@@ -32,6 +37,39 @@ export default function MatchDetailsScreen() {
       setMatch(null);
     }
   }, [matchId]);
+
+  // Request permission and fetch current location
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchLocation = async () => {
+      try {
+        setLocLoading(true);
+        setLocError(null);
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (!mounted) return;
+        if (status !== "granted") {
+          setLocError("Permission refusée");
+          setLocLoading(false);
+          return;
+        }
+
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+        if (!mounted) return;
+        setLocation(pos);
+      } catch (e: any) {
+        setLocError(e?.message ?? "Erreur lors de la récupération de la position");
+      } finally {
+        if (mounted) setLocLoading(false);
+      }
+    };
+
+    fetchLocation();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleBack = () => {
     router.back();
@@ -85,6 +123,24 @@ export default function MatchDetailsScreen() {
         <View style={styles.metaRow}>
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Statut: {match.status}</ThemedText>
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Lieu: {match.venue === "indoor" ? "Intérieur" : "Extérieur"}</ThemedText>
+        </View>
+
+        {/* Phone location display on black background */}
+        <View style={styles.locationWrapper}>
+          <View style={styles.locationContainer}>
+            {locLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : locError ? (
+              <ThemedText style={[styles.locationText, { color: "#fff" }]}>Erreur: {locError}</ThemedText>
+            ) : location ? (
+              <>
+                <ThemedText style={[styles.locationText, { color: "#fff" }]}>Latitude: {location.coords.latitude.toFixed(6)}</ThemedText>
+                <ThemedText style={[styles.locationText, { color: "#fff" }]}>Longitude: {location.coords.longitude.toFixed(6)}</ThemedText>
+              </>
+            ) : (
+              <ThemedText style={[styles.locationText, { color: "#fff" }]}>Position non disponible</ThemedText>
+            )}
+          </View>
         </View>
       </View>
     </ScreenLayout>
@@ -160,5 +216,19 @@ const styles = StyleSheet.create({
     color: "#f0f0f0",
     fontWeight: "700",
     fontSize: 16,
+  },
+  locationWrapper: {
+    marginTop: 12,
+    paddingHorizontal: 0,
+  },
+  locationContainer: {
+    backgroundColor: "#000",
+    padding: 12,
+    borderRadius: 8,
+  },
+  locationText: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
   },
 });
