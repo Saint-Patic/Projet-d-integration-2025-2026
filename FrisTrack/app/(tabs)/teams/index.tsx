@@ -37,8 +37,9 @@ export default function TeamScreen() {
     const team = teams.find((t) => t.id === teamId);
     if (team) {
       router.push({
-        pathname: "/team-details",
+        pathname: "/(tabs)/teams/[id]",
         params: {
+          id: teamId.toString(),
           teamId: teamId.toString(),
           teamName: team.name,
           editMode: "true",
@@ -65,7 +66,13 @@ export default function TeamScreen() {
   };
 
   const viewTeamDetails = (teamId: number, teamName: string) => {
-    router.push({ pathname: "/team-details", params: { teamId, teamName } });
+    router.push({
+      pathname: "/(tabs)/teams/[id]",
+      params: {
+        id: teamId.toString(), // Changé de teamId vers id
+        teamName,
+      },
+    });
   };
 
   const addPlayer = (teamId: number) => {
@@ -151,7 +158,6 @@ export default function TeamScreen() {
   );
 }
 
-// ...existing code...
 const styles = StyleSheet.create({
   teamsContainer: {
     flexDirection: "row",

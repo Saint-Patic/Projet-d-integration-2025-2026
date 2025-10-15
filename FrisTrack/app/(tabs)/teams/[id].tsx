@@ -45,7 +45,7 @@ const fakeMembers = [
 ];
 
 export default function TeamDetailsScreen() {
-  const { teamId, teamName, editMode } = useLocalSearchParams();
+  const { id, teamName, editMode } = useLocalSearchParams();
   const navigation = useNavigation();
   const { theme } = useTheme();
   const [isEditMode, setIsEditMode] = useState(editMode === "true");
@@ -62,12 +62,12 @@ export default function TeamDetailsScreen() {
   }
 
   const handleAddPlayer = () => {
-    console.log("Ajouter un joueur à l'équipe", teamId);
+    console.log("Ajouter un joueur à l'équipe", id);
   };
 
   const handlePlayerPress = (playerId: number) => {
     router.push({
-      pathname: "./(modals)/player_profil",
+      pathname: "../../(modals)/player-profile",
       params: { playerId: playerId.toString() },
     });
   };

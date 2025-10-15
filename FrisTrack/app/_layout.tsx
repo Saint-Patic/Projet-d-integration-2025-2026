@@ -32,6 +32,20 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="(modals)/player-profile"
+              options={{
+                headerShown: false,
+                presentation: "modal",
+              }}
+            />
+            <Stack.Screen
+              name="+not-found"
+              options={{
+                title: "Page non trouvée",
+                headerShown: false,
+              }}
+            />
           </Stack>
         </NavigationThemeProvider>
       </GestureHandlerRootView>

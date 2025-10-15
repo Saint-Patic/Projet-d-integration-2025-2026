@@ -52,7 +52,7 @@ export default function AuthPage() {
       Alert.alert("Connexion", `Tentative de connexion avec ${email}`, [
         {
           text: "OK",
-          onPress: () => router.replace("/(tabs)/match"),
+          onPress: () => router.replace("./(tabs)/matches"),
         },
       ]);
     } else {
@@ -86,7 +86,7 @@ export default function AuthPage() {
         [
           {
             text: "OK",
-            onPress: () => router.replace("/(tabs)/match"),
+            onPress: () => router.replace("./(tabs)/matches"),
           },
         ]
       );
