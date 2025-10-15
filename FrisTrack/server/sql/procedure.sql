@@ -5,6 +5,7 @@ CREATE PROCEDURE update_user_basic (
     IN p_user_id INT,
     IN p_firstname VARCHAR(50),
     IN p_lastname VARCHAR(50),
+    IN p_pseudo VARCHAR(50),
     IN p_birthdate DATE,
     IN p_email VARCHAR(100)
 )
@@ -18,6 +19,7 @@ BEGIN
         UPDATE users
         SET firstname = p_firstname,
             lastname = p_lastname,
+            pseudo = p_pseudo,
             birthdate = p_birthdate,
             email = p_email
         WHERE user_id = p_user_id;

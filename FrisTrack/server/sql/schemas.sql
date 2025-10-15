@@ -219,4 +219,32 @@ INSERT INTO users (
     'playeronly'
 );
 INSERT INTO team (team_name, logo, coach_id) VALUES
-('EPHEC Ultimate', 'team_logos/ephec_ultimate.png', 6);
+('EPHEC Ultimate', 'team_logos/ephec_ultimate.png', 6),
+('LLN Wolf', 'team_logos/lln_wolf.png',3),
+('EPHEC TEAM A', 'team_logos/ephec_teama.png',2),
+('EPHEC TEAM B', 'team_logos/ephec_teamb.png',4);
+
+INSERT INTO localisation (gps_data, city, postcode, country) VALUES
+('50.6622, 4.6227', 'Louvain-la-Neuve', '1348', 'Belgium'),
+('50.6717, 4.5993', 'Louvain-la-Neuve', '1348', 'Belgium');
+
+INSERT INTO  user_team (user_id, team_id, role_attack, role_def) VALUES
+(1, 1, 'back', 'zone'),
+(1, 3, 'back', 'zone'),
+(2, 1, 'stack', 'zone'),
+(3, 1, 'stack', 'chien'),
+(3, 3, 'back', 'zone'),
+(4, 1, 'stack', 'zone'),
+(5, 2, 'stack', 'zone'),
+(6, 3, 'back', 'zone'),
+(7, 1, 'stack', 'zone'),
+(7, 4, 'stack', 'zone'),
+(8, 1, 'stack', 'zone'),
+(8, 4, 'stack', 'zone');
+
+INSERT INTO match_frisbee (match_date, score, length_match, weigth_match, arbitrator, label, in_outdoor, title_match, gps_data) VALUES
+('2025-11-04 20:00:00', '0-0', '00:00:00', 0, 'no arbitrator', 'schedule', 'outdoor', 'EPHEC Ultimate vs LLN Wolf', '50.6622, 4.6227');
+
+INSERT INTO team_match (team_id, match_id, home_away_team) VALUES
+(1, 1, 'home'),
+(2, 1, 'away');
