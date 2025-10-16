@@ -15,7 +15,6 @@ export default function MatchDetailsScreen() {
 
   // undefined = loading, null = not found, object = loaded
   const [match, setMatch] = useState<any | undefined>(undefined);
-  const [isRecording, setIsRecording] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -36,20 +35,6 @@ export default function MatchDetailsScreen() {
 
   const handleBack = () => {
     router.back();
-  };
-
-  const handleStartStop = () => {
-    if (isRecording) {
-      // Arrêter l'enregistrement
-      console.log(`Arrêt de l'enregistrement du match ${matchId}`);
-      setIsRecording(false);
-      // TODO: Ajouter la logique pour arrêter l'enregistrement
-    } else {
-      // Démarrer l'enregistrement
-      console.log(`Démarrage de l'enregistrement du match ${matchId}`);
-      setIsRecording(true);
-      // TODO: Ajouter la logique pour démarrer l'enregistrement
-    }
   };
 
   if (match === undefined) {
@@ -101,18 +86,6 @@ export default function MatchDetailsScreen() {
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Statut: {match.status}</ThemedText>
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Lieu: {match.venue === "indoor" ? "Intérieur" : "Extérieur"}</ThemedText>
         </View>
-
-        <TouchableOpacity
-          style={[
-            styles.recordButton,
-            { backgroundColor: isRecording ? "#e74c3c" : "#27ae60" }
-          ]}
-          onPress={handleStartStop}
-        >
-          <ThemedText style={styles.recordButtonText}>
-            {isRecording ? "⏹ Stop" : "▶ Start"}
-          </ThemedText>
-        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.backButton, { backgroundColor: theme.primary }]}
@@ -182,21 +155,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 6,
-  },
-  recordButton: {
-    alignSelf: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 40,
-    borderRadius: 20,
-    elevation: 6,
-    marginBottom: 16,
-    minWidth: 160,
-  },
-  recordButtonText: {
-    color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 18,
-    textAlign: "center",
   },
   backButton: {
     alignSelf: "center",
