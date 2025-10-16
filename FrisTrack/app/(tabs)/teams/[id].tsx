@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { View, TouchableOpacity, StyleSheet, Platform, Dimensions } from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
@@ -55,10 +55,16 @@ export default function TeamDetailsScreen() {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  // Pour afficher 2 membres par ligne
+  // Calcule le nombre de colonnes dynamiquement
+  const screenWidth = Dimensions.get("window").width;
+  let columns = 2;
+  if (screenWidth > 700) columns = 3;
+  if (screenWidth > 1000) columns = 4;
+
+  // Découpe les membres en lignes selon le nombre de colonnes
   const rows = [];
-  for (let i = 0; i < members.length; i += 2) {
-    rows.push(members.slice(i, i + 2));
+  for (let i = 0; i < members.length; i += columns) {
+    rows.push(members.slice(i, i + columns));
   }
 
   const handleAddPlayer = () => {
