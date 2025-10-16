@@ -23,6 +23,8 @@ interface Match {
   date: string;
   status: string;
   color: string;
+  isRecording?: boolean;
+  hasRecording?: boolean;
 }
 
 export default function HomeScreen() {
@@ -61,8 +63,23 @@ export default function HomeScreen() {
     router.push({ pathname: "./matches/match-details", params: { matchId } });
   };
 
-  const startMatch = (matchId: number) => {
-    console.log(`Démarrage du match ${matchId}`);
+  const toggleRecording = (matchId: number) => {
+    setMatches(matches.map(match => {
+      if (match.id === matchId) {
+        const isRecording = !match.isRecording;
+        if (isRecording) {
+          console.log(`Démarrage de l'enregistrement du match ${matchId}`);
+          // TODO: Ajouter la logique pour démarrer l'enregistrement
+          return { ...match, isRecording };
+        } else {
+          console.log(`Arrêt de l'enregistrement du match ${matchId}`);
+          // TODO: Ajouter la logique pour arrêter l'enregistrement
+          // Marquer que le match a un enregistrement disponible
+          return { ...match, isRecording, hasRecording: true };
+        }
+      }
+      return match;
+    }));
   };
 
   const createNewMatch = () => {
@@ -169,14 +186,20 @@ export default function HomeScreen() {
               style={[
                 styles.actionButton,
                 styles.secondaryButton,
-                { backgroundColor: theme.surface, borderColor: theme.border },
+                { 
+                  backgroundColor: match.isRecording ? "#e74c3c" : theme.surface, 
+                  borderColor: match.isRecording ? "#e74c3c" : theme.border 
+                },
               ]}
-              onPress={() => startMatch(match.id)}
+              onPress={() => toggleRecording(match.id)}
             >
               <ThemedText
-                style={[styles.secondaryButtonText, { color: theme.primary }]}
+                style={[
+                  styles.secondaryButtonText, 
+                  { color: match.isRecording ? "#ffffff" : theme.primary }
+                ]}
               >
-                Démarrer
+                {match.isRecording ? "⏹ Stop" : "▶ Start"}
               </ThemedText>
             </TouchableOpacity>
           )}

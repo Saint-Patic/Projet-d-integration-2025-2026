@@ -37,6 +37,11 @@ export default function MatchDetailsScreen() {
     router.back();
   };
 
+  const handleReview = () => {
+    console.log(`Ouverture de la revue du match ${matchId}`);
+    // TODO: Ajouter la logique pour ouvrir la revue/replay du match enregistré
+  };
+
   if (match === undefined) {
     return (
       <ScreenLayout title="Détails du match" headerLeft={<BackButton theme={theme} />} theme={theme}>
@@ -86,6 +91,15 @@ export default function MatchDetailsScreen() {
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Statut: {match.status}</ThemedText>
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Lieu: {match.venue === "indoor" ? "Intérieur" : "Extérieur"}</ThemedText>
         </View>
+
+        {match.hasRecording && (
+          <TouchableOpacity
+            style={[styles.reviewButton, { backgroundColor: "#27ae60" }]}
+            onPress={handleReview}
+          >
+            <ThemedText style={styles.reviewButtonText}>📹 Review</ThemedText>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={[styles.backButton, { backgroundColor: theme.primary }]}
@@ -155,6 +169,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 6,
+  },
+  reviewButton: {
+    alignSelf: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 20,
+    elevation: 6,
+    marginBottom: 16,
+    minWidth: 180,
+  },
+  reviewButtonText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 18,
+    textAlign: "center",
   },
   backButton: {
     alignSelf: "center",
