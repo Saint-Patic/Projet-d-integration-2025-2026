@@ -62,7 +62,8 @@ export default function HomeScreen() {
   };
 
   const startMatch = (matchId: number) => {
-    console.log(`Démarrage du match ${matchId}`);
+    // Redirige vers la page de détails pour démarrer l'enregistrement
+    router.push({ pathname: "./matches/match-details", params: { matchId } });
   };
 
   const createNewMatch = () => {
