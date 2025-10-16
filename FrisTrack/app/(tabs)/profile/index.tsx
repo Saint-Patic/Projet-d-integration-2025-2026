@@ -119,6 +119,7 @@ export default function ProfilScreen() {
     if (mainSelection.gauche && mainSelection.droite) mainValue = "Ambidextre";
     else if (mainSelection.gauche) mainValue = "Gauche";
     const newForm = { ...form, main: mainValue };
+    console.log("Enregistrer profil :", { ...form }); // à ne pas supprimer
     setUser({ ...newForm });
     setEditMode(false);
     setShowImagePicker(false);
