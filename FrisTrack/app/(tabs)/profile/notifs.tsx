@@ -294,6 +294,8 @@ export default function NotificationsScreen() {
                   borderTopColor={getColorForType(notification.type)}
                   onEdit={() => markAsRead(notification.id)}
                   onDelete={() => deleteNotification(notification.id)}
+                  leftActionText="Lu"
+                  rightActionText="Supprimer"
                   theme={theme}
                 >
                   <View style={styles.notificationContent}>
