@@ -97,7 +97,7 @@ export default function MatchDetailsScreen() {
             style={[styles.reviewButton, { backgroundColor: "#27ae60" }]}
             onPress={handleReview}
           >
-            <ThemedText style={styles.reviewButtonText}>📹 Review</ThemedText>
+            <ThemedText style={styles.reviewButtonText}>Review</ThemedText>
           </TouchableOpacity>
         )}
 
