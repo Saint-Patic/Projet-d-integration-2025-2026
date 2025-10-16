@@ -166,7 +166,6 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   );
 };
 
-// ...existing code...
 const styles = StyleSheet.create({
   cardContainer: {
     width: SCREEN_WIDTH * 0.9,

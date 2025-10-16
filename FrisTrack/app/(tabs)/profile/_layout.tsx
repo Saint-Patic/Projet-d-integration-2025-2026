@@ -27,7 +27,14 @@ export default function ProfileLayout() {
         name="settings"
         options={{
           title: "Paramètres",
-          headerShown: false, // Car vous gérez déjà le header dans settings.tsx
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="notifs"
+        options={{
+          title: "notifs",
+          headerShown: false,
         }}
       />
     </Stack>

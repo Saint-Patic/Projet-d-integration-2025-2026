@@ -114,10 +114,6 @@ export default function ProfilScreen() {
     console.log("Déconnexion");
   };
 
-  const settings = () => {
-    router.push("./profile/settings");
-  };
-
   const handleSave = () => {
     let mainValue = "Droite";
     if (mainSelection.gauche && mainSelection.droite) mainValue = "Ambidextre";
@@ -134,8 +130,24 @@ export default function ProfilScreen() {
   };
 
   const HeaderRight = () => (
-    <TouchableOpacity onPress={settings} style={{ marginRight: 16 }}>
+    <TouchableOpacity
+      onPress={() => router.push("./profile/settings")}
+      style={{ marginRight: 16 }}
+    >
       <Ionicons name="settings-outline" size={24} color={theme.primary} />
+    </TouchableOpacity>
+  );
+
+  const HeaderLeft = () => (
+    <TouchableOpacity
+      onPress={() => router.push("./profile/notifs")}
+      style={{ marginRight: 16 }}
+    >
+      <Ionicons
+        name={"file-tray-full-outline"}
+        size={24}
+        color={theme.primary}
+      />
     </TouchableOpacity>
   );
 
@@ -559,7 +571,12 @@ export default function ProfilScreen() {
 
   // Affichage normal du profil
   return (
-    <ScreenLayout title="Profil" headerRight={<HeaderRight />} theme={theme}>
+    <ScreenLayout
+      title="Profil"
+      headerRight={<HeaderRight />}
+      headerLeft={<HeaderLeft />}
+      theme={theme}
+    >
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.profileImageContainer}>
           <TouchableOpacity onPress={() => setShowFullImage(true)}>
