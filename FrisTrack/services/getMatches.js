@@ -12,6 +12,7 @@ let matches = [
     status: "finished",
     color: "#27ae60",
     venue: "indoor",
+    hasRecording: true,
   },
   {
     id: 2,
@@ -23,6 +24,7 @@ let matches = [
     status: "finished",
     color: "#e74c3c",
     venue: "outdoor",
+    hasRecording: true,
   },
   {
     id: 3,
@@ -34,6 +36,7 @@ let matches = [
     status: "scheduled",
     color: "#f39c12",
     venue: "outdoor",
+    hasRecording: false,
   },
   {
     id: 4,
@@ -45,6 +48,7 @@ let matches = [
     status: "scheduled",
     color: "#3498db",
     venue: "indoor",
+    hasRecording: false,
   },
 ];
 
