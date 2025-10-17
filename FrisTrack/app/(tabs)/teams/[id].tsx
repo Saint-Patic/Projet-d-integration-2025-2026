@@ -309,7 +309,6 @@ const styles = StyleSheet.create({
     borderRadius: 45,
     ...(Platform.OS === "ios"
       ? {
-          borderWidth: 3,
           shadowColor: "#00d9d9",
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.4,
