@@ -181,28 +181,6 @@ export default function HomeScreen() {
               Voir détails
             </ThemedText>
           </TouchableOpacity>
-          {match.status === "scheduled" && (
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                styles.secondaryButton,
-                { 
-                  backgroundColor: match.isRecording ? "#e74c3c" : theme.surface, 
-                  borderColor: match.isRecording ? "#e74c3c" : theme.border 
-                },
-              ]}
-              onPress={() => toggleRecording(match.id)}
-            >
-              <ThemedText
-                style={[
-                  styles.secondaryButtonText, 
-                  { color: match.isRecording ? "#ffffff" : theme.primary }
-                ]}
-              >
-                {match.isRecording ? "⏹ Stop" : "▶ Start"}
-              </ThemedText>
-            </TouchableOpacity>
-          )}
         </View>
       </SwipeableCard>
     );

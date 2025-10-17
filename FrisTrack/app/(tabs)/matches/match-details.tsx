@@ -70,18 +70,18 @@ export default function MatchDetailsScreen() {
 
   return (
     <ScreenLayout title="Détails du match" headerLeft={<BackButton theme={theme} />} theme={theme}>
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}> 
         <View style={styles.headerRow}>
           <ThemedText style={[styles.dateText, { color: theme.text }]}>Date: {match.date}</ThemedText>
         </View>
 
         <View style={styles.scoreRow}>
-          <View style={[styles.scoreBox, { borderColor: theme.border }]}>
+          <View style={[styles.scoreBox, { borderColor: theme.border }]}> 
             <ThemedText style={[styles.scoreNumber, { color: theme.text }]}>{match.score1}</ThemedText>
             <ThemedText style={[styles.teamLabel, { color: theme.primary }]}>{match.team1}</ThemedText>
           </View>
 
-          <View style={[styles.scoreBox, { borderColor: theme.border }]}>
+          <View style={[styles.scoreBox, { borderColor: theme.border }]}> 
             <ThemedText style={[styles.scoreNumber, { color: theme.text }]}>{match.score2}</ThemedText>
             <ThemedText style={[styles.teamLabel, { color: theme.primary }]}>{match.team2}</ThemedText>
           </View>
@@ -92,12 +92,31 @@ export default function MatchDetailsScreen() {
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Lieu: {match.venue === "indoor" ? "Intérieur" : "Extérieur"}</ThemedText>
         </View>
 
+        {/* Bouton Start/Stop */}
+        {match.status === "scheduled" && (
+          <TouchableOpacity
+            style={[
+              styles.reviewButton,
+              { backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60" }
+            ]}
+            onPress={() => {
+              // Simule le toggle recording local
+              setMatch({ ...match, isRecording: !match.isRecording, hasRecording: match.isRecording ? true : match.hasRecording });
+            }}
+          >
+            <ThemedText style={styles.reviewButtonText}>
+              {match.isRecording ? "⏹ Stop" : "▶ Start"}
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+
+        {/* Bouton Review */}
         {match.hasRecording && (
           <TouchableOpacity
             style={[styles.reviewButton, { backgroundColor: "#27ae60" }]}
             onPress={handleReview}
           >
-            <ThemedText style={styles.reviewButtonText}>Review</ThemedText>
+            <ThemedText style={styles.reviewButtonText}>📹 Review</ThemedText>
           </TouchableOpacity>
         )}
 
