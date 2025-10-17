@@ -128,6 +128,13 @@ export default function MatchDetailsScreen() {
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Lieu: {match.venue === "indoor" ? "Intérieur" : "Extérieur"}</ThemedText>
         </View>
 
+        {/* Affichage du temps total (après Stop) */}
+        {!match.isRecording && elapsedSeconds > 0 && (
+          <View style={styles.timerContainer}>
+            <ThemedText style={[styles.timerText, { color: theme.text }]}>⏱ Temps de match: {formatTime(elapsedSeconds)}</ThemedText>
+          </View>
+        )}
+
         {/* Timer + Bouton Start/Stop (visible uniquement si pas encore de recording) */}
         {match.status === "scheduled" && !match.hasRecording && (
           <View style={styles.recordingBlock}>
@@ -168,8 +175,6 @@ export default function MatchDetailsScreen() {
             <ThemedText style={styles.reviewButtonText}>Review</ThemedText>
           </TouchableOpacity>
         )}
-
-        {/* Bouton Retour supprimé comme demandé */}
       </View>
     </ScreenLayout>
   );
