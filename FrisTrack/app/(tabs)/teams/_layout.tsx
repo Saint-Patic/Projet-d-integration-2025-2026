@@ -27,7 +27,15 @@ export default function TeamsLayout() {
         name="[id]"
         options={{
           title: "Détails de l'équipe",
-          headerShown: true,
+          headerShown: false,
+          headerBackTitle: "Retour",
+        }}
+      />
+      <Stack.Screen
+        name="add-player"
+        options={{
+          title: "Ajout joueur ",
+          headerShown: false,
           headerBackTitle: "Retour",
         }}
       />

@@ -11,7 +11,7 @@ export default function NotFoundScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/(tabs)/matches");
+      router.replace("./(tabs)/matches");
     }
   };
 
@@ -43,7 +43,7 @@ export default function NotFoundScreen() {
         </Text>
 
         <Link
-          href="/(tabs)/matches"
+          href="./(tabs)/matches"
           style={[styles.button, { backgroundColor: theme.primary }]}
         >
           <Text style={styles.buttonText}>Retourner aux matchs</Text>
