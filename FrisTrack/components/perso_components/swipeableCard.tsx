@@ -23,6 +23,8 @@ interface SwipeableCardProps {
   onDelete: () => void;
   children: React.ReactNode;
   theme?: Theme;
+  leftActionText?: string;
+  rightActionText?: string;
 }
 
 export const SwipeableCard: React.FC<SwipeableCardProps> = ({
@@ -33,6 +35,8 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   onDelete,
   children,
   theme,
+  leftActionText = "Modifier",
+  rightActionText = "Supprimer",
 }) => {
   const swipeableRef = useRef<any>(null);
 
@@ -100,7 +104,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
       <Animated.View style={[styles.actionContainer, animatedStyle]}>
         <View style={[styles.action, styles.deleteAction]}>
           <IconSymbol name="trash" size={24} color="#ffffff" />
-          <ThemedText style={styles.actionText}>Supprimer</ThemedText>
+          <ThemedText style={styles.actionText}>{rightActionText}</ThemedText>
         </View>
       </Animated.View>
     );
@@ -129,7 +133,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
           ]}
         >
           <IconSymbol name="pencil" size={24} color="#ffffff" />
-          <ThemedText style={styles.actionText}>Modifier</ThemedText>
+          <ThemedText style={styles.actionText}>{leftActionText}</ThemedText>
         </View>
       </Animated.View>
     );
@@ -166,7 +170,6 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   );
 };
 
-// ...existing code...
 const styles = StyleSheet.create({
   cardContainer: {
     width: SCREEN_WIDTH * 0.9,

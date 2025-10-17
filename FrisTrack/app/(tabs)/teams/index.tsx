@@ -76,7 +76,16 @@ export default function TeamScreen() {
   };
 
   const addPlayer = (teamId: number) => {
-    console.log(`Ajout d'un joueur à l'équipe ${teamId}`);
+    const team = teams.find((t) => t.id === teamId);
+    if (team) {
+      router.push({
+        pathname: "../teams/add-player",
+        params: {
+          teamId: teamId.toString(),
+          teamName: team.name,
+        },
+      });
+    }
   };
 
   const createNewTeam = () => {
