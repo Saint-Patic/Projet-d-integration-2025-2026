@@ -227,7 +227,7 @@ export default function NotificationsScreen() {
       <ScreenLayout
         title={`Notifs${unreadCount > 0 ? ` (${unreadCount})` : ""}`}
         theme={theme}
-        headerLeft={<BackButton />}
+        headerLeft={<BackButton theme={theme} />}
         headerRight={<HeaderRight />}
       >
         <TouchableOpacity
