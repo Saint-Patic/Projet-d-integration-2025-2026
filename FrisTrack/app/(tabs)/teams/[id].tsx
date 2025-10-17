@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  Dimensions,
+} from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
@@ -55,10 +61,16 @@ export default function TeamDetailsScreen() {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  // Pour afficher 2 membres par ligne
+  // Calcule le nombre de colonnes dynamiquement
+  const screenWidth = Dimensions.get("window").width;
+  let columns = 2;
+  if (screenWidth > 700) columns = 3;
+  if (screenWidth > 1000) columns = 4;
+
+  // Découpe les membres en lignes selon le nombre de colonnes
   const rows = [];
-  for (let i = 0; i < members.length; i += 2) {
-    rows.push(members.slice(i, i + 2));
+  for (let i = 0; i < members.length; i += columns) {
+    rows.push(members.slice(i, i + columns));
   }
 
   const handleAddPlayer = () => {
@@ -98,6 +110,19 @@ export default function TeamDetailsScreen() {
       )
     );
   };
+
+  // Pour Cyril :)
+  const handleRemovePlayer = (player: { id: number; name: string; image: any; position: string }) => {
+    // Affiche les données nécessaires à la suppression dans la console
+    console.log("Suppression joueur:", {
+      id: player.id,
+      name: player.name,
+      teamId: id,
+      // Ajoute d'autres infos si besoin
+    });
+    setMembers((prev) => prev.filter((m) => m.id !== player.id));
+  };
+
   return (
     <ScreenLayout
       title={isEditMode ? "Éditer l'équipe" : "Détails de l'équipe"}
@@ -123,25 +148,36 @@ export default function TeamDetailsScreen() {
             >
               {row.map((item) => (
                 <View style={styles.memberContainer} key={item.id}>
-                  <TouchableOpacity
-                    onPress={() => handlePlayerPress(item.id)}
-                    activeOpacity={0.7}
-                    style={styles.memberImageContainer}
-                  >
-                    <Image
-                      source={item.image}
-                      style={[
-                        styles.memberImage,
-                        { borderColor: theme.primary },
-                      ]}
-                    />
-                    <View
-                      style={[
-                        styles.imageGlow,
-                        { backgroundColor: `${theme.primary}15` },
-                      ]}
-                    />
-                  </TouchableOpacity>
+                  <View style={styles.memberImageContainer}>
+                    <TouchableOpacity
+                      onPress={() => handlePlayerPress(item.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Image
+                        source={item.image}
+                        style={[
+                          styles.memberImage,
+                          { borderColor: theme.primary },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.imageGlow,
+                          { backgroundColor: `${theme.primary}15` },
+                        ]}
+                      />
+                    </TouchableOpacity>
+                    {/* Bouton "-" rouge en mode édition */}
+                    {isEditMode && (
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => handleRemovePlayer(item)}
+                        hitSlop={10}
+                      >
+                        <Ionicons name="remove-circle" size={26} color="#e85555" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                   <ThemedText
                     style={[styles.memberName, { color: theme.text }]}
                   >
@@ -271,6 +307,7 @@ const styles = StyleSheet.create({
     position: "relative",
     marginBottom: 16,
     alignItems: "center",
+    justifyContent: "center",
   },
   memberImage: {
     width: 90,
@@ -358,5 +395,12 @@ const styles = StyleSheet.create({
   positionButtonText: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  removeButton: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    zIndex: 10,
+    backgroundColor: "transparent",
   },
 });
