@@ -56,6 +56,7 @@ export default function TeamDetailsScreen() {
   const { theme } = useTheme();
   const [isEditMode, setIsEditMode] = useState(editMode === "true");
   const [members, setMembers] = useState(fakeMembers);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -117,6 +118,26 @@ export default function TeamDetailsScreen() {
     setMembers((prev) => prev.filter((m) => m.id !== player.id));
   };
 
+  // Swap la position de deux joueurs dans le tableau
+  const handleEditImagePress = (playerId: number) => {
+    if (selectedPlayerId === null) {
+      setSelectedPlayerId(playerId);
+    } else if (selectedPlayerId === playerId) {
+      setSelectedPlayerId(null);
+    } else {
+      setMembers((prev) => {
+        const idx1 = prev.findIndex((m) => m.id === selectedPlayerId);
+        const idx2 = prev.findIndex((m) => m.id === playerId);
+        if (idx1 === -1 || idx2 === -1) return prev;
+        // Clone les objets pour éviter les bugs de référence
+        const newArr = prev.map((m) => ({ ...m }));
+        [newArr[idx1], newArr[idx2]] = [newArr[idx2], newArr[idx1]];
+        return newArr;
+      });
+      setSelectedPlayerId(null);
+    }
+  };
+
   return (
     <ScreenLayout
       title={isEditMode ? "Éditer l'équipe" : "Détails de l'équipe"}
@@ -143,25 +164,55 @@ export default function TeamDetailsScreen() {
               {row.map((item) => (
                 <View style={styles.memberContainer} key={item.id}>
                   <View style={styles.memberImageContainer}>
-                    <TouchableOpacity
-                      onPress={() => handlePlayerPress(item.id)}
-                      activeOpacity={0.7}
-                    >
-                      <Image
-                        source={item.image}
-                        style={[
-                          styles.memberImage,
-                          { borderColor: theme.primary },
-                        ]}
-                      />
-                      <View
-                        style={[
-                          styles.imageGlow,
-                          { backgroundColor: `${theme.primary}15` },
-                        ]}
-                      />
-                    </TouchableOpacity>
-                    {/* Bouton "-" rouge en mode édition */}
+                    {isEditMode ? (
+                      <TouchableOpacity
+                        onPress={() => handleEditImagePress(item.id)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.imageHighlight}>
+                          <Image
+                            source={item.image}
+                            style={styles.memberImage}
+                          />
+                          {selectedPlayerId === item.id && (
+                            <View
+                              style={[
+                                styles.memberImageOverlay,
+                                {
+                                  backgroundColor: theme.primary + "66", // couleur du thème + transparence
+                                },
+                              ]}
+                              pointerEvents="none"
+                            />
+                          )}
+                          <View
+                            style={[
+                              styles.imageGlow,
+                              { backgroundColor: `${theme.primary}15` },
+                            ]}
+                          />
+                        </View>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => handlePlayerPress(item.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Image
+                          source={item.image}
+                          style={[
+                            styles.memberImage,
+                            { borderColor: theme.primary },
+                          ]}
+                        />
+                        <View
+                          style={[
+                            styles.imageGlow,
+                            { backgroundColor: `${theme.primary}15` },
+                          ]}
+                        />
+                      </TouchableOpacity>
+                    )}
                     {isEditMode && (
                       <TouchableOpacity
                         style={styles.removeButton}
@@ -262,6 +313,8 @@ export default function TeamDetailsScreen() {
   );
 }
 
+const IMAGE_SIZE = 90;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -304,11 +357,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   memberImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: IMAGE_SIZE,
+    height: IMAGE_SIZE,
+    borderRadius: IMAGE_SIZE / 2,
     ...(Platform.OS === "ios"
       ? {
+          borderWidth: 3,
           shadowColor: "#00d9d9",
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.4,
@@ -318,6 +372,16 @@ const styles = StyleSheet.create({
           backgroundColor: "#fff",
         }),
     elevation: 6,
+  },
+  memberImageOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: IMAGE_SIZE,
+    height: IMAGE_SIZE,
+    borderRadius: IMAGE_SIZE / 2,
+    backgroundColor: "rgba(255, 255, 255, 0.66)",
+    zIndex: 2,
   },
   imageGlow: {
     position: "absolute",
@@ -395,5 +459,16 @@ const styles = StyleSheet.create({
     right: -5,
     zIndex: 10,
     backgroundColor: "transparent",
+  },
+  imageHighlight: {
+    width: IMAGE_SIZE,
+    height: IMAGE_SIZE,
+    borderRadius: IMAGE_SIZE / 2,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+  imageHighlightSelected: {
+    backgroundColor: "rgba(255,255,255,0.25)",
   },
 });
