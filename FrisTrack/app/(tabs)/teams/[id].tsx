@@ -112,7 +112,12 @@ export default function TeamDetailsScreen() {
   };
 
   // Pour Cyril :)
-  const handleRemovePlayer = (player: { id: number; name: string; image: any; position: string }) => {
+  const handleRemovePlayer = (player: {
+    id: number;
+    name: string;
+    image: any;
+    position: string;
+  }) => {
     // Affiche les données nécessaires à la suppression dans la console
     console.log("Suppression joueur:", {
       id: player.id,
@@ -125,7 +130,7 @@ export default function TeamDetailsScreen() {
 
   return (
     <ScreenLayout
-      title={isEditMode ? "Éditer l'équipe" : "Détails de l'équipe"}
+      title={isEditMode ? "Éditer l'équipe" : "Détails équipe"}
       headerLeft={<BackButton theme={theme} />}
       headerRight={<HeaderRight />}
       theme={theme}
@@ -174,7 +179,11 @@ export default function TeamDetailsScreen() {
                         onPress={() => handleRemovePlayer(item)}
                         hitSlop={10}
                       >
-                        <Ionicons name="remove-circle" size={26} color="#e85555" />
+                        <Ionicons
+                          name="remove-circle"
+                          size={26}
+                          color="#e85555"
+                        />
                       </TouchableOpacity>
                     )}
                   </View>

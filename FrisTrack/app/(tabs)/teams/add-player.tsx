@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 95,
   },
   playerCard: {
     flexDirection: "row",

@@ -213,10 +213,132 @@ export default function NotificationsScreen() {
 
   const HeaderRight = () => (
     <View style={styles.headerRightContainer}>
+      <TouchableOpacity
+        onPress={() => setShowHeaderMenu(!showHeaderMenu)}
+        style={[styles.headerButton, { backgroundColor: theme.surface }]}
+      >
+        <Ionicons name="ellipsis-horizontal" size={24} color={theme.primary} />
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <>
+      <ScreenLayout
+        title={`Notifs${unreadCount > 0 ? ` (${unreadCount})` : ""}`}
+        theme={theme}
+        headerLeft={<BackButton />}
+        headerRight={<HeaderRight />}
+      >
+        <TouchableOpacity
+          style={styles.container}
+          activeOpacity={1}
+          onPress={() => setShowHeaderMenu(false)}
+        >
+          <View
+            style={[
+              styles.innerContainer,
+              { backgroundColor: theme.background },
+            ]}
+          >
+            {notifications.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons
+                  name="notifications-off-outline"
+                  size={64}
+                  color={theme.primary}
+                  style={{ opacity: 0.5 }}
+                />
+                <ThemedText
+                  style={[
+                    styles.emptyText,
+                    { color: theme.text, opacity: 0.7 },
+                  ]}
+                >
+                  Aucune notification
+                </ThemedText>
+              </View>
+            ) : (
+              <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                {notifications.map((notification) => (
+                  <SwipeableCard
+                    key={notification.id}
+                    title={notification.title}
+                    cardId={notification.id}
+                    borderTopColor={getColorForType(notification.type)}
+                    onEdit={() => markAsRead(notification.id)}
+                    onDelete={() => deleteNotification(notification.id)}
+                    leftActionText="Lu"
+                    rightActionText="Supprimer"
+                    theme={theme}
+                  >
+                    <View style={styles.notificationContent}>
+                      <View style={styles.notificationHeader}>
+                        <View style={styles.iconAndTitle}>
+                          <Ionicons
+                            name={getIconForType(notification.type)}
+                            size={20}
+                            color={getColorForType(notification.type)}
+                            style={styles.notificationIcon}
+                          />
+                          <View style={styles.titleContainer}>
+                            <ThemedText
+                              style={[
+                                styles.notificationTitle,
+                                {
+                                  color: theme.text,
+                                  fontWeight: notification.read
+                                    ? "normal"
+                                    : "bold",
+                                },
+                              ]}
+                            >
+                              {notification.title}
+                            </ThemedText>
+                            {!notification.read && (
+                              <View
+                                style={[
+                                  styles.unreadDot,
+                                  { backgroundColor: theme.primary },
+                                ]}
+                              />
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                      <ThemedText
+                        style={[
+                          styles.notificationMessage,
+                          { color: theme.text, opacity: 0.8 },
+                        ]}
+                      >
+                        {notification.message}
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.notificationTimestamp,
+                          { color: theme.primary, opacity: 0.7 },
+                        ]}
+                      >
+                        {formatTimestamp(notification.timestamp)}
+                      </ThemedText>
+                    </View>
+                  </SwipeableCard>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </TouchableOpacity>
+      </ScreenLayout>
+
       {showHeaderMenu && (
         <View
           style={[
-            styles.dropdownMenu,
+            styles.dropdownMenuOverlay,
             { backgroundColor: theme.surface, borderColor: theme.border },
           ]}
         >
@@ -242,120 +364,7 @@ export default function NotificationsScreen() {
           </TouchableOpacity>
         </View>
       )}
-      <TouchableOpacity
-        onPress={() => setShowHeaderMenu(!showHeaderMenu)}
-        style={[styles.headerButton, { backgroundColor: theme.surface }]}
-      >
-        <Ionicons name="ellipsis-horizontal" size={24} color={theme.primary} />
-      </TouchableOpacity>
-    </View>
-  );
-
-  return (
-    <ScreenLayout
-      title={`Notifs${unreadCount > 0 ? ` (${unreadCount})` : ""}`}
-      theme={theme}
-      headerLeft={<BackButton />}
-      headerRight={<HeaderRight />}
-    >
-      <TouchableOpacity
-        style={styles.container}
-        activeOpacity={1}
-        onPress={() => setShowHeaderMenu(false)}
-      >
-        <View
-          style={[styles.innerContainer, { backgroundColor: theme.background }]}
-        >
-          {notifications.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons
-                name="notifications-off-outline"
-                size={64}
-                color={theme.primary}
-                style={{ opacity: 0.5 }}
-              />
-              <ThemedText
-                style={[styles.emptyText, { color: theme.text, opacity: 0.7 }]}
-              >
-                Aucune notification
-              </ThemedText>
-            </View>
-          ) : (
-            <ScrollView
-              style={styles.scrollView}
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              {notifications.map((notification) => (
-                <SwipeableCard
-                  key={notification.id}
-                  title={notification.title}
-                  cardId={notification.id}
-                  borderTopColor={getColorForType(notification.type)}
-                  onEdit={() => markAsRead(notification.id)}
-                  onDelete={() => deleteNotification(notification.id)}
-                  leftActionText="Lu"
-                  rightActionText="Supprimer"
-                  theme={theme}
-                >
-                  <View style={styles.notificationContent}>
-                    <View style={styles.notificationHeader}>
-                      <View style={styles.iconAndTitle}>
-                        <Ionicons
-                          name={getIconForType(notification.type)}
-                          size={20}
-                          color={getColorForType(notification.type)}
-                          style={styles.notificationIcon}
-                        />
-                        <View style={styles.titleContainer}>
-                          <ThemedText
-                            style={[
-                              styles.notificationTitle,
-                              {
-                                color: theme.text,
-                                fontWeight: notification.read
-                                  ? "normal"
-                                  : "bold",
-                              },
-                            ]}
-                          >
-                            {notification.title}
-                          </ThemedText>
-                          {!notification.read && (
-                            <View
-                              style={[
-                                styles.unreadDot,
-                                { backgroundColor: theme.primary },
-                              ]}
-                            />
-                          )}
-                        </View>
-                      </View>
-                    </View>
-                    <ThemedText
-                      style={[
-                        styles.notificationMessage,
-                        { color: theme.text, opacity: 0.8 },
-                      ]}
-                    >
-                      {notification.message}
-                    </ThemedText>
-                    <ThemedText
-                      style={[
-                        styles.notificationTimestamp,
-                        { color: theme.primary, opacity: 0.7 },
-                      ]}
-                    >
-                      {formatTimestamp(notification.timestamp)}
-                    </ThemedText>
-                  </View>
-                </SwipeableCard>
-              ))}
-            </ScrollView>
-          )}
-        </View>
-      </TouchableOpacity>
-    </ScreenLayout>
+    </>
   );
 }
 
@@ -406,13 +415,28 @@ const styles = StyleSheet.create({
     right: -10,
     borderWidth: 1,
     borderRadius: 12,
-    elevation: 25,
+    elevation: 50,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     minWidth: 140,
     overflow: "visible",
+    zIndex: 9999,
+  },
+  dropdownMenuOverlay: {
+    position: "absolute",
+    top: 100,
+    right: 26,
+    borderWidth: 1,
+    borderRadius: 12,
+    elevation: 1000,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    minWidth: 140,
+    zIndex: 99999,
   },
   menuItem: {
     flexDirection: "row",
