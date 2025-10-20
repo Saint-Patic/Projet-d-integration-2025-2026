@@ -10,7 +10,7 @@ import { ThemedText } from "@/components/themed-text";
 import { SwipeableCard } from "@/components/perso_components/swipeableCard";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { AddButton } from "@/components/perso_components/addButton";
-import { getMatches } from "@/services/getMatches";
+import { getMatches, updateMatch } from "@/services/getMatches";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
 
@@ -72,13 +72,21 @@ export default function HomeScreen() {
         if (isRecording) {
           console.log(`Démarrage de l'enregistrement du match ${matchId}`);
           // Enregistrer l'heure de début
-          return { ...match, isRecording, recordingStartTime: Date.now() };
+          const startTime = Date.now();
+          updateMatch(matchId, { isRecording: true, recordingStartTime: startTime });
+          return { ...match, isRecording: true, recordingStartTime: startTime };
         } else {
           console.log(`Arrêt de l'enregistrement du match ${matchId}`);
           // Calculer la durée totale en secondes
           const duration = match.recordingStartTime 
             ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
             : 0;
+          updateMatch(matchId, { 
+            isRecording: false, 
+            hasRecording: true,
+            recordingDuration: duration,
+            recordingStartTime: undefined
+          });
           return { 
             ...match, 
             isRecording: false, 
