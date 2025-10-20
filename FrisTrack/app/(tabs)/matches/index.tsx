@@ -25,6 +25,8 @@ interface Match {
   color: string;
   isRecording?: boolean;
   hasRecording?: boolean;
+  recordingStartTime?: number;
+  recordingDuration?: number;
 }
 
 export default function HomeScreen() {
@@ -69,13 +71,21 @@ export default function HomeScreen() {
         const isRecording = !match.isRecording;
         if (isRecording) {
           console.log(`Démarrage de l'enregistrement du match ${matchId}`);
-          // TODO: Ajouter la logique pour démarrer l'enregistrement
-          return { ...match, isRecording };
+          // Enregistrer l'heure de début
+          return { ...match, isRecording, recordingStartTime: Date.now() };
         } else {
           console.log(`Arrêt de l'enregistrement du match ${matchId}`);
-          // TODO: Ajouter la logique pour arrêter l'enregistrement
-          // Marquer que le match a un enregistrement disponible
-          return { ...match, isRecording, hasRecording: true };
+          // Calculer la durée totale en secondes
+          const duration = match.recordingStartTime 
+            ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
+            : 0;
+          return { 
+            ...match, 
+            isRecording: false, 
+            hasRecording: true,
+            recordingDuration: duration,
+            recordingStartTime: undefined
+          };
         }
       }
       return match;

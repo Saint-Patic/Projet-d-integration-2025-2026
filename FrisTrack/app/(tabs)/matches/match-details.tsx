@@ -47,14 +47,25 @@ export default function MatchDetailsScreen() {
   // Démarre/arrête le chrono en fonction de match.isRecording
   useEffect(() => {
     if (!match) return;
-    if (match.isRecording) {
-      // démarrage chrono
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-      timerRef.current = setInterval(() => {
-        setElapsedSeconds((s) => s + 1);
-      }, 1000);
+    
+    // Si le match a une durée enregistrée (après Stop), l'afficher
+    if (match.recordingDuration && !match.isRecording) {
+      setElapsedSeconds(match.recordingDuration);
+      return;
+    }
+    
+    if (match.isRecording && match.recordingStartTime) {
+      // Calculer le temps écoulé depuis le début
+      const updateElapsed = () => {
+        const elapsed = Math.floor((Date.now() - match.recordingStartTime) / 1000);
+        setElapsedSeconds(elapsed);
+      };
+      
+      // Mise à jour initiale
+      updateElapsed();
+      
+      // Mise à jour toutes les secondes
+      timerRef.current = setInterval(updateElapsed, 1000);
     } else {
       // arrêt chrono
       if (timerRef.current) {
@@ -62,13 +73,14 @@ export default function MatchDetailsScreen() {
         timerRef.current = null;
       }
     }
+    
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
     };
-  }, [match?.isRecording]);
+  }, [match?.isRecording, match?.recordingStartTime, match?.recordingDuration]);
 
   const formatTime = (total: number) => {
     const mm = Math.floor(total / 60)
@@ -148,12 +160,22 @@ export default function MatchDetailsScreen() {
               ]}
               onPress={() => {
                 if (match.isRecording) {
-                  // Stop: marquer l'enregistrement et cacher le bouton Start/Stop
-                  setMatch({ ...match, isRecording: false, hasRecording: true });
+                  // Stop: calculer la durée et marquer l'enregistrement
+                  const duration = match.recordingStartTime 
+                    ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
+                    : elapsedSeconds;
+                  setMatch({ 
+                    ...match, 
+                    isRecording: false, 
+                    hasRecording: true,
+                    recordingDuration: duration,
+                    recordingStartTime: undefined
+                  });
+                  setElapsedSeconds(duration);
                 } else {
-                  // Start: réinitialiser le chrono et démarrer
+                  // Start: démarrer avec timestamp
                   setElapsedSeconds(0);
-                  setMatch({ ...match, isRecording: true });
+                  setMatch({ ...match, isRecording: true, recordingStartTime: Date.now() });
                 }
               }}
             >
