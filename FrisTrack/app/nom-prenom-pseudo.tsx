@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TextInput,
   TouchableOpacity,
@@ -7,168 +7,122 @@ import {
   Platform,
   StatusBar,
   View,
+  BackHandler,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
-import { router } from "expo-router";
+import {
+  router,
+  useNavigation,
+  useFocusEffect,
+  useLocalSearchParams,
+} from "expo-router";
 
 export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const { email, password } = useLocalSearchParams<{
+    email: string;
+    password: string;
+  }>();
+  const [nom, setNom] = useState("");
+  const [prenom, setPrenom] = useState("");
+  const [pseudo, setPseudo] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Regex pour valider l'email
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const navigation = useNavigation();
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+      gestureEnabled: false,
+    });
+  }, [navigation]);
 
-  // Regex pour valider le mot de passe
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        return true;
+      };
 
-  function validateEmail(email: string): boolean {
-    return emailRegex.test(email);
-  }
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
 
-  function validateMdp(mdp: string): boolean {
-    return passwordRegex.test(mdp);
-  }
+      return () => subscription?.remove();
+    }, [])
+  );
 
   function handleSubmit() {
-    setErrorMessage(""); // Reset error message
+    setErrorMessage("");
 
-    if (isLogin) {
-      if (password === "" || email === "") {
-        setErrorMessage("Email et/ou mot de passe non fourni");
-        return;
-      }
+    if (nom === "" || prenom === "" || pseudo === "") {
+      setErrorMessage("Tous les champs sont obligatoires");
+      return;
+    }
 
-      // Vérifier le format de l'email
-      if (!validateEmail(email)) {
-        setErrorMessage("Veuillez entrer une adresse email valide");
-        return;
-      }
-
-      // Rediriger vers l'app principale après connexion réussie
-      Alert.alert("Connexion", `Tentative de connexion avec ${email}`, [
+    Alert.alert(
+      "Suite inscription",
+      `Création du nouvel utilisateur ${email} : ${prenom} - ${nom} (${pseudo}): `,
+      [
         {
           text: "OK",
-          onPress: () => router.replace("./(tabs)/matches"),
+          onPress: () =>
+            router.replace({
+              pathname: "./caract-form",
+              params: { email, password, nom, prenom, pseudo },
+            }),
         },
-      ]);
-    } else {
-      if (password === "" || email === "" || confirmPassword === "") {
-        setErrorMessage("Tous les champs sont obligatoires");
-        return;
-      }
-
-      // Vérifier le format de l'email
-      if (!validateEmail(email)) {
-        setErrorMessage("Veuillez entrer une adresse email valide");
-        return;
-      }
-
-      // Vérifier la force du mot de passe
-      if (!validateMdp(password)) {
-        setErrorMessage(
-          "Le mot de passe doit contenir au moins :\n• 10 caractères\n• 1 majuscule\n• 1 minuscule\n• 1 chiffre\n• 1 caractère spécial (@$!%*?&)"
-        );
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        setErrorMessage("Les mots de passe ne correspondent pas !");
-        return;
-      }
-
-      Alert.alert(
-        "Inscription",
-        `Création d'un nouvel utilisateur : ${email}`,
-        [
-          {
-            text: "OK",
-            onPress: () =>
-              router.replace({
-                pathname: "./nom-prenom-pseudo",
-                params: { email, password },
-              }),
-          },
-        ]
-      );
-    }
-  }
-
-  function toggleMode() {
-    setIsLogin(!isLogin);
-    setErrorMessage(""); // Reset error message when switching modes
+      ]
+    );
   }
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#4a4a55" />
 
-      <ThemedText style={styles.title}>
-        {isLogin ? "Connexion" : "Créer un compte"}
-      </ThemedText>
+      <ThemedText style={styles.title}>Créer un compte</ThemedText>
 
       <View style={styles.form}>
         <TextInput
-          placeholder="Email"
+          placeholder="Nom"
           placeholderTextColor="rgba(255, 255, 255, 0.6)"
-          value={email}
+          value={nom}
           onChangeText={(text) => {
-            setEmail(text);
+            setNom(text);
             setErrorMessage(""); // Clear error when user types
           }}
           style={styles.input}
-          keyboardType="email-address"
-          autoCapitalize="none"
+          autoCapitalize="words"
         />
 
         <TextInput
-          placeholder="Mot de passe"
+          placeholder="Prénom"
           placeholderTextColor="rgba(255, 255, 255, 0.6)"
-          value={password}
+          value={prenom}
           onChangeText={(text) => {
-            setPassword(text);
+            setPrenom(text);
             setErrorMessage(""); // Clear error when user types
           }}
           style={styles.input}
-          secureTextEntry
+          autoCapitalize="words"
         />
 
-        {!isLogin && (
-          <TextInput
-            placeholder="Confirmez le mot de passe"
-            placeholderTextColor="rgba(255, 255, 255, 0.6)"
-            value={confirmPassword}
-            onChangeText={(text) => {
-              setConfirmPassword(text);
-              setErrorMessage(""); // Clear error when user types
-            }}
-            style={styles.input}
-            secureTextEntry
-          />
-        )}
+        <TextInput
+          placeholder="Pseudo"
+          placeholderTextColor="rgba(255, 255, 255, 0.6)"
+          value={pseudo}
+          onChangeText={(text) => {
+            setPseudo(text);
+            setErrorMessage(""); // Clear error when user types
+          }}
+          style={styles.input}
+          autoCapitalize="none"
+        />
 
         {errorMessage !== "" && (
           <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
         )}
 
         <TouchableOpacity onPress={handleSubmit} style={styles.button}>
-          <ThemedText style={styles.buttonText}>
-            {isLogin ? "Se connecter" : "S'inscrire"}
-          </ThemedText>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.footer}>
-        <ThemedText style={styles.footerText}>
-          {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}
-        </ThemedText>
-        <TouchableOpacity onPress={toggleMode}>
-          <ThemedText style={styles.linkText}>
-            {isLogin ? "Créer un compte" : "Se connecter"}
-          </ThemedText>
+          <ThemedText style={styles.buttonText}>Suite</ThemedText>
         </TouchableOpacity>
       </View>
     </View>
