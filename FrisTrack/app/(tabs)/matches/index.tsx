@@ -12,7 +12,7 @@ import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { AddButton } from "@/components/perso_components/addButton";
 import { getMatches, updateMatch } from "@/services/getMatches";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 
 interface Match {
   id: number;
@@ -39,6 +39,15 @@ export default function HomeScreen() {
       setMatches(data);
     });
   }, []);
+
+  // Recharger les données quand on revient sur cette page
+  useFocusEffect(
+    React.useCallback(() => {
+      getMatches().then((data) => {
+        setMatches(data);
+      });
+    }, [])
+  );
 
   const editMatch = (matchId: number) => {
     console.log(`Édition du match ${matchId}`);
