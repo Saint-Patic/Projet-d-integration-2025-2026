@@ -211,6 +211,28 @@ export default function MatchDetailsScreen() {
           </View>
         </View>
 
+        {/* Confirm button — enabled only after a corner is selected */}
+        <View style={styles.confirmWrapper}>
+          <TouchableOpacity
+            accessible
+            accessibilityLabel="confirm-field-button"
+            onPress={() => {
+              if (!activeCorner) return;
+              console.log(`Confirmed corner: ${activeCorner}`, corners[activeCorner]);
+              // Future: save selection or navigate
+            }}
+            disabled={!activeCorner}
+            style={[
+              styles.confirmButton,
+              { backgroundColor: activeCorner ? theme.primary : "#888" },
+            ]}
+          >
+            <ThemedText style={styles.confirmButtonText}>
+              {activeCorner ? `Valider coin ${activeCorner.toUpperCase()}` : "Sélectionnez un coin"}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+
         {/* Phone location display on black background */}
         <View style={styles.locationWrapper}>
           <View style={styles.locationContainer}>
@@ -359,5 +381,20 @@ const styles = StyleSheet.create({
   cornerActive: {
     backgroundColor: "#00ff88",
     borderColor: "#006644",
+  },
+  confirmWrapper: {
+    marginTop: 12,
+    alignItems: "center",
+  },
+  confirmButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    borderRadius: 18,
+    elevation: 4,
+  },
+  confirmButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });
