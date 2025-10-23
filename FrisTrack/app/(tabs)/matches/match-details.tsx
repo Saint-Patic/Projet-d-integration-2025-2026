@@ -5,7 +5,7 @@ import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
-import { getMatchById } from "@/services/getMatches";
+import { getMatchById, updateMatch } from "@/services/getMatches";
 
 export default function MatchDetailsScreen() {
   const params = useLocalSearchParams();
@@ -164,6 +164,13 @@ export default function MatchDetailsScreen() {
                   const duration = match.recordingStartTime 
                     ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
                     : elapsedSeconds;
+                  // Persister dans le service
+                  updateMatch(matchId!, { 
+                    isRecording: false, 
+                    hasRecording: true,
+                    recordingDuration: duration,
+                    recordingStartTime: undefined
+                  });
                   setMatch({ 
                     ...match, 
                     isRecording: false, 
@@ -174,8 +181,11 @@ export default function MatchDetailsScreen() {
                   setElapsedSeconds(duration);
                 } else {
                   // Start: démarrer avec timestamp
+                  const startTime = Date.now();
+                  // Persister dans le service
+                  updateMatch(matchId!, { isRecording: true, recordingStartTime: startTime });
                   setElapsedSeconds(0);
-                  setMatch({ ...match, isRecording: true, recordingStartTime: Date.now() });
+                  setMatch({ ...match, isRecording: true, recordingStartTime: startTime });
                 }
               }}
             >
