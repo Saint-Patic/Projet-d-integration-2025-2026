@@ -27,6 +27,9 @@ export default function MatchDetailsScreen() {
     br: { x: 1, y: 1 },
   });
   const [activeCorner, setActiveCorner] = useState<null | keyof typeof corners>(null);
+  // Saved precise positions per corner
+  const [savedCorners, setSavedCorners] = useState<Partial<Record<keyof typeof corners, any>>>({});
+  const [saving, setSaving] = useState(false);
 
   // undefined = loading, null = not found, object = loaded
   const [match, setMatch] = useState<any | undefined>(undefined);
@@ -216,21 +219,56 @@ export default function MatchDetailsScreen() {
           <TouchableOpacity
             accessible
             accessibilityLabel="confirm-field-button"
-            onPress={() => {
+            onPress={async () => {
               if (!activeCorner) return;
-              console.log(`Confirmed corner: ${activeCorner}`, corners[activeCorner]);
-              // Future: save selection or navigate
+              try {
+                setSaving(true);
+
+                // Request a high-accuracy single reading
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== "granted") {
+                  setLocError("Permission refusée");
+                  setSaving(false);
+                  return;
+                }
+
+                const pos = await Location.getCurrentPositionAsync({
+                  accuracy: Location.Accuracy.Highest,
+                });
+
+                // Save position for that corner
+                setSavedCorners((prev) => ({ ...prev, [activeCorner]: pos }));
+                console.log(`Saved precise position for ${activeCorner}:`, pos);
+              } catch (e: any) {
+                setLocError(e?.message ?? "Erreur lors de la sauvegarde de la position");
+              } finally {
+                setSaving(false);
+              }
             }}
-            disabled={!activeCorner}
+            disabled={!activeCorner || saving}
             style={[
               styles.confirmButton,
               { backgroundColor: activeCorner ? theme.primary : "#888" },
             ]}
           >
             <ThemedText style={styles.confirmButtonText}>
-              {activeCorner ? `Valider coin ${activeCorner.toUpperCase()}` : "Sélectionnez un coin"}
+              {saving
+                ? "Enregistrement..."
+                : activeCorner
+                ? `Valider coin ${activeCorner.toUpperCase()}`
+                : "Sélectionnez un coin"}
             </ThemedText>
           </TouchableOpacity>
+        </View>
+        {/* Saved position feedback */}
+        <View style={styles.savedFeedback}>
+          {activeCorner && savedCorners[activeCorner] ? (
+            <ThemedText style={[styles.metaText, { color: theme.text }]}>
+              Position sauvegardée ({activeCorner.toUpperCase()}): {savedCorners[activeCorner].coords.latitude.toFixed(6)}, {savedCorners[activeCorner].coords.longitude.toFixed(6)}
+            </ThemedText>
+          ) : (
+            <ThemedText style={[styles.metaText, { color: theme.text }]}>Aucune position sauvegardée</ThemedText>
+          )}
         </View>
 
         {/* Phone location display on black background */}
@@ -396,5 +434,9 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
     fontSize: 16,
+  },
+  savedFeedback: {
+    marginTop: 8,
+    alignItems: "center",
   },
 });
