@@ -3,7 +3,7 @@ import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-nat
 import * as Location from "expo-location";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
-import { useLocalSearchParams, useNavigation, router } from "expo-router";
+import { useLocalSearchParams, useNavigation, router, useFocusEffect } from "expo-router";
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getMatchById } from "@/services/getMatches";
@@ -38,38 +38,56 @@ export default function MatchDetailsScreen() {
     }
   }, [matchId]);
 
-  // Request permission and fetch current location
-  useEffect(() => {
-    let mounted = true;
+  // Start a location watcher when the screen is focused, stop when unfocused
+  useFocusEffect(
+    React.useCallback(() => {
+      let subscription: Location.LocationSubscription | null = null;
+      let mounted = true;
 
-    const fetchLocation = async () => {
-      try {
-        setLocLoading(true);
-        setLocError(null);
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (!mounted) return;
-        if (status !== "granted") {
-          setLocError("Permission refusée");
-          setLocLoading(false);
-          return;
+      const startWatching = async () => {
+        try {
+          setLocLoading(true);
+          setLocError(null);
+
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (!mounted) return;
+
+          if (status !== "granted") {
+            setLocError("Permission refusée");
+            setLocLoading(false);
+            return;
+          }
+
+          // Start watching position. Adjust accuracy and distanceInterval as needed.
+          subscription = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.Balanced,
+              timeInterval: 3000, // minimum time between updates in ms
+              distanceInterval: 5, // minimum change in meters to receive update
+            },
+            (pos) => {
+              if (!mounted) return;
+              setLocation(pos);
+            }
+          );
+        } catch (e: any) {
+          setLocError(e?.message ?? "Erreur lors de la récupération de la position");
+        } finally {
+          if (mounted) setLocLoading(false);
         }
+      };
 
-        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
-        if (!mounted) return;
-        setLocation(pos);
-      } catch (e: any) {
-        setLocError(e?.message ?? "Erreur lors de la récupération de la position");
-      } finally {
-        if (mounted) setLocLoading(false);
-      }
-    };
+      startWatching();
 
-    fetchLocation();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+      return () => {
+        mounted = false;
+        if (subscription) {
+          subscription.remove();
+          subscription = null;
+        }
+      };
+    }, [])
+  );
 
   const handleBack = () => {
     router.back();
