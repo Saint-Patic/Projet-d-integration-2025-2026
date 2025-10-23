@@ -289,6 +289,22 @@ export default function MatchDetailsScreen() {
           )}
         </View>
 
+        {/* Edit corners button when terrain is validated */}
+        {terrainValidated && (
+          <View style={styles.editWrapper}>
+            <TouchableOpacity
+              accessibilityLabel="edit-corners-button"
+              onPress={() => {
+                setTerrainValidated(false);
+                setActiveCorner(null);
+              }}
+              style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+            >
+              <ThemedText style={styles.confirmButtonText}>Modifier les coins</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Phone location display on black background */}
         <View style={styles.locationWrapper}>
           <View style={styles.locationContainer}>
@@ -455,6 +471,10 @@ const styles = StyleSheet.create({
   },
   savedFeedback: {
     marginTop: 8,
+    alignItems: "center",
+  },
+  editWrapper: {
+    marginTop: 12,
     alignItems: "center",
   },
 });
