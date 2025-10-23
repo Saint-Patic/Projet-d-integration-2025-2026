@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  View,
   TouchableOpacity,
   StyleSheet,
   Platform,
@@ -8,11 +7,11 @@ import {
   Pressable,
 } from "react-native";
 import { Image } from "expo-image";
-import { ThemedText } from "@/components/themed-text";
-import { ScreenLayout } from "@/components/perso_components/screenLayout";
+
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLocalSearchParams, useNavigation } from "expo-router";
+import ProfileView from "@/components/perso_components/ProfileView";
 
 const profilePictures = [
   {
@@ -41,7 +40,6 @@ const profilePictures = [
   },
 ];
 
-// Mock data for different players
 const mockPlayers: {
   [key: string]: {
     id: number;
@@ -128,7 +126,6 @@ export default function PlayerProfilScreen() {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  // Get user data based on playerId
   const getUserData = React.useCallback(() => {
     return mockPlayers[currentPlayerId] || mockPlayers[1];
   }, [currentPlayerId]);
@@ -170,86 +167,30 @@ export default function PlayerProfilScreen() {
     );
   }
 
+  // handlers minimal pour affichage joueur (pas d'édition)
+  const connectSensor = () => {
+    console.log("Connexion capteur (player view)");
+  };
+  const logout = () => {
+    console.log("Logout (player view)");
+  };
+  const editProfile = () => {
+    /* no-op for player modal */
+  };
+
   return (
-    <ScreenLayout
-      title="Profil du joueur"
-      headerLeft={<BackButton theme={theme} />}
+    <ProfileView
       theme={theme}
-    >
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <View style={styles.profileImageContainer}>
-          <TouchableOpacity onPress={() => setShowFullImage(true)}>
-            <Image
-              source={getImageSource(user.imageName)}
-              style={[styles.profileImage, { borderColor: theme.primary }]}
-            />
-          </TouchableOpacity>
-          <View
-            style={[
-              styles.imageGlow,
-              { backgroundColor: `${theme.primary}15` },
-            ]}
-          />
-        </View>
-
-        <ThemedText
-          style={[
-            styles.name,
-            { color: theme.text, textShadowColor: `${theme.primary}50` },
-          ]}
-        >
-          {user.prenom} {user.nom}
-        </ThemedText>
-
-        <View
-          style={[
-            styles.infoContainer,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-          ]}
-        >
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Pointure
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.pointure}
-            </ThemedText>
-          </View>
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Main dominante
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.main}
-            </ThemedText>
-          </View>
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Poids
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.poids} kg
-            </ThemedText>
-          </View>
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Taille
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.taille} cm
-            </ThemedText>
-          </View>
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Âge
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.age} ans
-            </ThemedText>
-          </View>
-        </View>
-      </View>
-    </ScreenLayout>
+      HeaderLeft={<BackButton theme={theme} />}
+      HeaderRight={undefined}
+      user={user}
+      getImageSource={getImageSource}
+      connectSensor={connectSensor}
+      logout={logout}
+      editProfile={editProfile}
+      styles={styles}
+      onImagePress={() => setShowFullImage(true)}
+    />
   );
 }
 
