@@ -30,6 +30,7 @@ export default function MatchDetailsScreen() {
   // Saved precise positions per corner
   const [savedCorners, setSavedCorners] = useState<Partial<Record<keyof typeof corners, any>>>({});
   const [saving, setSaving] = useState(false);
+  const [terrainValidated, setTerrainValidated] = useState(false);
 
   // undefined = loading, null = not found, object = loaded
   const [match, setMatch] = useState<any | undefined>(undefined);
@@ -115,6 +116,40 @@ export default function MatchDetailsScreen() {
     console.log(`Corner ${key} clicked`, corners[key]);
   };
 
+  const allCornersSaved = ["tl", "tr", "bl", "br"].every((k) => Boolean(savedCorners[k as keyof typeof corners]));
+
+  // Handle confirm button: save a corner if selected, otherwise validate terrain when all corners saved
+  const handleConfirmPress = async () => {
+    if (terrainValidated) return;
+
+    if (activeCorner) {
+      // Save current corner position (same logic as before)
+      try {
+        setSaving(true);
+
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setLocError("Permission refusée");
+          setSaving(false);
+          return;
+        }
+
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+
+        setSavedCorners((prev) => ({ ...prev, [activeCorner]: pos }));
+        console.log(`Saved precise position for ${activeCorner}:`, pos);
+      } catch (e: any) {
+        setLocError(e?.message ?? "Erreur lors de la sauvegarde de la position");
+      } finally {
+        setSaving(false);
+      }
+    } else if (allCornersSaved && !activeCorner) {
+      // Finalize/validate the terrain: hide the corner handles
+      setTerrainValidated(true);
+      console.log("Terrain validé", savedCorners);
+    }
+  };
+
   if (match === undefined) {
     return (
       <ScreenLayout title="Détails du match" headerLeft={<BackButton theme={theme} />} theme={theme}>
@@ -168,49 +203,53 @@ export default function MatchDetailsScreen() {
         {/* Field rectangle (black) with 4 clickable corners */}
         <View style={styles.fieldWrapper}>
           <View style={styles.fieldContainer}>
-            {/* Corner: top-left */}
-            <TouchableOpacity
-              accessibilityLabel="corner-top-left"
-              onPress={onCornerPress("tl")}
-              style={[
-                styles.cornerHandle,
-                styles.cornerTL,
-                activeCorner === "tl" && styles.cornerActive,
-              ]}
-            />
+            {!terrainValidated && (
+              <>
+                {/* Corner: top-left */}
+                <TouchableOpacity
+                  accessibilityLabel="corner-top-left"
+                  onPress={onCornerPress("tl")}
+                  style={[
+                    styles.cornerHandle,
+                    styles.cornerTL,
+                    activeCorner === "tl" && styles.cornerActive,
+                  ]}
+                />
 
-            {/* Corner: top-right */}
-            <TouchableOpacity
-              accessibilityLabel="corner-top-right"
-              onPress={onCornerPress("tr")}
-              style={[
-                styles.cornerHandle,
-                styles.cornerTR,
-                activeCorner === "tr" && styles.cornerActive,
-              ]}
-            />
+                {/* Corner: top-right */}
+                <TouchableOpacity
+                  accessibilityLabel="corner-top-right"
+                  onPress={onCornerPress("tr")}
+                  style={[
+                    styles.cornerHandle,
+                    styles.cornerTR,
+                    activeCorner === "tr" && styles.cornerActive,
+                  ]}
+                />
 
-            {/* Corner: bottom-left */}
-            <TouchableOpacity
-              accessibilityLabel="corner-bottom-left"
-              onPress={onCornerPress("bl")}
-              style={[
-                styles.cornerHandle,
-                styles.cornerBL,
-                activeCorner === "bl" && styles.cornerActive,
-              ]}
-            />
+                {/* Corner: bottom-left */}
+                <TouchableOpacity
+                  accessibilityLabel="corner-bottom-left"
+                  onPress={onCornerPress("bl")}
+                  style={[
+                    styles.cornerHandle,
+                    styles.cornerBL,
+                    activeCorner === "bl" && styles.cornerActive,
+                  ]}
+                />
 
-            {/* Corner: bottom-right */}
-            <TouchableOpacity
-              accessibilityLabel="corner-bottom-right"
-              onPress={onCornerPress("br")}
-              style={[
-                styles.cornerHandle,
-                styles.cornerBR,
-                activeCorner === "br" && styles.cornerActive,
-              ]}
-            />
+                {/* Corner: bottom-right */}
+                <TouchableOpacity
+                  accessibilityLabel="corner-bottom-right"
+                  onPress={onCornerPress("br")}
+                  style={[
+                    styles.cornerHandle,
+                    styles.cornerBR,
+                    activeCorner === "br" && styles.cornerActive,
+                  ]}
+                />
+              </>
+            )}
           </View>
         </View>
 
@@ -219,43 +258,22 @@ export default function MatchDetailsScreen() {
           <TouchableOpacity
             accessible
             accessibilityLabel="confirm-field-button"
-            onPress={async () => {
-              if (!activeCorner) return;
-              try {
-                setSaving(true);
-
-                // Request a high-accuracy single reading
-                const { status } = await Location.requestForegroundPermissionsAsync();
-                if (status !== "granted") {
-                  setLocError("Permission refusée");
-                  setSaving(false);
-                  return;
-                }
-
-                const pos = await Location.getCurrentPositionAsync({
-                  accuracy: Location.Accuracy.Highest,
-                });
-
-                // Save position for that corner
-                setSavedCorners((prev) => ({ ...prev, [activeCorner]: pos }));
-                console.log(`Saved precise position for ${activeCorner}:`, pos);
-              } catch (e: any) {
-                setLocError(e?.message ?? "Erreur lors de la sauvegarde de la position");
-              } finally {
-                setSaving(false);
-              }
-            }}
-            disabled={!activeCorner || saving}
+            onPress={handleConfirmPress}
+            disabled={saving || (terrainValidated ? true : !activeCorner && !allCornersSaved)}
             style={[
               styles.confirmButton,
-              { backgroundColor: activeCorner ? theme.primary : "#888" },
+              { backgroundColor: !terrainValidated && (activeCorner || allCornersSaved) ? theme.primary : "#888" },
             ]}
           >
             <ThemedText style={styles.confirmButtonText}>
               {saving
                 ? "Enregistrement..."
+                : terrainValidated
+                ? "Terrain validé"
                 : activeCorner
                 ? `Valider coin ${activeCorner.toUpperCase()}`
+                : allCornersSaved
+                ? "Valider le terrain"
                 : "Sélectionnez un coin"}
             </ThemedText>
           </TouchableOpacity>
