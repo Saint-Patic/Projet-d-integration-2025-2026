@@ -105,14 +105,11 @@ export default function MatchDetailsScreen() {
 
   // Corner click handler — receives which corner and optional event
   const onCornerPress = (key: keyof typeof corners) => (e?: GestureResponderEvent) => {
-    // provide simple visual feedback by marking active corner
-    setActiveCorner(key);
+    // Toggle selection: if same corner is already active, deselect it
+    setActiveCorner((prev) => (prev === key ? null : key));
 
     // For now just log the click; could open a modal or allow dragging to reposition
     console.log(`Corner ${key} clicked`, corners[key]);
-
-    // clear active state after a short delay to show feedback
-    setTimeout(() => setActiveCorner(null), 350);
   };
 
   if (match === undefined) {
