@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator, GestureResponderEvent } from "react-native";
 import * as Location from "expo-location";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
@@ -17,6 +17,16 @@ export default function MatchDetailsScreen() {
   const [location, setLocation] = useState<any | null>(null);
   const [locLoading, setLocLoading] = useState(false);
   const [locError, setLocError] = useState<string | null>(null);
+
+  // Field corners state (store as normalized coords 0..1 relative to field)
+  // We only read corners for now; keep as read-only state to avoid unused setter lint.
+  const [corners] = useState({
+    tl: { x: 0, y: 0 },
+    tr: { x: 1, y: 0 },
+    bl: { x: 0, y: 1 },
+    br: { x: 1, y: 1 },
+  });
+  const [activeCorner, setActiveCorner] = useState<null | keyof typeof corners>(null);
 
   // undefined = loading, null = not found, object = loaded
   const [match, setMatch] = useState<any | undefined>(undefined);
@@ -93,6 +103,18 @@ export default function MatchDetailsScreen() {
     router.back();
   };
 
+  // Corner click handler — receives which corner and optional event
+  const onCornerPress = (key: keyof typeof corners) => (e?: GestureResponderEvent) => {
+    // provide simple visual feedback by marking active corner
+    setActiveCorner(key);
+
+    // For now just log the click; could open a modal or allow dragging to reposition
+    console.log(`Corner ${key} clicked`, corners[key]);
+
+    // clear active state after a short delay to show feedback
+    setTimeout(() => setActiveCorner(null), 350);
+  };
+
   if (match === undefined) {
     return (
       <ScreenLayout title="Détails du match" headerLeft={<BackButton theme={theme} />} theme={theme}>
@@ -141,6 +163,55 @@ export default function MatchDetailsScreen() {
         <View style={styles.metaRow}>
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Statut: {match.status}</ThemedText>
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Lieu: {match.venue === "indoor" ? "Intérieur" : "Extérieur"}</ThemedText>
+        </View>
+
+        {/* Field rectangle (black) with 4 clickable corners */}
+        <View style={styles.fieldWrapper}>
+          <View style={styles.fieldContainer}>
+            {/* Corner: top-left */}
+            <TouchableOpacity
+              accessibilityLabel="corner-top-left"
+              onPress={onCornerPress("tl")}
+              style={[
+                styles.cornerHandle,
+                styles.cornerTL,
+                activeCorner === "tl" && styles.cornerActive,
+              ]}
+            />
+
+            {/* Corner: top-right */}
+            <TouchableOpacity
+              accessibilityLabel="corner-top-right"
+              onPress={onCornerPress("tr")}
+              style={[
+                styles.cornerHandle,
+                styles.cornerTR,
+                activeCorner === "tr" && styles.cornerActive,
+              ]}
+            />
+
+            {/* Corner: bottom-left */}
+            <TouchableOpacity
+              accessibilityLabel="corner-bottom-left"
+              onPress={onCornerPress("bl")}
+              style={[
+                styles.cornerHandle,
+                styles.cornerBL,
+                activeCorner === "bl" && styles.cornerActive,
+              ]}
+            />
+
+            {/* Corner: bottom-right */}
+            <TouchableOpacity
+              accessibilityLabel="corner-bottom-right"
+              onPress={onCornerPress("br")}
+              style={[
+                styles.cornerHandle,
+                styles.cornerBR,
+                activeCorner === "br" && styles.cornerActive,
+              ]}
+            />
+          </View>
         </View>
 
         {/* Phone location display on black background */}
@@ -248,5 +319,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     marginBottom: 4,
+  },
+  /* Field (black rectangle) and corner handles */
+  fieldWrapper: {
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  fieldContainer: {
+    width: "100%",
+    maxWidth: 520,
+    aspectRatio: 16 / 9,
+    backgroundColor: "#000",
+    borderRadius: 8,
+    position: "relative",
+    overflow: "hidden",
+  },
+  cornerHandle: {
+    position: "absolute",
+    width: 28,
+    height: 28,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderWidth: 2,
+    borderColor: "#000",
+  },
+  cornerTL: {
+    top: 8,
+    left: 8,
+  },
+  cornerTR: {
+    top: 8,
+    right: 8,
+  },
+  cornerBL: {
+    bottom: 8,
+    left: 8,
+  },
+  cornerBR: {
+    bottom: 8,
+    right: 8,
+  },
+  cornerActive: {
+    backgroundColor: "#00ff88",
+    borderColor: "#006644",
   },
 });
