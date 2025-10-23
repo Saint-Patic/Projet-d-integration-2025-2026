@@ -1,10 +1,4 @@
-import {
-  Link,
-  Stack,
-  useRouter,
-  useNavigation,
-  useFocusEffect,
-} from "expo-router";
+import { Stack, useRouter, useNavigation, useFocusEffect } from "expo-router";
 import React, { useEffect } from "react";
 import {
   StyleSheet,
@@ -22,7 +16,7 @@ export default function NotFoundScreen() {
 
   const goBack = () => {
     router.replace({
-      pathname: "./index",
+      pathname: "/",
     });
   };
   const navigation = useNavigation();

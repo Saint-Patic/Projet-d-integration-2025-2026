@@ -188,6 +188,7 @@ export default function ProfilScreen() {
       title="Mon profil"
       headerRight={<HeaderRight />}
       headerLeft={<HeaderLeft />}
+      theme={theme}
     >
       {editMode ? (
         // Contenu du mode édition sans wrapper ScreenLayout supplémentaire

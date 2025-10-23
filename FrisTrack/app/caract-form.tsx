@@ -84,7 +84,6 @@ export default function CaractForm() {
   }
 
   const handleSave = () => {
-    // compute age from date if available
     let ageNumber = form.age;
     if (form.ageDate) {
       const now = new Date();
@@ -114,11 +113,7 @@ export default function CaractForm() {
       [
         {
           text: "OK",
-          onPress: () =>
-            router.replace({
-              pathname: "./(tabs)/matches",
-              params: { email, password, ...payload },
-            }),
+          onPress: () => router.replace("./(tabs)/matches"),
         },
       ]
     );
@@ -136,8 +131,7 @@ export default function CaractForm() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#4a4a55" />
-
-      <ThemedText style={styles.title}>Créer un compte</ThemedText>
+      <ThemedText style={styles.title}>Caractéristiques</ThemedText>
 
       <EditProfile
         theme={theme}
@@ -161,7 +155,7 @@ export default function CaractForm() {
         handleSave={handleSave}
         handleCancel={handleCancel}
         styles={styles}
-        showNameAndImage={false} // cache prénom + photo
+        showNameAndImage={false}
       />
     </View>
   );

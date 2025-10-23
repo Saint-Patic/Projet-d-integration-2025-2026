@@ -2,7 +2,6 @@ import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
-import { ScreenLayout } from "@/components/perso_components/screenLayout";
 
 interface Props {
   theme: any;
@@ -21,8 +20,6 @@ interface Props {
 export default function ProfileView(props: Props) {
   const {
     theme,
-    HeaderRight,
-    HeaderLeft,
     user,
     getImageSource,
     connectSensor,
