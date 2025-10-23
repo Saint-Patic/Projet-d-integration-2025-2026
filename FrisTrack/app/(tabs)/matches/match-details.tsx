@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, TouchableOpacity, StyleSheet, ActivityIndicator, GestureResponderEvent } from "react-native";
+import { View, TouchableOpacity, StyleSheet, GestureResponderEvent } from "react-native";
 import * as Location from "expo-location";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
@@ -14,9 +14,9 @@ export default function MatchDetailsScreen() {
   const navigation = useNavigation();
   const { theme } = useTheme();
 
-  const [location, setLocation] = useState<any | null>(null);
-  const [locLoading, setLocLoading] = useState(false);
-  const [locError, setLocError] = useState<string | null>(null);
+  const [, setLocation] = useState<any | null>(null);
+  const [, setLocLoading] = useState(false);
+  const [, setLocError] = useState<string | null>(null);
 
   // Field corners state (store as normalized coords 0..1 relative to field)
   // We only read corners for now; keep as read-only state to avoid unused setter lint.
@@ -285,7 +285,10 @@ export default function MatchDetailsScreen() {
               Position sauvegardée ({activeCorner.toUpperCase()}): {savedCorners[activeCorner].coords.latitude.toFixed(6)}, {savedCorners[activeCorner].coords.longitude.toFixed(6)}
             </ThemedText>
           ) : (
-            <ThemedText style={[styles.metaText, { color: theme.text }]}>Aucune position sauvegardée</ThemedText>
+            // Only show the "no saved position" message when the terrain is not yet validated
+            !terrainValidated && (
+              <ThemedText style={[styles.metaText, { color: theme.text }]}>Aucune position sauvegardée</ThemedText>
+            )
           )}
         </View>
 
@@ -304,24 +307,6 @@ export default function MatchDetailsScreen() {
             </TouchableOpacity>
           </View>
         )}
-
-        {/* Phone location display on black background */}
-        <View style={styles.locationWrapper}>
-          <View style={styles.locationContainer}>
-            {locLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : locError ? (
-              <ThemedText style={[styles.locationText, { color: "#fff" }]}>Erreur: {locError}</ThemedText>
-            ) : location ? (
-              <>
-                <ThemedText style={[styles.locationText, { color: "#fff" }]}>Latitude: {location.coords.latitude.toFixed(6)}</ThemedText>
-                <ThemedText style={[styles.locationText, { color: "#fff" }]}>Longitude: {location.coords.longitude.toFixed(6)}</ThemedText>
-              </>
-            ) : (
-              <ThemedText style={[styles.locationText, { color: "#fff" }]}>Position non disponible</ThemedText>
-            )}
-          </View>
-        </View>
       </View>
     </ScreenLayout>
   );
