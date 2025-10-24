@@ -16,25 +16,25 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="team"
+        name="teams"
         options={{
-          title: "Team",
+          title: "Équipes",
           tabBarIcon: ({ color }) => (
             <MaterialIcons name="groups" size={28} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="match"
+        name="matches"
         options={{
-          title: "Home",
+          title: "Matchs",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="profil"
+        name="profile"
         options={{
           title: "Profil",
           tabBarIcon: ({ color }) => (

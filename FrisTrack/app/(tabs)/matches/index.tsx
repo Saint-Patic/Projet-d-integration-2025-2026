@@ -10,8 +10,9 @@ import { ThemedText } from "@/components/themed-text";
 import { SwipeableCard } from "@/components/perso_components/swipeableCard";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { AddButton } from "@/components/perso_components/addButton";
-import { getMatches } from "@/services/getMatches";
+import { getMatches, updateMatch } from "@/services/getMatches";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useRouter, useFocusEffect } from "expo-router";
 
 interface Match {
   id: number;
@@ -22,17 +23,31 @@ interface Match {
   date: string;
   status: string;
   color: string;
+  isRecording?: boolean;
+  hasRecording?: boolean;
+  recordingStartTime?: number;
+  recordingDuration?: number;
 }
 
 export default function HomeScreen() {
   const [matches, setMatches] = useState<Match[]>([]);
   const { theme } = useTheme();
+  const router = useRouter();
 
   useEffect(() => {
     getMatches().then((data) => {
       setMatches(data);
     });
   }, []);
+
+  // Recharger les données quand on revient sur cette page
+  useFocusEffect(
+    React.useCallback(() => {
+      getMatches().then((data) => {
+        setMatches(data);
+      });
+    }, [])
+  );
 
   const editMatch = (matchId: number) => {
     console.log(`Édition du match ${matchId}`);
@@ -56,11 +71,42 @@ export default function HomeScreen() {
   };
 
   const viewMatchDetails = (matchId: number) => {
-    console.log(`Affichage des détails du match ${matchId}`);
+    router.push({ pathname: "./matches/match-details", params: { matchId } });
   };
 
-  const startMatch = (matchId: number) => {
-    console.log(`Démarrage du match ${matchId}`);
+  const toggleRecording = (matchId: number) => {
+    setMatches(matches.map(match => {
+      if (match.id === matchId) {
+        const isRecording = !match.isRecording;
+        if (isRecording) {
+          console.log(`Démarrage de l'enregistrement du match ${matchId}`);
+          // Enregistrer l'heure de début
+          const startTime = Date.now();
+          updateMatch(matchId, { isRecording: true, recordingStartTime: startTime });
+          return { ...match, isRecording: true, recordingStartTime: startTime };
+        } else {
+          console.log(`Arrêt de l'enregistrement du match ${matchId}`);
+          // Calculer la durée totale en secondes
+          const duration = match.recordingStartTime 
+            ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
+            : 0;
+          updateMatch(matchId, { 
+            isRecording: false, 
+            hasRecording: true,
+            recordingDuration: duration,
+            recordingStartTime: undefined
+          });
+          return { 
+            ...match, 
+            isRecording: false, 
+            hasRecording: true,
+            recordingDuration: duration,
+            recordingStartTime: undefined
+          };
+        }
+      }
+      return match;
+    }));
   };
 
   const createNewMatch = () => {
@@ -162,19 +208,25 @@ export default function HomeScreen() {
               Voir détails
             </ThemedText>
           </TouchableOpacity>
-          {match.status === "scheduled" && (
+          {match.status === "scheduled" && !match.hasRecording && (
             <TouchableOpacity
               style={[
                 styles.actionButton,
                 styles.secondaryButton,
-                { backgroundColor: theme.surface, borderColor: theme.border },
+                { 
+                  backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60", 
+                  borderColor: match.isRecording ? "#e74c3c" : "#27ae60" 
+                },
               ]}
-              onPress={() => startMatch(match.id)}
+              onPress={() => toggleRecording(match.id)}
             >
               <ThemedText
-                style={[styles.secondaryButtonText, { color: theme.primary }]}
+                style={[
+                  styles.secondaryButtonText, 
+                  { color: "#ffffff" }
+                ]}
               >
-                Démarrer
+                {match.isRecording ? "⏹ Stop" : "▶ Start"}
               </ThemedText>
             </TouchableOpacity>
           )}
