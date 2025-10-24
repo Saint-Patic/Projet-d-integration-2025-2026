@@ -25,6 +25,36 @@ export default function AuthPage() {
   const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
 
+  const passwordCriteria = [
+    {
+      key: "length",
+      label: "Au moins 10 caractères",
+      test: (pw: string) => pw.length >= 10,
+    },
+    {
+      key: "upper",
+      label: "Au moins 1 lettre majuscule",
+      test: (pw: string) => /[A-Z]/.test(pw),
+    },
+    {
+      key: "lower",
+      label: "Au moins 1 lettre minuscule",
+      test: (pw: string) => /[a-z]/.test(pw),
+    },
+    {
+      key: "digit",
+      label: "Au moins 1 chiffre",
+      test: (pw: string) => /\d/.test(pw),
+    },
+    {
+      key: "special",
+      label: "Au moins 1 caractère spécial (@$!%*?&)",
+      test: (pw: string) => /[@$!%*?&]/.test(pw),
+    },
+  ];
+
+  const allPassed = passwordCriteria.every((c) => c.test(password));
+
   function validateEmail(email: string): boolean {
     return emailRegex.test(email);
   }
@@ -100,6 +130,7 @@ export default function AuthPage() {
   function toggleMode() {
     setIsLogin(!isLogin);
     setErrorMessage(""); // Reset error message when switching modes
+    setConfirmPassword("");
   }
 
   return (
@@ -136,18 +167,40 @@ export default function AuthPage() {
           secureTextEntry
         />
 
+        {/* confirmation du mot de passe en mode inscription */}
         {!isLogin && (
           <TextInput
-            placeholder="Confirmez le mot de passe"
+            placeholder="Confirmer le mot de passe"
             placeholderTextColor="rgba(255, 255, 255, 0.6)"
             value={confirmPassword}
             onChangeText={(text) => {
               setConfirmPassword(text);
-              setErrorMessage(""); // Clear error when user types
+              setErrorMessage("");
             }}
             style={styles.input}
             secureTextEntry
           />
+        )}
+
+        {/* Affichage des critères en mode inscription */}
+        {!isLogin && !allPassed && (
+          <View style={styles.criteriaContainer}>
+            {passwordCriteria.map((c) => {
+              const passed = c.test(password);
+              return (
+                <View key={c.key} style={styles.criteriaItem}>
+                  <ThemedText
+                    style={[
+                      styles.criteriaText,
+                      passed ? styles.criteriaValid : styles.criteriaInvalid,
+                    ]}
+                  >
+                    {c.label}
+                  </ThemedText>
+                </View>
+              );
+            })}
+          </View>
         )}
 
         {errorMessage !== "" && (
@@ -296,5 +349,27 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: "700",
     textDecorationLine: "underline",
+  },
+
+  // --- styles ajoutés pour les critères ---
+  criteriaContainer: {
+    marginBottom: 12,
+    paddingHorizontal: 6,
+  },
+  criteriaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 2,
+  },
+  criteriaText: {
+    fontSize: 13,
+    marginLeft: 6,
+    fontWeight: "600",
+  },
+  criteriaValid: {
+    color: "#4CAF50", // vert
+  },
+  criteriaInvalid: {
+    color: "#ff5252", // rouge
   },
 });
