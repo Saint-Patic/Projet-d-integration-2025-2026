@@ -73,36 +73,11 @@ export default function AuthPage() {
   // Check pseudo availability with debounce
   useEffect(() => {
     if (pseudo.length >= 3 && validatePseudo(pseudo)) {
-      const timer = setTimeout(() => {
-        checkPseudoAvailability(pseudo);
-      }, 500);
-      return () => clearTimeout(timer);
+      setPseudoAvailable(true);
     } else {
       setPseudoAvailable(null);
     }
   }, [pseudo]);
-
-  const checkPseudoAvailability = async (pseudoToCheck: string) => {
-    setCheckingPseudo(true);
-    try {
-      // Simulated API call - replace with actual endpoint
-      const response = await fetch(
-        `https://your-api.com/api/check-username?pseudo=${pseudoToCheck}`
-      );
-      const data = await response.json();
-      setPseudoAvailable(data.available);
-      if (!data.available) {
-        setPseudoError("Ce pseudo est déjà utilisé");
-      } else {
-        setPseudoError("");
-      }
-    } catch (error) {
-      setPseudoError("Impossible de vérifier le pseudo, veuillez réessayer");
-      setPseudoAvailable(null);
-    } finally {
-      setCheckingPseudo(false);
-    }
-  };
 
   const handleNomChange = (text: string) => {
     setNom(text);
@@ -158,8 +133,7 @@ export default function AuthPage() {
       nomError === "" &&
       prenomError === "" &&
       pseudoError === "" &&
-      pseudoAvailable === true &&
-      !checkingPseudo
+      pseudoAvailable === true
     );
   };
 
