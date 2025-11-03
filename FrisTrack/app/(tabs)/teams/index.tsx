@@ -34,7 +34,18 @@ export default function TeamScreen() {
   }, []);
 
   const editTeam = (teamId: number) => {
-    console.log(`Édition de l'équipe ${teamId}`);
+    const team = teams.find((t) => t.id === teamId);
+    if (team) {
+      router.push({
+        pathname: "/(tabs)/teams/[id]",
+        params: {
+          id: teamId.toString(),
+          teamId: teamId.toString(),
+          teamName: team.name,
+          editMode: "true",
+        },
+      });
+    }
   };
 
   const deleteTeam = (teamId: number) => {
@@ -55,11 +66,26 @@ export default function TeamScreen() {
   };
 
   const viewTeamDetails = (teamId: number, teamName: string) => {
-    router.push({ pathname: "/team-details", params: { teamId, teamName } });
+    router.push({
+      pathname: "/(tabs)/teams/[id]",
+      params: {
+        id: teamId.toString(), // Changé de teamId vers id
+        teamName,
+      },
+    });
   };
 
   const addPlayer = (teamId: number) => {
-    console.log(`Ajout d'un joueur à l'équipe ${teamId}`);
+    const team = teams.find((t) => t.id === teamId);
+    if (team) {
+      router.push({
+        pathname: "../teams/add-player",
+        params: {
+          teamId: teamId.toString(),
+          teamName: team.name,
+        },
+      });
+    }
   };
 
   const createNewTeam = () => {
@@ -141,7 +167,6 @@ export default function TeamScreen() {
   );
 }
 
-// ...existing code...
 const styles = StyleSheet.create({
   teamsContainer: {
     flexDirection: "row",
