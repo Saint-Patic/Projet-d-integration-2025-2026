@@ -89,7 +89,7 @@ CREATE TABLE team_match (
     FOREIGN KEY (team_id) REFERENCES team(team_id),
     FOREIGN KEY (match_id) REFERENCES match_frisbee(match_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
+);
 
 
 #Insertion des données
