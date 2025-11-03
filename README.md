@@ -8,9 +8,8 @@ Application de gestion d'équipes de frisbee permettant aux coachs de gérer leu
 
 ```
 .
-├── docs/           # Documentation du projet
-├── backend/        # API REST (Node.js + Express)
-├── database/       # Scripts SQL et migrations
+├── server/        # API REST (Node.js + Express)
+├── DB/       # Scripts SQL et migrations
 └── FrisTrack/      # Application mobile (React Native/Expo)
 ```
 
@@ -18,7 +17,7 @@ Application de gestion d'équipes de frisbee permettant aux coachs de gérer leu
 
 ### Prérequis
 
-- Node.js 18+
+- Node.js
 - npm ou yarn
 - Expo CLI
 - PostgreSQL (ou autre SGBD)
@@ -26,29 +25,16 @@ Application de gestion d'équipes de frisbee permettant aux coachs de gérer leu
 ### Backend
 
 ```bash
-cd backend
-npm install
+cd server
+npm [i]nstall
 cp .env.example .env
-# Configurer les variables d'environnement
-npm run dev
+node db.js
 ```
 
 ### Application mobile
 
 ```bash
 cd FrisTrack
-npm install
+npm [i]nstall
 npm start
 ```
-
-## 📚 Documentation
-
-Voir le dossier [docs/](./docs/) pour la documentation complète.
-
-## 👥 Équipe
-
-- [Votre nom] - Développeur
-
-## 📝 License
-
-[Type de licence]
