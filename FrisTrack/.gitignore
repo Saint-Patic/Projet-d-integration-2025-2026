@@ -43,4 +43,5 @@ app-example
 /android
 
 # env
+*.env
 server.env

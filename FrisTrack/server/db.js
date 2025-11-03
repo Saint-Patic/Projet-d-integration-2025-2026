@@ -1,11 +1,36 @@
+const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
+const dotenv = require("dotenv");
 
-const teams = require("./routes/teams");
-const matches = require("./routes/matches");
-const auth = require("./routes/auth");
-const users = require("./routes/users");
+dotenv.config({ path: path.join(__dirname, ".env") });
+
+function loadRoute(relativePath) {
+  const fullPath = path.join(__dirname, relativePath + ".js");
+  if (fs.existsSync(fullPath)) {
+    try {
+      return require(fullPath);
+    } catch (err) {
+      console.error(`Erreur lors du require de ${relativePath}:`, err);
+    }
+  }
+  console.warn(
+    `⚠️  Route manquante: ${relativePath}.js — utilisation d'un router factice (répond 501).`
+  );
+  const router = express.Router();
+  router.all("*", (_req, res) => {
+    res
+      .status(501)
+      .json({ error: `Route ${relativePath} non implémentée sur le serveur.` });
+  });
+  return router;
+}
+
+const teams = loadRoute("/routes/teams".replace(/^\.\//, "routes/"));
+const matches = loadRoute("/routes/matches".replace(/^\.\//, "routes/"));
+const auth = loadRoute("/routes/auth".replace(/^\.\//, "routes/"));
+const users = loadRoute("/routes/users".replace(/^\.\//, "routes/"));
 
 const app = express();
 app.use(cors());
@@ -16,5 +41,31 @@ app.use("/api/teams", teams);
 app.use("/api/matches", matches);
 app.use("/api/users", users);
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`API server listening on ${port}`));
+const port = Number(process.env.PORT) || 3000;
+
+const server = app.listen(port, () =>
+  console.log(`API server listening on ${port}`)
+);
+server.on("error", (err) => {
+  if (err && err.code === "EADDRINUSE") {
+    console.error(
+      `Erreur : le port ${port} est déjà utilisé (EADDRINUSE). Changez PORT dans server/.env ou arrêtez le service utilisant ce port (ex. MariaDB utilise 3306).`
+    );
+    process.exit(1);
+  }
+  console.error("Erreur serveur non gérée :", err);
+  process.exit(1);
+});
+
+const required = ["DB_USER", "DB_PASSWORD", "DB_DATABASE"];
+const missing = required.filter((k) => !process.env[k]);
+if (missing.length) {
+  console.warn(
+    `⚠️  Variables d'environnement manquantes: ${missing.join(
+      ", "
+    )}\nPlacez votre fichier .env ici: ${path.join(
+      __dirname,
+      ".env"
+    )}\nCopiez .env.example -> .env et remplissez les valeurs.`
+  );
+}
