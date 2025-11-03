@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { router } from "expo-router";
-import authService from "@/services/api";
+import { authService } from "@/services/api";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -81,10 +81,7 @@ export default function AuthPage() {
     setErrorMessage("");
 
     try {
-      const { data: response } = await authService.post("/users/login", {
-        email,
-        password,
-      });
+      const response = await authService.login({ email, password });
       if (response?.success) {
         router.replace("./(tabs)/matches");
       }
