@@ -7,9 +7,11 @@ import {
   Platform,
   StatusBar,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { router } from "expo-router";
+import authService from "@/services/api";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,6 +19,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Regex pour valider l'email
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -63,73 +66,102 @@ export default function AuthPage() {
     return passwordRegex.test(mdp);
   }
 
-  function handleSubmit() {
-    setErrorMessage(""); // Reset error message
+  async function handleLogin() {
+    if (password === "" || email === "") {
+      setErrorMessage("Email et/ou mot de passe non fourni");
+      return;
+    }
 
-    if (isLogin) {
-      if (password === "" || email === "") {
-        setErrorMessage("Email et/ou mot de passe non fourni");
-        return;
+    if (!validateEmail(email)) {
+      setErrorMessage("Veuillez entrer une adresse email valide");
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const { data: response } = await authService.post("/users/login", {
+        email,
+        password,
+      });
+      if (response?.success) {
+        router.replace("./(tabs)/matches");
       }
+    } catch (error: any) {
+      console.error("Erreur de connexion:", error);
 
-      // Vérifier le format de l'email
-      if (!validateEmail(email)) {
-        setErrorMessage("Veuillez entrer une adresse email valide");
-        return;
-      }
+      if (error.response) {
+        // Erreur du serveur avec réponse
+        const status = error.response.status;
+        const message = error.response.data?.error || "Erreur de connexion";
 
-      // Rediriger vers l'app principale après connexion réussie
-      Alert.alert("Connexion", `Tentative de connexion avec ${email}`, [
-        {
-          text: "OK",
-          onPress: () => router.replace("./(tabs)/matches"),
-        },
-      ]);
-    } else {
-      if (password === "" || email === "" || confirmPassword === "") {
-        setErrorMessage("Tous les champs sont obligatoires");
-        return;
-      }
-
-      // Vérifier le format de l'email
-      if (!validateEmail(email)) {
-        setErrorMessage("Veuillez entrer une adresse email valide");
-        return;
-      }
-
-      // Vérifier la force du mot de passe
-      if (!validateMdp(password)) {
+        if (status === 401) {
+          setErrorMessage("Email ou mot de passe incorrect");
+        } else if (status === 400) {
+          setErrorMessage(message);
+        } else {
+          setErrorMessage("Une erreur est survenue. Veuillez réessayer.");
+        }
+      } else if (error.request) {
+        // Pas de réponse du serveur
         setErrorMessage(
-          "Le mot de passe doit contenir au moins :\n• 10 caractères\n• 1 majuscule\n• 1 minuscule\n• 1 chiffre\n• 1 caractère spécial (@$!%*?&)"
+          "Impossible de contacter le serveur. Vérifiez votre connexion."
         );
-        return;
+      } else {
+        setErrorMessage("Une erreur est survenue. Veuillez réessayer.");
       }
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
-      if (password !== confirmPassword) {
-        setErrorMessage("Les mots de passe ne correspondent pas !");
-        return;
-      }
+  function handleRegister() {
+    if (password === "" || email === "" || confirmPassword === "") {
+      setErrorMessage("Tous les champs sont obligatoires");
+      return;
+    }
 
-      Alert.alert(
-        "Inscription",
-        `Création d'un nouvel utilisateur : ${email}`,
-        [
-          {
-            text: "OK",
-            onPress: () =>
-              router.replace({
-                pathname: "./nom-prenom-pseudo",
-                params: { email, password },
-              }),
-          },
-        ]
+    if (!validateEmail(email)) {
+      setErrorMessage("Veuillez entrer une adresse email valide");
+      return;
+    }
+
+    if (!validateMdp(password)) {
+      setErrorMessage(
+        "Le mot de passe doit contenir au moins :\n• 10 caractères\n• 1 majuscule\n• 1 minuscule\n• 1 chiffre\n• 1 caractère spécial (@$!%*?&)"
       );
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Les mots de passe ne correspondent pas !");
+      return;
+    }
+
+    Alert.alert("Inscription", `Création d'un nouvel utilisateur : ${email}`, [
+      {
+        text: "OK",
+        onPress: () =>
+          router.replace({
+            pathname: "./nom-prenom-pseudo",
+            params: { email, password },
+          }),
+      },
+    ]);
+  }
+
+  function handleSubmit() {
+    if (isLogin) {
+      handleLogin();
+    } else {
+      handleRegister();
     }
   }
 
   function toggleMode() {
     setIsLogin(!isLogin);
-    setErrorMessage(""); // Reset error message when switching modes
+    setErrorMessage("");
     setConfirmPassword("");
   }
 
@@ -148,11 +180,12 @@ export default function AuthPage() {
           value={email}
           onChangeText={(text) => {
             setEmail(text);
-            setErrorMessage(""); // Clear error when user types
+            setErrorMessage("");
           }}
           style={styles.input}
           keyboardType="email-address"
           autoCapitalize="none"
+          editable={!isLoading}
         />
 
         <TextInput
@@ -161,13 +194,13 @@ export default function AuthPage() {
           value={password}
           onChangeText={(text) => {
             setPassword(text);
-            setErrorMessage(""); // Clear error when user types
+            setErrorMessage("");
           }}
           style={styles.input}
           secureTextEntry
+          editable={!isLoading}
         />
 
-        {/* confirmation du mot de passe en mode inscription */}
         {!isLogin && (
           <TextInput
             placeholder="Confirmer le mot de passe"
@@ -179,10 +212,10 @@ export default function AuthPage() {
             }}
             style={styles.input}
             secureTextEntry
+            editable={!isLoading}
           />
         )}
 
-        {/* Affichage des critères en mode inscription */}
         {!isLogin && !allPassed && (
           <View style={styles.criteriaContainer}>
             {passwordCriteria.map((c) => {
@@ -207,10 +240,18 @@ export default function AuthPage() {
           <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
         )}
 
-        <TouchableOpacity onPress={handleSubmit} style={styles.button}>
-          <ThemedText style={styles.buttonText}>
-            {isLogin ? "Se connecter" : "S'inscrire"}
-          </ThemedText>
+        <TouchableOpacity
+          onPress={handleSubmit}
+          style={[styles.button, isLoading && styles.buttonDisabled]}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#f5f5f5" />
+          ) : (
+            <ThemedText style={styles.buttonText}>
+              {isLogin ? "Se connecter" : "S'inscrire"}
+            </ThemedText>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -218,7 +259,7 @@ export default function AuthPage() {
         <ThemedText style={styles.footerText}>
           {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}
         </ThemedText>
-        <TouchableOpacity onPress={toggleMode}>
+        <TouchableOpacity onPress={toggleMode} disabled={isLoading}>
           <ThemedText style={styles.linkText}>
             {isLogin ? "Créer un compte" : "Se connecter"}
           </ThemedText>
@@ -371,5 +412,8 @@ const styles = StyleSheet.create({
   },
   criteriaInvalid: {
     color: "#ff5252", // rouge
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 });

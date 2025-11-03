@@ -56,16 +56,4 @@ server.on("error", (err) => {
   console.error("Erreur serveur non gérée :", err);
   process.exit(1);
 });
-
-const required = ["DB_USER", "DB_PASSWORD", "DB_DATABASE"];
-const missing = required.filter((k) => !process.env[k]);
-if (missing.length) {
-  console.warn(
-    `⚠️  Variables d'environnement manquantes: ${missing.join(
-      ", "
-    )}\nPlacez votre fichier .env ici: ${path.join(
-      __dirname,
-      ".env"
-    )}\nCopiez .env.example -> .env et remplissez les valeurs.`
-  );
-}
+module.exports = app;
