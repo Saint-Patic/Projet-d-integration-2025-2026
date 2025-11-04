@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TextInput,
   TouchableOpacity,
@@ -10,10 +10,18 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import { authService } from "@/services/api";
 
 export default function AuthPage() {
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    navigation.setOptions({
+      gestureEnabled: false,
+    });
+  }, [navigation]);
+
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
