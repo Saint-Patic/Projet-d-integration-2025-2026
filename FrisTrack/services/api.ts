@@ -1,35 +1,26 @@
 import axios from "axios";
-import Constants from "expo-constants";
+import { Platform } from "react-native";
 
-// Récupérer l'URL de l'API depuis .env
 const getBaseURL = () => {
   // En développement
   if (__DEV__) {
-    // Priorité 1: Variable d'environnement
-    const apiUrl = Constants.expoConfig?.extra?.apiUrl;
+    // Variable d'environnement ou fallback selon la plateforme
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+
     if (apiUrl) {
       return apiUrl;
     }
 
-    // Priorité 2: Pour le web
-    if (typeof window !== "undefined") {
-      return process.env.API_URL || "http://localhost:3300/api";
+    // Fallback: localhost pour web, erreur pour mobile
+    if (Platform.OS === "web") {
+      return "http://localhost:3300/api";
     }
-
-    // Priorité 3: Pour React Native (téléphone/émulateur)
-    const debuggerHost = Constants.expoConfig?.hostUri;
-    if (debuggerHost) {
-      const host = debuggerHost.split(":")[0];
-      return `http://${host}:3300/api`;
-    }
-
     return "http://localhost:3300/api";
   }
 
   // En production
   return (
-    Constants.expoConfig?.extra?.apiUrl ||
-    "https://votre-api-production.com/api"
+    process.env.EXPO_PUBLIC_API_URL || "https://votre-api-production.com/api"
   );
 };
 
@@ -40,6 +31,19 @@ const api = axios.create({
   },
   timeout: 10000,
 });
+
+// Intercepteur pour logger les erreurs
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error("API Error:", {
+      message: error.message,
+      url: error.config?.url,
+      baseURL: error.config?.baseURL,
+    });
+    return Promise.reject(error);
+  }
+);
 
 export interface LoginRequest {
   email: string;
