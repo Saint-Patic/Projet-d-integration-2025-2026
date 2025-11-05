@@ -20,6 +20,10 @@ CREATE TABLE users (
     profile_picture VARCHAR(255),
     user_type ENUM('playeronly', 'coach') DEFAULT 'playeronly',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    color_mode TINYINT(1) DEFAULT 1,
+    color_id CHAR(7) DEFAULT #00d6d6,
+    FOREIGN KEY (color_id) REFERENCES color_user(color_id);
+
 );
 
 CREATE TABLE stats_player_match (
@@ -90,6 +94,12 @@ CREATE TABLE team_match (
     FOREIGN KEY (match_id) REFERENCES match_frisbee(match_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE color_user (
+    color_id CHAR(7) PRIMARY KEY,
+    color_name VARCHAR(50) NOT NULL,
+);
+ 
 
 
 #Insertion des données
@@ -248,3 +258,13 @@ INSERT INTO match_frisbee (match_date, score, length_match, weigth_match, arbitr
 INSERT INTO team_match (team_id, match_id, home_away_team) VALUES
 (1, 1, 'home'),
 (2, 1, 'away');
+
+INSERT INTO color_user (color_id, color_name) VALUES
+('#00d6d6', 'Cyan'),
+('#4CAF50', 'Vert'),
+('#FF9800', 'Orange'),
+('#9C27B0', 'Violet'),
+('#F44336', 'Rouge'),
+('#2196F3', 'Bleu'),
+('#FF5722', 'Orange foncé'),
+('#795548', 'Marron');
