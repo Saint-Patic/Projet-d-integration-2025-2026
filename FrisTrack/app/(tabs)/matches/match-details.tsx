@@ -39,6 +39,7 @@ export default function MatchDetailsScreen() {
   const [newTerrainName, setNewTerrainName] = useState("");
   const [selectedTerrainId, setSelectedTerrainId] = useState<string | null>(null);
   const [showSavedTerrains, setShowSavedTerrains] = useState(false);
+  const [showInitialChoice, setShowInitialChoice] = useState(true);
   const STORAGE_KEY = "fristrack_saved_terrains";
 
   const loadSavedTerrains = async () => {
@@ -74,16 +75,11 @@ export default function MatchDetailsScreen() {
     await persistTerrains(next);
   };
 
-  const loadTerrain = (terrain: any) => {
-    if (!terrain || !terrain.corners) return;
-    setSavedCorners(terrain.corners);
-    setTerrainValidated(true);
-    setActiveCorner(null);
-  };
-
   const deleteTerrain = async (id: string) => {
     const next = savedTerrains.filter((t) => t.id !== id);
     setSavedTerrains(next);
+    // if the deleted terrain was selected, clear selection
+    if (selectedTerrainId === id) setSelectedTerrainId(null);
     await persistTerrains(next);
   };
 
@@ -287,6 +283,7 @@ export default function MatchDetailsScreen() {
   return (
     <ScreenLayout title="Détails du match" headerLeft={<BackButton theme={theme} />} theme={theme}>
       <View style={[styles.container, { backgroundColor: theme.background }]}> 
+        {/* Initial choice removed from top; will be shown above the field area instead */}
         <View style={styles.headerRow}>
           <ThemedText style={[styles.dateText, { color: theme.text }]}>Date: {match.date}</ThemedText>
         </View>
@@ -374,10 +371,12 @@ export default function MatchDetailsScreen() {
           </TouchableOpacity>
         )}
         {/* Field rectangle (black) with 4 clickable corners */}
-        <View style={styles.fieldWrapper}>
-          <View style={styles.fieldContainer}>
-            {!terrainValidated && (
-              <>
+        {/* Field rectangle (black) with 4 clickable corners */}
+        {!showSavedTerrains && !showInitialChoice && (
+          <View style={styles.fieldWrapper}>
+            <View style={styles.fieldContainer}>
+              {!terrainValidated && (
+                <>
                 {/* Corner: top-left */}
                 <TouchableOpacity
                   accessibilityLabel="corner-top-left"
@@ -424,46 +423,87 @@ export default function MatchDetailsScreen() {
               </>
             )}
           </View>
-        </View>
+  </View>
+  )}
 
-        {/* Confirm button — enabled only after a corner is selected */}
-        <View style={styles.confirmWrapper}>
-          <TouchableOpacity
-            accessible
-            accessibilityLabel="confirm-field-button"
-            onPress={handleConfirmPress}
-            disabled={saving || (terrainValidated ? true : !activeCorner && !allCornersSaved)}
-            style={[
-              styles.confirmButton,
-              { backgroundColor: !terrainValidated && (activeCorner || allCornersSaved) ? theme.primary : "#888" },
-            ]}
-          >
-            <ThemedText style={styles.confirmButtonText}>
-              {saving
-                ? "Enregistrement..."
-                : terrainValidated
-                ? "Terrain validé"
-                : activeCorner
-                ? `Valider coin ${activeCorner.toUpperCase()}`
-                : allCornersSaved
-                ? "Valider le terrain"
-                : "Sélectionnez un coin"}
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-        {/* Saved position feedback */}
-        <View style={styles.savedFeedback}>
-          {activeCorner && savedCorners[activeCorner] ? (
-            <ThemedText style={[styles.metaText, { color: theme.text }]}>
-              Position sauvegardée ({activeCorner.toUpperCase()}): {savedCorners[activeCorner].coords.latitude.toFixed(6)}, {savedCorners[activeCorner].coords.longitude.toFixed(6)}
-            </ThemedText>
-          ) : (
-            // Only show the "no saved position" message when the terrain is not yet validated
-            !terrainValidated && (
-              <ThemedText style={[styles.metaText, { color: theme.text }]}>Aucune position sauvegardée</ThemedText>
-            )
-          )}
-        </View>
+        {!showInitialChoice && !showSavedTerrains && (
+          <>
+            {/* Confirm button — enabled only after a corner is selected */}
+            <View style={styles.confirmWrapper}>
+              <TouchableOpacity
+                accessible
+                accessibilityLabel="confirm-field-button"
+                onPress={handleConfirmPress}
+                disabled={saving || (terrainValidated ? true : !activeCorner && !allCornersSaved)}
+                style={[
+                  styles.confirmButton,
+                  { backgroundColor: !terrainValidated && (activeCorner || allCornersSaved) ? theme.primary : "#888" },
+                ]}
+              >
+                <ThemedText style={styles.confirmButtonText}>
+                  {saving
+                    ? "Enregistrement..."
+                    : terrainValidated
+                    ? "Terrain validé"
+                    : activeCorner
+                    ? `Valider coin ${activeCorner.toUpperCase()}`
+                    : allCornersSaved
+                    ? "Valider le terrain"
+                    : "Sélectionnez un coin"}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {/* Saved position feedback */}
+            <View style={styles.savedFeedback}>
+              {activeCorner ? (
+                savedCorners[activeCorner] ? (
+                  <ThemedText style={[styles.metaText, { color: theme.text }]}> 
+                    Position sauvegardée ({activeCorner.toUpperCase()}): {savedCorners[activeCorner].coords.latitude.toFixed(6)}, {savedCorners[activeCorner].coords.longitude.toFixed(6)}
+                  </ThemedText>
+                ) : (
+                  // Show "no saved position" only when a corner is selected and it has no saved coords
+                  <ThemedText style={[styles.metaText, { color: theme.text }]}>Aucune position sauvegardée</ThemedText>
+                )
+              ) : null}
+            </View>
+          </>
+        )}
+
+        {/* Initial choice when arriving on the page: create new or choose existing (placed above field) */}
+        {showInitialChoice && (
+          <View style={styles.initialChoiceBox}>
+            <ThemedText style={[styles.metaText, { color: theme.text, marginBottom: 8 }]}>Que voulez-vous faire ?</ThemedText>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <TouchableOpacity
+                accessibilityLabel="create-new-terrain"
+                onPress={() => {
+                  // Start creating a new terrain
+                  setShowInitialChoice(false);
+                  setTerrainValidated(false);
+                  setSavedCorners({});
+                  setActiveCorner(null);
+                  setShowSavedTerrains(false);
+                }}
+                style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+              >
+                <ThemedText style={styles.confirmButtonText}>Créer un nouveau terrain</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                accessibilityLabel="choose-existing-terrain"
+                onPress={() => {
+                  // Open saved terrains picker
+                  setShowInitialChoice(false);
+                  setShowSavedTerrains(true);
+                }}
+                style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+              >
+                <ThemedText style={styles.confirmButtonText}>Choisir un terrain existant</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Picker: allow choosing an existing saved terrain at any time (toggleable) */}
         {showSavedTerrains && (
@@ -475,9 +515,9 @@ export default function MatchDetailsScreen() {
             <ScrollView style={{ width: "100%", maxHeight: 160 }}>
               {savedTerrains.map((t) => (
                 <View key={t.id} style={[styles.terrainItem, selectedTerrainId === t.id && styles.terrainSelected]}>
-                  <TouchableOpacity onPress={() => { setSelectedTerrainId(t.id); loadTerrain(t); }} style={{ flex: 1 }}>
+                  <View style={{ flex: 1 }}>
                     <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name}</ThemedText>
-                  </TouchableOpacity>
+                  </View>
                   <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
                     <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
                   </TouchableOpacity>
@@ -547,16 +587,16 @@ export default function MatchDetailsScreen() {
                 <ThemedText style={[styles.metaText, { color: theme.text }]}>Pas de terrains sauvegardés</ThemedText>
               ) : (
                 <ScrollView style={{ width: "100%", maxHeight: 180 }}>
-                  {savedTerrains.map((t) => (
-                    <View key={t.id} style={styles.terrainItem}>
-                      <TouchableOpacity onPress={() => loadTerrain(t)} style={{ flex: 1 }}>
-                        <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name}</ThemedText>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
-                        <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
+                    {savedTerrains.map((t) => (
+                      <View key={t.id} style={styles.terrainItem}>
+                        <View style={{ flex: 1 }}>
+                          <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name}</ThemedText>
+                        </View>
+                        <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
+                          <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
                 </ScrollView>
               )}
             </View>
@@ -792,5 +832,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     elevation: 3,
+  },
+  initialChoiceBox: {
+    width: "100%",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#444",
+    marginBottom: 12,
+    alignItems: "center",
   },
 });
