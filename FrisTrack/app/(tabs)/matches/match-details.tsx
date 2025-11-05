@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, TouchableOpacity, StyleSheet, GestureResponderEvent } from "react-native";
+import { View, TouchableOpacity, StyleSheet, GestureResponderEvent, TextInput, ScrollView } from "react-native";
 import * as Location from "expo-location";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { useLocalSearchParams, useNavigation, router, useFocusEffect } from "expo-router";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getMatchById, updateMatch } from "@/services/getMatches";
@@ -31,6 +32,59 @@ export default function MatchDetailsScreen() {
   const [savedCorners, setSavedCorners] = useState<Partial<Record<keyof typeof corners, any>>>({});
   const [saving, setSaving] = useState(false);
   const [terrainValidated, setTerrainValidated] = useState(false);
+
+  // Local persistence for saved terrains (stored as array under STORAGE_KEY)
+  const [savedTerrains, setSavedTerrains] = useState<any[]>([]);
+  const [showNameInput, setShowNameInput] = useState(false);
+  const [newTerrainName, setNewTerrainName] = useState("");
+  const [selectedTerrainId, setSelectedTerrainId] = useState<string | null>(null);
+  const STORAGE_KEY = "fristrack_saved_terrains";
+
+  const loadSavedTerrains = async () => {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      if (raw) setSavedTerrains(JSON.parse(raw));
+    } catch (e) {
+      console.error("Failed to load saved terrains", e);
+    }
+  };
+
+  useEffect(() => {
+    loadSavedTerrains();
+  }, []);
+
+  const persistTerrains = async (next: any[]) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.error("Failed to persist terrains", e);
+    }
+  };
+
+  const saveCurrentTerrain = async (name?: string) => {
+    if (!allCornersSaved) return;
+    const id = Date.now().toString();
+    const tname = name || newTerrainName || `Terrain ${new Date().toLocaleString()}`;
+    const terrain = { id, name: tname, corners: savedCorners };
+    const next = [...savedTerrains, terrain];
+    setSavedTerrains(next);
+    setShowNameInput(false);
+    setNewTerrainName("");
+    await persistTerrains(next);
+  };
+
+  const loadTerrain = (terrain: any) => {
+    if (!terrain || !terrain.corners) return;
+    setSavedCorners(terrain.corners);
+    setTerrainValidated(true);
+    setActiveCorner(null);
+  };
+
+  const deleteTerrain = async (id: string) => {
+    const next = savedTerrains.filter((t) => t.id !== id);
+    setSavedTerrains(next);
+    await persistTerrains(next);
+  };
 
   // undefined = loading, null = not found, object = loaded
   const [match, setMatch] = useState<any | undefined>(undefined);
@@ -410,19 +464,88 @@ export default function MatchDetailsScreen() {
           )}
         </View>
 
-        {/* Edit corners button when terrain is validated */}
+        {/* Picker: allow choosing an existing saved terrain at any time */}
+        <View style={styles.terrainsPicker}>
+          <ThemedText style={[styles.metaText, { color: theme.text }]}>Terrains sauvegardés</ThemedText>
+          {savedTerrains.length === 0 ? (
+            <ThemedText style={[styles.metaText, { color: theme.text }]}>Pas de terrains sauvegardés</ThemedText>
+          ) : (
+            <ScrollView style={{ width: "100%", maxHeight: 160 }}>
+              {savedTerrains.map((t) => (
+                <View key={t.id} style={[styles.terrainItem, selectedTerrainId === t.id && styles.terrainSelected]}>
+                  <TouchableOpacity onPress={() => { setSelectedTerrainId(t.id); loadTerrain(t); }} style={{ flex: 1 }}>
+                    <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name}</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
+                    <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+
+        {/* Edit corners, save/load terrains when terrain is validated */}
         {terrainValidated && (
           <View style={styles.editWrapper}>
-            <TouchableOpacity
-              accessibilityLabel="edit-corners-button"
-              onPress={() => {
-                setTerrainValidated(false);
-                setActiveCorner(null);
-              }}
-              style={[styles.confirmButton, { backgroundColor: theme.primary }]}
-            >
-              <ThemedText style={styles.confirmButtonText}>Modifier les coins</ThemedText>
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <TouchableOpacity
+                accessibilityLabel="edit-corners-button"
+                onPress={() => {
+                  setTerrainValidated(false);
+                  setActiveCorner(null);
+                }}
+                style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+              >
+                <ThemedText style={styles.confirmButtonText}>Modifier les coins</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                accessibilityLabel="save-terrain-toggle"
+                onPress={() => setShowNameInput((s) => !s)}
+                style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+              >
+                <ThemedText style={styles.confirmButtonText}>Enregistrer le terrain</ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {showNameInput && (
+              <View style={{ width: "100%", marginTop: 10, alignItems: "center" }}>
+                <TextInput
+                  value={newTerrainName}
+                  onChangeText={setNewTerrainName}
+                  placeholder="Nom du terrain"
+                  placeholderTextColor="#999"
+                  style={[styles.nameInput, { color: theme.text, borderColor: theme.border }]}
+                />
+                <TouchableOpacity
+                  accessibilityLabel="save-terrain-button"
+                  onPress={() => saveCurrentTerrain()}
+                  style={[styles.confirmButton, { backgroundColor: theme.primary, marginTop: 8 }]}
+                >
+                  <ThemedText style={styles.confirmButtonText}>Sauvegarder</ThemedText>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <View style={styles.terrainsList}>
+              {savedTerrains.length === 0 ? (
+                <ThemedText style={[styles.metaText, { color: theme.text }]}>Pas de terrains sauvegardés</ThemedText>
+              ) : (
+                <ScrollView style={{ width: "100%", maxHeight: 180 }}>
+                  {savedTerrains.map((t) => (
+                    <View key={t.id} style={styles.terrainItem}>
+                      <TouchableOpacity onPress={() => loadTerrain(t)} style={{ flex: 1 }}>
+                        <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name}</ThemedText>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
+                        <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
           </View>
         )}
       </View>
@@ -605,5 +728,49 @@ const styles = StyleSheet.create({
   editWrapper: {
     marginTop: 12,
     alignItems: "center",
+  },
+  nameInput: {
+    width: "90%",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
+  },
+  terrainsList: {
+    width: "100%",
+    marginTop: 12,
+    alignItems: "center",
+  },
+  terrainItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderColor: "#222",
+  },
+  terrainName: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  terrainAction: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#c0392b",
+    borderRadius: 8,
+  },
+  terrainActionText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  terrainsPicker: {
+    width: "100%",
+    marginTop: 12,
+    alignItems: "center",
+  },
+  terrainSelected: {
+    backgroundColor: "rgba(0,128,0,0.12)",
   },
 });
