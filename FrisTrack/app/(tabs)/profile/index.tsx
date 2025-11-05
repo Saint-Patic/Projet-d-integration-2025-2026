@@ -1,22 +1,19 @@
 import React, { useState } from "react";
 import {
-  View,
   TouchableOpacity,
   StyleSheet,
   Platform,
-  TextInput,
-  KeyboardAvoidingView,
-  ScrollView,
   Dimensions,
   Pressable,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { useTheme } from "@/contexts/ThemeContext";
 import { BackButton } from "@/components/perso_components/BackButton";
+import EditProfile from "@/components/perso_components/EditProfile";
+import ProfileView from "@/components/perso_components/ProfileView";
 
 const profilePictures = [
   {
@@ -111,7 +108,7 @@ export default function ProfilScreen() {
   };
 
   const logout = () => {
-    console.log("Déconnexion");
+    router.replace({ pathname: "../.." });
   };
 
   const handleSave = () => {
@@ -119,7 +116,7 @@ export default function ProfilScreen() {
     if (mainSelection.gauche && mainSelection.droite) mainValue = "Ambidextre";
     else if (mainSelection.gauche) mainValue = "Gauche";
     const newForm = { ...form, main: mainValue };
-    console.log("Enregistrer profil :", { ...form }); // à ne pas supprimer
+    console.log("Enregistrer profil :", { ...form });
     setUser({ ...newForm });
     setEditMode(false);
     setShowImagePicker(false);
@@ -185,509 +182,55 @@ export default function ProfilScreen() {
     );
   }
 
-  if (editMode) {
-    return (
-      <ScreenLayout title="Profil" headerRight={<HeaderRight />} theme={theme}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <ScrollView
-            contentContainerStyle={[
-              styles.container,
-              { backgroundColor: theme.background },
-            ]}
-          >
-            {showImagePicker ? (
-              <View style={styles.imagePickerContainer}>
-                <ThemedText
-                  style={[styles.editPhotoText, { color: theme.primary }]}
-                >
-                  Choisissez une photo de profil
-                </ThemedText>
-                <View style={styles.imagePickerGrid}>
-                  {profilePictures.map((img) => (
-                    <TouchableOpacity
-                      key={img.name}
-                      onPress={() => {
-                        setForm((f) => ({ ...f, imageName: img.name }));
-                        setShowImagePicker(false);
-                      }}
-                    >
-                      <Image
-                        source={img.src}
-                        style={[
-                          styles.profileImageSmall,
-                          { borderColor: theme.primary },
-                        ]}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TouchableOpacity
-                  onPress={() => setShowImagePicker(false)}
-                  style={[
-                    styles.cancelPickerButton,
-                    { backgroundColor: theme.surface },
-                  ]}
-                >
-                  <ThemedText
-                    style={[styles.cancelPickerText, { color: theme.text }]}
-                  >
-                    Annuler
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.profileImageContainer}>
-                <TouchableOpacity
-                  onPress={() => setShowImagePicker(true)}
-                  activeOpacity={0.7}
-                >
-                  <Image
-                    source={getImageSource(form.imageName)}
-                    style={[
-                      styles.profileImage,
-                      { borderColor: theme.primary },
-                    ]}
-                  />
-                </TouchableOpacity>
-                <ThemedText
-                  style={[styles.editPhotoText, { color: theme.primary }]}
-                >
-                  Cliquez sur la photo pour la changer
-                </ThemedText>
-              </View>
-            )}
-            <View
-              style={[
-                styles.infoContainer,
-                { backgroundColor: theme.surface, borderColor: theme.border },
-              ]}
-            >
-              <View
-                style={[styles.infoRow, { borderBottomColor: theme.border }]}
-              >
-                <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-                  Prénom
-                </ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: theme.text,
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  value={form.prenom}
-                  onChangeText={(text) =>
-                    setForm((f) => ({ ...f, prenom: text }))
-                  }
-                  placeholder="Prénom"
-                  placeholderTextColor="#aaa"
-                />
-              </View>
-              <View
-                style={[styles.infoRow, { borderBottomColor: theme.border }]}
-              >
-                <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-                  Nom
-                </ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: theme.text,
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  value={form.nom}
-                  onChangeText={(text) => setForm((f) => ({ ...f, nom: text }))}
-                  placeholder="Nom"
-                  placeholderTextColor="#aaa"
-                />
-              </View>
-              <View
-                style={[styles.infoRow, { borderBottomColor: theme.border }]}
-              >
-                <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-                  Pointure
-                </ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: theme.text,
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  value={pointureInput}
-                  onChangeText={(text) => {
-                    const filtered = filterNumericInput(text, "int");
-                    setPointureInput(filtered);
-                    if (filtered !== "")
-                      setForm((f) => ({ ...f, pointure: parseInt(filtered) }));
-                  }}
-                  onBlur={() => {
-                    let value = parseInt(pointureInput);
-                    if (isNaN(value)) value = user.pointure;
-                    if (value < 15) value = 15;
-                    if (value > 65) value = 65;
-                    setPointureInput(value.toString());
-                    setForm((f) => ({ ...f, pointure: value }));
-                  }}
-                  keyboardType="numeric"
-                  placeholder="Pointure"
-                  placeholderTextColor="#aaa"
-                />
-              </View>
-              <View
-                style={[styles.infoRow, { borderBottomColor: theme.border }]}
-              >
-                <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-                  Main dominante
-                </ThemedText>
-                <View style={{ flexDirection: "row", gap: 8 }}>
-                  <TouchableOpacity
-                    style={[
-                      styles.choiceButton,
-                      mainSelection.gauche && {
-                        backgroundColor: theme.primary,
-                      },
-                      !mainSelection.gauche && {
-                        backgroundColor: theme.surface,
-                        borderColor: theme.border,
-                        borderWidth: 1,
-                      },
-                    ]}
-                    onPress={() => {
-                      setMainSelection((sel) => {
-                        const newSel = { ...sel, gauche: !sel.gauche };
-                        if (!newSel.gauche && !newSel.droite)
-                          newSel.gauche = true;
-                        return newSel;
-                      });
-                    }}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.choiceButtonText,
-                        mainSelection.gauche
-                          ? { color: "#fff" }
-                          : { color: theme.text },
-                      ]}
-                    >
-                      Gauche
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.choiceButton,
-                      mainSelection.droite && {
-                        backgroundColor: theme.primary,
-                      },
-                      !mainSelection.droite && {
-                        backgroundColor: theme.surface,
-                        borderColor: theme.border,
-                        borderWidth: 1,
-                      },
-                    ]}
-                    onPress={() => {
-                      setMainSelection((sel) => {
-                        const newSel = { ...sel, droite: !sel.droite };
-                        if (!newSel.gauche && !newSel.droite)
-                          newSel.droite = true;
-                        return newSel;
-                      });
-                    }}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.choiceButtonText,
-                        mainSelection.droite
-                          ? { color: "#fff" }
-                          : { color: theme.text },
-                      ]}
-                    >
-                      Droite
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-                <ThemedText style={{ color: theme.primary, marginLeft: 8 }}>
-                  {mainSelection.gauche && mainSelection.droite
-                    ? "Ambidextre"
-                    : mainSelection.gauche
-                    ? "Gauche"
-                    : "Droite"}
-                </ThemedText>
-              </View>
-              <View
-                style={[styles.infoRow, { borderBottomColor: theme.border }]}
-              >
-                <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-                  Poids
-                </ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: theme.text,
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  value={poidsInput}
-                  onChangeText={(text) => {
-                    const filtered = filterNumericInput(text, "float");
-                    setPoidsInput(filtered);
-                    if (filtered !== "" && filtered !== "." && filtered !== ",")
-                      setForm((f) => ({ ...f, poids: parseFloat(filtered) }));
-                  }}
-                  onBlur={() => {
-                    let value = parseFloat(poidsInput);
-                    if (isNaN(value)) value = user.poids;
-                    if (value < 10) value = 10;
-                    if (value > 300) value = 300;
-                    setPoidsInput(value.toString());
-                    setForm((f) => ({ ...f, poids: value }));
-                  }}
-                  keyboardType="numeric"
-                  placeholder="Poids"
-                  placeholderTextColor="#aaa"
-                />
-              </View>
-              <View
-                style={[styles.infoRow, { borderBottomColor: theme.border }]}
-              >
-                <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-                  Taille
-                </ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: theme.text,
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  value={tailleInput}
-                  onChangeText={(text) => {
-                    const filtered = filterNumericInput(text, "int");
-                    setTailleInput(filtered);
-                    if (filtered !== "")
-                      setForm((f) => ({ ...f, taille: parseInt(filtered) }));
-                  }}
-                  onBlur={() => {
-                    let value = parseInt(tailleInput);
-                    if (isNaN(value)) value = user.taille;
-                    if (value < 50) value = 50;
-                    if (value > 250) value = 250;
-                    setTailleInput(value.toString());
-                    setForm((f) => ({ ...f, taille: value }));
-                  }}
-                  keyboardType="numeric"
-                  placeholder="Taille"
-                  placeholderTextColor="#aaa"
-                />
-              </View>
-              <View
-                style={[styles.infoRow, { borderBottomColor: theme.border }]}
-              >
-                <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-                  Âge
-                </ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: theme.text,
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      borderWidth: 1,
-                    },
-                  ]}
-                  value={ageInput}
-                  onChangeText={(text) => {
-                    const filtered = filterNumericInput(text, "int");
-                    setAgeInput(filtered);
-                    if (filtered !== "")
-                      setForm((f) => ({ ...f, age: parseInt(filtered) }));
-                  }}
-                  onBlur={() => {
-                    let value = parseInt(ageInput);
-                    if (isNaN(value)) value = user.age;
-                    if (value < 1) value = 1;
-                    if (value > 120) value = 120;
-                    setAgeInput(value.toString());
-                    setForm((f) => ({ ...f, age: value }));
-                  }}
-                  keyboardType="numeric"
-                  placeholder="Âge"
-                  placeholderTextColor="#aaa"
-                />
-              </View>
-            </View>
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: theme.primary },
-                ]}
-                onPress={handleSave}
-              >
-                <ThemedText style={[styles.buttonText, { color: "#fff" }]}>
-                  Enregistrer
-                </ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                    borderWidth: 1,
-                  },
-                ]}
-                onPress={handleCancel}
-              >
-                <ThemedText style={[styles.buttonText, { color: theme.text }]}>
-                  Annuler
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </ScreenLayout>
-    );
-  }
-
-  // Affichage normal du profil
+  // Maintenir le ScreenLayout dans tous les cas
   return (
     <ScreenLayout
-      title="Profil"
+      title="Mon profil"
       headerRight={<HeaderRight />}
       headerLeft={<HeaderLeft />}
       theme={theme}
     >
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <View style={styles.profileImageContainer}>
-          <TouchableOpacity onPress={() => setShowFullImage(true)}>
-            <Image
-              source={getImageSource(user.imageName)}
-              style={[styles.profileImage, { borderColor: theme.primary }]}
-            />
-          </TouchableOpacity>
-          <View
-            style={[
-              styles.imageGlow,
-              { backgroundColor: `${theme.primary}15` },
-            ]}
-          />
-        </View>
-
-        <ThemedText
-          style={[
-            styles.name,
-            { color: theme.text, textShadowColor: `${theme.primary}50` },
-          ]}
-        >
-          {user.prenom} {user.nom}
-        </ThemedText>
-
-        <View
-          style={[
-            styles.infoContainer,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-          ]}
-        >
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Pointure
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.pointure}
-            </ThemedText>
-          </View>
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Main dominante
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.main}
-            </ThemedText>
-          </View>
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Poids
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.poids} kg
-            </ThemedText>
-          </View>
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Taille
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.taille} cm
-            </ThemedText>
-          </View>
-          <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Âge
-            </ThemedText>
-            <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-              {user.age} ans
-            </ThemedText>
-          </View>
-        </View>
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.editButton,
-              { backgroundColor: theme.primary },
-            ]}
-            onPress={editProfile}
-          >
-            <ThemedText style={styles.buttonText}>
-              Modifier les informations
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.sensorButton,
-              { backgroundColor: `${theme.primary}B0` },
-            ]}
-            onPress={connectSensor}
-          >
-            <ThemedText style={styles.buttonText}>
-              Se connecter à un capteur
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.logoutButton,
-              { backgroundColor: theme.surface, borderColor: "#e85555" },
-            ]}
-            onPress={logout}
-          >
-            <ThemedText style={styles.buttonText}>Se déconnecter</ThemedText>
-          </TouchableOpacity>
-        </View>
-      </View>
+      {editMode ? (
+        // Contenu du mode édition sans wrapper ScreenLayout supplémentaire
+        <EditProfile
+          theme={theme}
+          profilePictures={profilePictures}
+          getImageSource={getImageSource}
+          form={form}
+          setForm={setForm}
+          showImagePicker={showImagePicker}
+          setShowImagePicker={setShowImagePicker}
+          pointureInput={pointureInput}
+          setPointureInput={setPointureInput}
+          poidsInput={poidsInput}
+          setPoidsInput={setPoidsInput}
+          tailleInput={tailleInput}
+          setTailleInput={setTailleInput}
+          ageInput={ageInput}
+          setAgeInput={setAgeInput}
+          mainSelection={mainSelection}
+          setMainSelection={setMainSelection}
+          filterNumericInput={filterNumericInput}
+          handleSave={handleSave}
+          handleCancel={handleCancel}
+          styles={styles}
+        />
+      ) : (
+        // Contenu du mode affichage sans wrapper ScreenLayout supplémentaire
+        <ProfileView
+          theme={theme}
+          user={user}
+          getImageSource={getImageSource}
+          connectSensor={connectSensor}
+          logout={logout}
+          editProfile={editProfile}
+          HeaderRight={<HeaderRight />}
+          HeaderLeft={<HeaderLeft />}
+          styles={styles}
+          onImagePress={() => setShowFullImage(true)}
+          showActions={true}
+        />
+      )}
     </ScreenLayout>
   );
 }

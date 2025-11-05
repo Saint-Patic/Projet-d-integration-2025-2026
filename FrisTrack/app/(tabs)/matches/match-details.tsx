@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, TouchableOpacity, StyleSheet, GestureResponderEvent } from "react-native";
 import * as Location from "expo-location";
 import { ThemedText } from "@/components/themed-text";
@@ -6,7 +6,7 @@ import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { useLocalSearchParams, useNavigation, router, useFocusEffect } from "expo-router";
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
-import { getMatchById } from "@/services/getMatches";
+import { getMatchById, updateMatch } from "@/services/getMatches";
 
 export default function MatchDetailsScreen() {
   const params = useLocalSearchParams();
@@ -34,6 +34,8 @@ export default function MatchDetailsScreen() {
 
   // undefined = loading, null = not found, object = loaded
   const [match, setMatch] = useState<any | undefined>(undefined);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -107,6 +109,57 @@ export default function MatchDetailsScreen() {
     router.back();
   };
 
+  const handleReview = () => {
+    console.log(`Ouverture de la revue du match ${matchId}`);
+    // TODO: Ajouter la logique pour ouvrir la revue/replay du match enregistré
+  };
+
+  // Démarre/arrête le chrono en fonction de match.isRecording
+  useEffect(() => {
+    if (!match) return;
+    
+    // Si le match a une durée enregistrée (après Stop), l'afficher
+    if (match.recordingDuration && !match.isRecording) {
+      setElapsedSeconds(match.recordingDuration);
+      return;
+    }
+    
+    if (match.isRecording && match.recordingStartTime) {
+      // Calculer le temps écoulé depuis le début
+      const updateElapsed = () => {
+        const elapsed = Math.floor((Date.now() - match.recordingStartTime) / 1000);
+        setElapsedSeconds(elapsed);
+      };
+      
+      // Mise à jour initiale
+      updateElapsed();
+      
+      // Mise à jour toutes les secondes
+      timerRef.current = setInterval(updateElapsed, 1000);
+    } else {
+      // arrêt chrono
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [match?.isRecording, match?.recordingStartTime, match?.recordingDuration]);
+
+  const formatTime = (total: number) => {
+    const mm = Math.floor(total / 60)
+      .toString()
+      .padStart(2, "0");
+    const ss = (total % 60).toString().padStart(2, "0");
+    return `${mm}:${ss}`;
+  };
+
   // Corner click handler — receives which corner and optional event
   const onCornerPress = (key: keyof typeof corners) => (e?: GestureResponderEvent) => {
     // Toggle selection: if same corner is already active, deselect it
@@ -178,18 +231,18 @@ export default function MatchDetailsScreen() {
 
   return (
     <ScreenLayout title="Détails du match" headerLeft={<BackButton theme={theme} />} theme={theme}>
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}> 
         <View style={styles.headerRow}>
           <ThemedText style={[styles.dateText, { color: theme.text }]}>Date: {match.date}</ThemedText>
         </View>
 
         <View style={styles.scoreRow}>
-          <View style={[styles.scoreBox, { borderColor: theme.border }]}>
+          <View style={[styles.scoreBox, { borderColor: theme.border }]}> 
             <ThemedText style={[styles.scoreNumber, { color: theme.text }]}>{match.score1}</ThemedText>
             <ThemedText style={[styles.teamLabel, { color: theme.primary }]}>{match.team1}</ThemedText>
           </View>
 
-          <View style={[styles.scoreBox, { borderColor: theme.border }]}>
+          <View style={[styles.scoreBox, { borderColor: theme.border }]}> 
             <ThemedText style={[styles.scoreNumber, { color: theme.text }]}>{match.score2}</ThemedText>
             <ThemedText style={[styles.teamLabel, { color: theme.primary }]}>{match.team2}</ThemedText>
           </View>
@@ -200,6 +253,71 @@ export default function MatchDetailsScreen() {
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Lieu: {match.venue === "indoor" ? "Intérieur" : "Extérieur"}</ThemedText>
         </View>
 
+        {/* Affichage du temps total (toujours affiché, même à 00:00) */}
+        <View style={styles.timerContainer}>
+          <ThemedText style={[styles.timerText, { color: theme.text }]}>⏱ Temps de match: {formatTime(elapsedSeconds)}</ThemedText>
+        </View>
+
+        {/* Timer + Bouton Start/Stop (visible uniquement si pas encore de recording) */}
+        {match.status === "scheduled" && !match.hasRecording && (
+          <View style={styles.recordingBlock}>
+            {match.isRecording && (
+              <View style={styles.timerContainer}>
+                <ThemedText style={[styles.timerText, { color: theme.text }]}>⏱ {formatTime(elapsedSeconds)}</ThemedText>
+              </View>
+            )}
+            <TouchableOpacity
+              style={[
+                styles.reviewButton,
+                { backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60" }
+              ]}
+              onPress={() => {
+                if (match.isRecording) {
+                  // Stop: calculer la durée et marquer l'enregistrement
+                  const duration = match.recordingStartTime 
+                    ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
+                    : elapsedSeconds;
+                  // Persister dans le service
+                  updateMatch(matchId!, { 
+                    isRecording: false, 
+                    hasRecording: true,
+                    recordingDuration: duration,
+                    recordingStartTime: undefined
+                  });
+                  setMatch({ 
+                    ...match, 
+                    isRecording: false, 
+                    hasRecording: true,
+                    recordingDuration: duration,
+                    recordingStartTime: undefined
+                  });
+                  setElapsedSeconds(duration);
+                } else {
+                  // Start: démarrer avec timestamp
+                  const startTime = Date.now();
+                  // Persister dans le service
+                  updateMatch(matchId!, { isRecording: true, recordingStartTime: startTime });
+                  setElapsedSeconds(0);
+                  setMatch({ ...match, isRecording: true, recordingStartTime: startTime });
+                }
+              }}
+            >
+              <ThemedText style={styles.reviewButtonText}>
+                {match.isRecording ? "⏹ Stop" : "▶ Start"}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Bouton Review */}
+        {match.hasRecording && (
+          <TouchableOpacity
+            style={[styles.reviewButton, { backgroundColor: "#27ae60" }]}
+            onPress={handleReview}
+          >
+            <ThemedText style={styles.reviewButtonText}>Review</ThemedText>
+          </TouchableOpacity>
+        )}
         {/* Field rectangle (black) with 4 clickable corners */}
         <View style={styles.fieldWrapper}>
           <View style={styles.fieldContainer}>
@@ -369,6 +487,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 6,
+  },
+  recordingBlock: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  timerContainer: {
+    marginBottom: 8,
+  },
+  timerText: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  reviewButton: {
+    alignSelf: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 20,
+    elevation: 6,
+    marginBottom: 16,
+    minWidth: 180,
+  },
+  reviewButtonText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 18,
+    textAlign: "center",
   },
   backButton: {
     alignSelf: "center",

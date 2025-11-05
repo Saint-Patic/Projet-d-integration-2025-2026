@@ -1,5 +1,12 @@
-import { Link, Stack, useRouter } from "expo-router";
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { Stack, useRouter, useNavigation, useFocusEffect } from "expo-router";
+import React, { useEffect } from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  BackHandler,
+} from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -8,13 +15,32 @@ export default function NotFoundScreen() {
   const router = useRouter();
 
   const goBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("./(tabs)/matches");
-    }
+    router.replace({
+      pathname: "/",
+    });
   };
+  const navigation = useNavigation();
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+      gestureEnabled: false,
+    });
+  }, [navigation]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
+
+      return () => subscription?.remove();
+    }, [])
+  );
   return (
     <>
       <Stack.Screen
@@ -42,16 +68,9 @@ export default function NotFoundScreen() {
           La page que vous recherchez n&apos;existe pas ou a été déplacée.
         </Text>
 
-        <Link
-          href="./(tabs)/matches"
-          style={[styles.button, { backgroundColor: theme.primary }]}
-        >
-          <Text style={styles.buttonText}>Retourner aux matchs</Text>
-        </Link>
-
         <TouchableOpacity onPress={goBack} style={styles.secondaryButton}>
           <Text style={[styles.secondaryButtonText, { color: theme.primary }]}>
-            Retourner à la page précédente
+            Retour à la page de login
           </Text>
         </TouchableOpacity>
       </View>
