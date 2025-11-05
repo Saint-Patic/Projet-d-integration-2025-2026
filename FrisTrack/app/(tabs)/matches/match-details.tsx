@@ -38,6 +38,7 @@ export default function MatchDetailsScreen() {
   const [showNameInput, setShowNameInput] = useState(false);
   const [newTerrainName, setNewTerrainName] = useState("");
   const [selectedTerrainId, setSelectedTerrainId] = useState<string | null>(null);
+  const [showSavedTerrains, setShowSavedTerrains] = useState(false);
   const STORAGE_KEY = "fristrack_saved_terrains";
 
   const loadSavedTerrains = async () => {
@@ -464,8 +465,9 @@ export default function MatchDetailsScreen() {
           )}
         </View>
 
-        {/* Picker: allow choosing an existing saved terrain at any time */}
-        <View style={styles.terrainsPicker}>
+        {/* Picker: allow choosing an existing saved terrain at any time (toggleable) */}
+        {showSavedTerrains && (
+          <View style={styles.terrainsPicker}>
           <ThemedText style={[styles.metaText, { color: theme.text }]}>Terrains sauvegardés</ThemedText>
           {savedTerrains.length === 0 ? (
             <ThemedText style={[styles.metaText, { color: theme.text }]}>Pas de terrains sauvegardés</ThemedText>
@@ -483,6 +485,18 @@ export default function MatchDetailsScreen() {
               ))}
             </ScrollView>
           )}
+          </View>
+        )}
+
+        {/* Button to toggle saved terrains view */}
+        <View style={{ alignItems: "center", marginTop: 10 }}>
+          <TouchableOpacity
+            accessibilityLabel="toggle-saved-terrains"
+            onPress={() => setShowSavedTerrains((s) => !s)}
+            style={[styles.smallToggleButton, { backgroundColor: theme.primary }]}
+          >
+            <ThemedText style={styles.confirmButtonText}>{showSavedTerrains ? "Masquer terrains" : "Voir terrains"}</ThemedText>
+          </TouchableOpacity>
         </View>
 
         {/* Edit corners, save/load terrains when terrain is validated */}
@@ -772,5 +786,11 @@ const styles = StyleSheet.create({
   },
   terrainSelected: {
     backgroundColor: "rgba(0,128,0,0.12)",
+  },
+  smallToggleButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    elevation: 3,
   },
 });
