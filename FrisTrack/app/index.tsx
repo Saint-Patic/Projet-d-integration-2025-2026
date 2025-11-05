@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { router, useNavigation } from "expo-router";
-import { authService } from "@/services/api";
+import { authService } from "@/services/getUserLogin";
 
 export default function AuthPage() {
   const navigation = useNavigation();

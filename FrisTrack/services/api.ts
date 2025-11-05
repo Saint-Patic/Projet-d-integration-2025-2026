@@ -1,72 +1,64 @@
 import axios from "axios";
-import { Platform } from "react-native";
-
-const getBaseURL = () => {
-  // En développement
-  if (__DEV__) {
-    // Variable d'environnement ou fallback selon la plateforme
-    const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-
-    if (apiUrl) {
-      return apiUrl;
-    }
-
-    // Fallback: localhost pour web, erreur pour mobile
-    if (Platform.OS === "web") {
-      return "http://localhost:3300/api";
-    }
-    return "http://localhost:3300/api";
-  }
-
-  // En production
-  return (
-    process.env.EXPO_PUBLIC_API_URL || "https://votre-api-production.com/api"
-  );
-};
 
 const api = axios.create({
-  baseURL: getBaseURL(),
+  baseURL: "http://192.168.129.224:3300/api",
+  timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000,
 });
 
-// Intercepteur pour logger les erreurs
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error("API Error:", {
-      message: error.message,
-      url: error.config?.url,
-      baseURL: error.config?.baseURL,
+api.interceptors.request.use(
+  (config) => {
+    console.log("API Request:", {
+      url: config.url,
+      method: config.method,
+      baseURL: config.baseURL,
+      data: config.data,
     });
+    return config;
+  },
+  (error) => {
+    console.error("Request Error:", error);
     return Promise.reject(error);
   }
 );
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  success: boolean;
-  user: {
-    user_id: number;
-    email: string;
-    firstname: string;
-    lastname: string;
-    pseudo: string | null;
-    user_type: "playeronly" | "coach";
-  };
-}
-
-export const authService = {
-  login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    const response = await api.post<LoginResponse>("/users/login", credentials);
-    return response.data;
+api.interceptors.response.use(
+  (response) => {
+    console.log("API Response:", {
+      url: response.config.url,
+      status: response.status,
+      data: response.data,
+    });
+    return response;
   },
-};
+  (error) => {
+    const errorDetails = {
+      message: error.message,
+      url: error.config?.url,
+      baseURL: error.config?.baseURL,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data,
+    };
+
+    console.error("API Error:", errorDetails);
+
+    if (error.code === "ECONNABORTED") {
+      console.error(
+        "Request timeout - Check if your backend server is running"
+      );
+    } else if (error.message === "Network Error") {
+      console.error("Network Error - Possible causes:");
+      console.error("1. Backend server is not running");
+      console.error("2. Incorrect baseURL configuration");
+      console.error("3. CORS issues");
+      console.error("4. Device/emulator cannot reach the backend");
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export default api;

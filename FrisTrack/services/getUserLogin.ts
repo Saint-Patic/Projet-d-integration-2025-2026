@@ -1,12 +1,5 @@
-import axios from "axios";
-
-const api = axios.create({
-  baseURL: "http://localhost:3000/api",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  timeout: 10000,
-});
+import api from "./api";
+import { UserProfile } from "./userService";
 
 export interface LoginRequest {
   email: string;
@@ -15,15 +8,30 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   success: boolean;
-  user: {
-    email: string;
-  };
+  user: UserProfile;
+  token?: string; // Si vous utilisez des tokens d'authentification
 }
 
 export const authService = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    const response = await api.post<LoginResponse>("/users/login", credentials);
-    return response.data;
+    try {
+      console.log("Attempting login with:", { email: credentials.email });
+      const response = await api.post<LoginResponse>(
+        "/users/login",
+        credentials
+      );
+      console.log("Login successful:", response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error("Login error details:", {
+        message: error.message,
+        code: error.code,
+        baseURL: api.defaults.baseURL,
+        url: error.config?.url,
+        method: error.config?.method,
+      });
+      throw error;
+    }
   },
 };
 
