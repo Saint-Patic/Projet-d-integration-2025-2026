@@ -75,6 +75,15 @@ export default function MatchDetailsScreen() {
     await persistTerrains(next);
   };
 
+  const loadTerrain = (terrain: any) => {
+    if (!terrain || !terrain.corners) return;
+    setSavedCorners(terrain.corners);
+    setTerrainValidated(true);
+    setActiveCorner(null);
+    if (terrain.id) setSelectedTerrainId(terrain.id.toString());
+    setShowSavedTerrains(false);
+  };
+
   const deleteTerrain = async (id: string) => {
     const next = savedTerrains.filter((t) => t.id !== id);
     setSavedTerrains(next);
@@ -375,7 +384,7 @@ export default function MatchDetailsScreen() {
         {!showSavedTerrains && !showInitialChoice && (
           <View style={styles.fieldWrapper}>
             <View style={styles.fieldContainer}>
-              {!terrainValidated && (
+                {!terrainValidated && (
                 <>
                 {/* Corner: top-left */}
                 <TouchableOpacity
@@ -386,7 +395,9 @@ export default function MatchDetailsScreen() {
                     styles.cornerTL,
                     activeCorner === "tl" && styles.cornerActive,
                   ]}
-                />
+                >
+                  <ThemedText style={[styles.cornerLabel, { color: activeCorner === "tl" ? "#003b22" : "#000" }]}>TL</ThemedText>
+                </TouchableOpacity>
 
                 {/* Corner: top-right */}
                 <TouchableOpacity
@@ -397,7 +408,9 @@ export default function MatchDetailsScreen() {
                     styles.cornerTR,
                     activeCorner === "tr" && styles.cornerActive,
                   ]}
-                />
+                >
+                  <ThemedText style={[styles.cornerLabel, { color: activeCorner === "tr" ? "#003b22" : "#000" }]}>TR</ThemedText>
+                </TouchableOpacity>
 
                 {/* Corner: bottom-left */}
                 <TouchableOpacity
@@ -408,7 +421,9 @@ export default function MatchDetailsScreen() {
                     styles.cornerBL,
                     activeCorner === "bl" && styles.cornerActive,
                   ]}
-                />
+                >
+                  <ThemedText style={[styles.cornerLabel, { color: activeCorner === "bl" ? "#003b22" : "#000" }]}>BL</ThemedText>
+                </TouchableOpacity>
 
                 {/* Corner: bottom-right */}
                 <TouchableOpacity
@@ -419,9 +434,25 @@ export default function MatchDetailsScreen() {
                     styles.cornerBR,
                     activeCorner === "br" && styles.cornerActive,
                   ]}
-                />
+                >
+                  <ThemedText style={[styles.cornerLabel, { color: activeCorner === "br" ? "#003b22" : "#000" }]}>BR</ThemedText>
+                </TouchableOpacity>
               </>
             )}
+
+              {/* Coordinates shown near each corner */}
+              {savedCorners.tl && (
+                <ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsTL]}>TL: {savedCorners.tl.coords.latitude.toFixed(6)}, {savedCorners.tl.coords.longitude.toFixed(6)}</ThemedText>
+              )}
+              {savedCorners.tr && (
+                <ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsTR]}>TR: {savedCorners.tr.coords.latitude.toFixed(6)}, {savedCorners.tr.coords.longitude.toFixed(6)}</ThemedText>
+              )}
+              {savedCorners.bl && (
+                <ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsBL]}>BL: {savedCorners.bl.coords.latitude.toFixed(6)}, {savedCorners.bl.coords.longitude.toFixed(6)}</ThemedText>
+              )}
+              {savedCorners.br && (
+                <ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsBR]}>BR: {savedCorners.br.coords.latitude.toFixed(6)}, {savedCorners.br.coords.longitude.toFixed(6)}</ThemedText>
+              )}
           </View>
   </View>
   )}
@@ -454,19 +485,7 @@ export default function MatchDetailsScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Saved position feedback */}
-            <View style={styles.savedFeedback}>
-              {activeCorner ? (
-                savedCorners[activeCorner] ? (
-                  <ThemedText style={[styles.metaText, { color: theme.text }]}> 
-                    Position sauvegardée ({activeCorner.toUpperCase()}): {savedCorners[activeCorner].coords.latitude.toFixed(6)}, {savedCorners[activeCorner].coords.longitude.toFixed(6)}
-                  </ThemedText>
-                ) : (
-                  // Show "no saved position" only when a corner is selected and it has no saved coords
-                  <ThemedText style={[styles.metaText, { color: theme.text }]}>Aucune position sauvegardée</ThemedText>
-                )
-              ) : null}
-            </View>
+            {/* saved position feedback removed; coordinates are shown inside the field rectangle */}
           </>
         )}
 
@@ -772,6 +791,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#00ff88",
     borderColor: "#006644",
   },
+  cornerLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    lineHeight: 28,
+    textAlign: "center",
+  },
   confirmWrapper: {
     marginTop: 12,
     alignItems: "center",
@@ -869,5 +894,36 @@ const styles = StyleSheet.create({
     borderColor: "#444",
     marginBottom: 12,
     alignItems: "center",
+  },
+  coordsText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 2,
+    position: "absolute",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  coordsTL: {
+    top: 8,
+    left: 8,
+    textAlign: "left",
+  },
+  coordsTR: {
+    top: 8,
+    right: 8,
+    textAlign: "right",
+  },
+  coordsBL: {
+    bottom: 8,
+    left: 8,
+    textAlign: "left",
+  },
+  coordsBR: {
+    bottom: 8,
+    right: 8,
+    textAlign: "right",
   },
 });
