@@ -518,9 +518,14 @@ export default function MatchDetailsScreen() {
                   <View style={{ flex: 1 }}>
                     <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name}</ThemedText>
                   </View>
-                  <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
-                    <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
-                  </TouchableOpacity>
+                  <View style={styles.actionGroup}>
+                    <TouchableOpacity onPress={() => loadTerrain(t)} style={styles.terrainLoadAction}>
+                      <ThemedText style={styles.terrainLoadActionText}>Charger</ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
+                      <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
             </ScrollView>
@@ -594,9 +599,14 @@ export default function MatchDetailsScreen() {
                         <View style={{ flex: 1 }}>
                           <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name}</ThemedText>
                         </View>
-                        <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
-                          <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
-                        </TouchableOpacity>
+                        <View style={styles.actionGroup}>
+                          <TouchableOpacity onPress={() => loadTerrain(t)} style={styles.terrainLoadAction}>
+                            <ThemedText style={styles.terrainLoadActionText}>Charger</ThemedText>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
+                            <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     ))}
                 </ScrollView>
@@ -818,6 +828,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   terrainActionText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  actionGroup: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+  },
+  terrainLoadAction: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#2ecc71",
+    borderRadius: 8,
+  },
+  terrainLoadActionText: {
     color: "#fff",
     fontWeight: "700",
   },
