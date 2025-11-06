@@ -474,7 +474,7 @@ export default function MatchDetailsScreen() {
         {showInitialChoice && (
           <View style={styles.initialChoiceBox}>
             <ThemedText style={[styles.metaText, { color: theme.text, marginBottom: 8 }]}>Que voulez-vous faire ?</ThemedText>
-            <View style={{ flexDirection: "row", gap: 12 }}>
+            <View style={{ flexDirection: "column", rowGap: 12 }}>
               <TouchableOpacity
                 accessibilityLabel="create-new-terrain"
                 onPress={() => {
@@ -528,16 +528,18 @@ export default function MatchDetailsScreen() {
           </View>
         )}
 
-        {/* Button to toggle saved terrains view */}
-        <View style={{ alignItems: "center", marginTop: 10 }}>
-          <TouchableOpacity
-            accessibilityLabel="toggle-saved-terrains"
-            onPress={() => setShowSavedTerrains((s) => !s)}
-            style={[styles.smallToggleButton, { backgroundColor: theme.primary }]}
-          >
-            <ThemedText style={styles.confirmButtonText}>{showSavedTerrains ? "Masquer terrains" : "Voir terrains"}</ThemedText>
-          </TouchableOpacity>
-        </View>
+        {/* Button to toggle saved terrains view - only show after initial choice made */}
+        {!showInitialChoice && (
+          <View style={{ alignItems: "center", marginTop: 10 }}>
+            <TouchableOpacity
+              accessibilityLabel="toggle-saved-terrains"
+              onPress={() => setShowSavedTerrains((s) => !s)}
+              style={[styles.smallToggleButton, { backgroundColor: theme.primary }]}
+            >
+              <ThemedText style={styles.confirmButtonText}>{showSavedTerrains ? "Masquer terrains" : "Voir terrains"}</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Edit corners, save/load terrains when terrain is validated */}
         {terrainValidated && (
