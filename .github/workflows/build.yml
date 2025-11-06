@@ -10,10 +10,10 @@ jobs:
     name: SonarQube
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602
+      - uses: actions/checkout@b4ffde65f46336abf3d68b7b9860c1c2e2c9f7ed # v4.2.2
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@689fb39b34b9aa95ebc5f8f119343ddd51542402
+        uses: SonarSource/sonarqube-scan-action@e3f3a2e7b5b6a3ac4e305511dd33c9c8b16a95c8 # v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
