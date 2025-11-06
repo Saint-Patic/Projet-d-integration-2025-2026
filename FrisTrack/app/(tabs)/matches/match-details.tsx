@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, TouchableOpacity, StyleSheet, GestureResponderEvent, TextInput, ScrollView } from "react-native";
+import { View, TouchableOpacity, StyleSheet, GestureResponderEvent, TextInput, ScrollView, Modal, KeyboardAvoidingView, Platform } from "react-native";
 import * as Location from "expo-location";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
@@ -35,7 +35,7 @@ export default function MatchDetailsScreen() {
 
   // Local persistence for saved terrains (stored as array under STORAGE_KEY)
   const [savedTerrains, setSavedTerrains] = useState<any[]>([]);
-  const [showNameInput, setShowNameInput] = useState(false);
+  const [showNameModal, setShowNameModal] = useState(false);
   const [newTerrainName, setNewTerrainName] = useState("");
   const [selectedTerrainId, setSelectedTerrainId] = useState<string | null>(null);
   const [showSavedTerrains, setShowSavedTerrains] = useState(false);
@@ -70,7 +70,7 @@ export default function MatchDetailsScreen() {
     const terrain = { id, name: tname, corners: savedCorners };
     const next = [...savedTerrains, terrain];
     setSavedTerrains(next);
-    setShowNameInput(false);
+    setShowNameModal(false);
     setNewTerrainName("");
     await persistTerrains(next);
   };
@@ -582,55 +582,60 @@ export default function MatchDetailsScreen() {
 
               <TouchableOpacity
                 accessibilityLabel="save-terrain-toggle"
-                onPress={() => setShowNameInput((s) => !s)}
+                onPress={() => setShowNameModal(true)}
                 style={[styles.confirmButton, { backgroundColor: theme.primary }]}
               >
                 <ThemedText style={styles.confirmButtonText}>Enregistrer le terrain</ThemedText>
               </TouchableOpacity>
             </View>
 
-            {showNameInput && (
-              <View style={{ width: "100%", marginTop: 10, alignItems: "center" }}>
-                <TextInput
-                  value={newTerrainName}
-                  onChangeText={setNewTerrainName}
-                  placeholder="Nom du terrain"
-                  placeholderTextColor="#999"
-                  style={[styles.nameInput, { color: theme.text, borderColor: theme.border }]}
-                />
-                <TouchableOpacity
-                  accessibilityLabel="save-terrain-button"
-                  onPress={() => saveCurrentTerrain()}
-                  style={[styles.confirmButton, { backgroundColor: theme.primary, marginTop: 8 }]}
+            {/* Name entry as a modal popup */}
+            <Modal
+              visible={showNameModal}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowNameModal(false)}
+            >
+              <View style={styles.modalOverlay}>
+                <KeyboardAvoidingView
+                  behavior={Platform.OS === "ios" ? "padding" : "height"}
+                  style={styles.modalWrapper}
                 >
-                  <ThemedText style={styles.confirmButtonText}>Sauvegarder</ThemedText>
-                </TouchableOpacity>
-              </View>
-            )}
+                  <View style={[styles.modalContent, { borderColor: theme.border, backgroundColor: theme.background }]}> 
+                    <ThemedText style={[styles.metaText, { color: theme.text, marginBottom: 8 }]}>Nom du terrain</ThemedText>
+                    <TextInput
+                      value={newTerrainName}
+                      onChangeText={setNewTerrainName}
+                      placeholder="Nom du terrain"
+                      placeholderTextColor="#999"
+                      style={[styles.nameInput, { color: theme.text, borderColor: theme.border }]}
+                    />
+                    <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
+                      <TouchableOpacity
+                        accessibilityLabel="save-terrain-button"
+                        onPress={() => saveCurrentTerrain(newTerrainName)}
+                        style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+                      >
+                        <ThemedText style={styles.confirmButtonText}>Sauvegarder</ThemedText>
+                      </TouchableOpacity>
 
-            <View style={styles.terrainsList}>
-              {savedTerrains.length === 0 ? (
-                <ThemedText style={[styles.metaText, { color: theme.text }]}>Pas de terrains sauvegardés</ThemedText>
-              ) : (
-                <ScrollView style={{ width: "100%", maxHeight: 180 }}>
-                    {savedTerrains.map((t) => (
-                      <View key={t.id} style={styles.terrainItem}>
-                        <View style={{ flex: 1 }}>
-                          <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name}</ThemedText>
-                        </View>
-                        <View style={styles.actionGroup}>
-                          <TouchableOpacity onPress={() => loadTerrain(t)} style={styles.terrainLoadAction}>
-                            <ThemedText style={styles.terrainLoadActionText}>Charger</ThemedText>
-                          </TouchableOpacity>
-                          <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
-                            <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ))}
-                </ScrollView>
-              )}
-            </View>
+                      <TouchableOpacity
+                        accessibilityLabel="cancel-save-terrain"
+                        onPress={() => {
+                          setShowNameModal(false);
+                          setNewTerrainName("");
+                        }}
+                        style={[styles.confirmButton, { backgroundColor: "#999" }]}
+                      >
+                        <ThemedText style={styles.confirmButtonText}>Annuler</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </KeyboardAvoidingView>
+              </View>
+            </Modal>
+
+            {/* Saved terrains are shown via the "Voir terrains" toggle to avoid automatic display after validation. */}
           </View>
         )}
       </View>
@@ -925,5 +930,22 @@ const styles = StyleSheet.create({
     bottom: 8,
     right: 8,
     textAlign: "right",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  modalWrapper: {
+    width: "100%",
+  },
+  modalContent: {
+    width: "100%",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    alignItems: "center",
   },
 });
