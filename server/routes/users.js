@@ -7,8 +7,8 @@ const bcrypt = require("bcrypt");
 async function callProcedure(sql, params) {
   const conn = await pool.getConnection();
   try {
-    const res = await conn.query(sql, params);
-    return res;
+    const [rows] = await conn.query(sql, params);
+    return rows;
   } finally {
     conn.release();
   }
@@ -24,42 +24,29 @@ router.post("/login", async (req, res) => {
   }
 
   try {
-    const conn = await pool.getConnection();
-    try {
-      // Récupérer l'utilisateur par email
-      const [rows] = await conn.query(
-        "SELECT email, password_hash FROM users WHERE email = ?",
-        [email]
-      );
+    const rows = await callProcedure("CALL get_user_by_email(?)", [email]);
 
-      if (rows.length === 0) {
-        return res
-          .status(401)
-          .json({ error: "Email ou mot de passe incorrect" });
-      }
-
-      const user = rows;
-
-      // Vérifier le mot de passe
-      const isPasswordValid = password === user.password_hash;
-
-      if (!isPasswordValid) {
-        console.log(`mdp: ${password}, mdp_user: ${user.password_hash}`);
-        return res
-          .status(401)
-          .json({ error: "Email ou mot de passe incorrect" });
-      }
-
-      // Connexion réussie - ne pas renvoyer le hash du mot de passe
-      const { password_hash, ...userWithoutPassword } = user;
-
-      res.json({
-        success: true,
-        user: userWithoutPassword,
-      });
-    } finally {
-      conn.release();
+    if (rows.length === 0) {
+      return res.status(401).json({ error: "Email ou mot de passe incorrect" });
     }
+
+    const user = rows[0];
+
+    // Vérifier le mot de passe
+    const isPasswordValid = password === user.password_hash;
+
+    if (!isPasswordValid) {
+      console.log(`mdp: ${password}, mdp_user: ${user.password_hash}`);
+      return res.status(401).json({ error: "Email ou mot de passe incorrect" });
+    }
+
+    // Connexion réussie - ne pas renvoyer le hash du mot de passe
+    const { password_hash, ...userWithoutPassword } = user;
+
+    res.json({
+      success: true,
+      user: userWithoutPassword,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erreur serveur lors de la connexion" });
@@ -160,26 +147,18 @@ router.post("/email", async (req, res) => {
   }
 
   try {
-    const conn = await pool.getConnection();
-    try {
-      // Récupérer l'utilisateur par email
-      const [rows] = await conn.query("SELECT * FROM users WHERE email = ?", [
-        email,
-      ]);
+    const rows = await callProcedure("CALL get_full_user_by_email(?)", [email]);
 
-      if (rows.length === 0) {
-        return res.status(401).json({ error: "Email incorrect" });
-      }
-
-      const user = rows;
-
-      res.json({
-        success: true,
-        user: user,
-      });
-    } finally {
-      conn.release();
+    if (rows.length === 0) {
+      return res.status(401).json({ error: "Email incorrect" });
     }
+
+    const user = rows[0];
+
+    res.json({
+      success: true,
+      user: user,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erreur serveur lors de la connexion" });
