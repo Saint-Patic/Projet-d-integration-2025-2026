@@ -10,13 +10,6 @@ export interface Team {
   coach_id?: number;
 }
 
-export interface TeamStats {
-  matches: number;
-  wins: number;
-  losses: number;
-  totalPoints: number;
-}
-
 export const getTeams = async (): Promise<Team[]> => {
   try {
     const response = await api.get<Team[]>("/teams");
