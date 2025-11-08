@@ -12,6 +12,7 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@expo/ngrok": "^4.1.3",
     "@expo/vector-icons": "^15.0.2",
     "@mdi/js": "^7.4.47",
     "@mdi/react": "^1.6.1",
@@ -21,7 +22,7 @@
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
-    "axios": "^1.13.1",
+    "bcrypt": "^6.0.0",
     "expo": "~54.0.11",
     "expo-constants": "~18.0.10",
     "expo-font": "~14.0.8",
