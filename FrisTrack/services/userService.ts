@@ -22,6 +22,16 @@ export interface GetUserResponse {
   success: boolean;
   user: UserProfile;
 }
+export interface UpdateRoleAttackRequest {
+  user_id: number;
+  team_id: number;
+  role_attack: "handler" | "stack";
+}
+
+export interface UpdateRoleAttackResponse {
+  success: boolean;
+  message: string;
+}
 
 export const userService = {
   getUserByEmail: async (email: string): Promise<GetUserResponse> => {
@@ -34,6 +44,26 @@ export const userService = {
       return response.data;
     } catch (error: any) {
       console.error("Error fetching user data:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
+  },
+  updateTeamRoleAttack: async (
+    data: UpdateRoleAttackRequest
+  ): Promise<UpdateRoleAttackResponse> => {
+    try {
+      console.log("Updating role_attack:", data);
+      const response = await api.put<UpdateRoleAttackResponse>(
+        "/users/team-role-attack",
+        data
+      );
+      console.log("Role attack updated successfully");
+      return response.data;
+    } catch (error: any) {
+      console.error("Error updating role attack:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,

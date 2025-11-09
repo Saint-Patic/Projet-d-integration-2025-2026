@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   TouchableOpacity,
@@ -14,8 +14,9 @@ import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
-import { getTeamPlayers, TeamPlayer } from "@/services/getTeams";
+import { getTeamPlayers } from "@/services/getTeams";
 import { getProfileImage } from "@/components/perso_components/loadImages";
+import { userService } from "@/services/userService";
 
 interface Member {
   id: number;
@@ -38,21 +39,16 @@ export default function TeamDetailsScreen() {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  useEffect(() => {
-    loadTeamPlayers();
-  }, [id]);
-
-  const loadTeamPlayers = async () => {
+  const loadTeamPlayers = useCallback(async () => {
     try {
       setIsLoading(true);
       const players = await getTeamPlayers(Number(id));
 
-      // Convertir les données de l'API au format attendu
       const formattedMembers: Member[] = players.map((player, index) => ({
-        id: index + 1, // ID temporaire pour la liste
-        user_id: player.user_id, // ID réel de l'utilisateur
+        id: index + 1,
+        user_id: player.user_id,
         name: player.player_name,
-        image: getProfileImage(player.profile_picture), // Utiliser l'image de la DB
+        image: getProfileImage(player.profile_picture),
         position: player.role_attack === "handler" ? "handler" : "stack",
       }));
 
@@ -62,8 +58,11 @@ export default function TeamDetailsScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
 
+  useEffect(() => {
+    loadTeamPlayers();
+  }, [loadTeamPlayers]);
   if (isLoading) {
     return (
       <ScreenLayout
@@ -128,12 +127,30 @@ export default function TeamDetailsScreen() {
     </TouchableOpacity>
   );
 
-  const handlePositionChange = (playerId: number, newPosition: string) => {
-    setMembers((prevMembers) =>
-      prevMembers.map((member) =>
-        member.id === playerId ? { ...member, position: newPosition } : member
-      )
-    );
+  const handlePositionChange = async (
+    userId: number,
+    teamId: number,
+    newPosition: "handler" | "stack"
+  ) => {
+    try {
+      await userService.updateTeamRoleAttack({
+        user_id: userId,
+        team_id: teamId,
+        role_attack: newPosition,
+      });
+
+      // Mettre à jour l'état local si nécessaire
+      setMembers((prevMembers) =>
+        prevMembers.map((member) =>
+          member.user_id === userId
+            ? { ...member, position: newPosition }
+            : member
+        )
+      );
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du rôle:", error);
+      // Afficher un message d'erreur à l'utilisateur
+    }
   };
 
   // Pour Cyril :)
@@ -282,7 +299,13 @@ export default function TeamDetailsScreen() {
                             borderWidth: 1,
                           },
                         ]}
-                        onPress={() => handlePositionChange(item.id, "handler")}
+                        onPress={() =>
+                          handlePositionChange(
+                            item.user_id,
+                            Number(id),
+                            "handler"
+                          )
+                        }
                       >
                         <ThemedText
                           style={[
@@ -307,7 +330,13 @@ export default function TeamDetailsScreen() {
                             borderWidth: 1,
                           },
                         ]}
-                        onPress={() => handlePositionChange(item.id, "stack")}
+                        onPress={() =>
+                          handlePositionChange(
+                            item.user_id,
+                            Number(id),
+                            "stack"
+                          )
+                        }
                       >
                         <ThemedText
                           style={[
