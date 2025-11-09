@@ -15,15 +15,7 @@ import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamPlayers, TeamPlayer } from "@/services/getTeams";
-
-// Mapping des images par défaut
-const defaultImages = {
-  1: require("@/assets/images/profile_pictures/nathan.png"),
-  2: require("@/assets/images/profile_pictures/lezard.png"),
-  3: require("@/assets/images/profile_pictures/default.png"),
-  4: require("@/assets/images/profile_pictures/chien.png"),
-  5: require("@/assets/images/profile_pictures/chat.png"),
-};
+import { getProfileImage } from "@/components/perso_components/loadImages";
 
 interface Member {
   id: number;
@@ -60,9 +52,7 @@ export default function TeamDetailsScreen() {
         id: index + 1, // ID temporaire pour la liste
         user_id: player.user_id, // ID réel de l'utilisateur
         name: player.player_name,
-        image:
-          defaultImages[((index % 5) + 1) as keyof typeof defaultImages] ||
-          defaultImages[1],
+        image: getProfileImage(player.profile_picture), // Utiliser l'image de la DB
         position: player.role_attack === "handler" ? "handler" : "stack",
       }));
 

@@ -14,40 +14,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import ProfileView from "@/components/perso_components/ProfileView";
 import { authService } from "@/services/getUserLogin";
-import { UserProfile } from "@/services/userService";
-
-const profilePictures = [
-  {
-    name: "chat.png",
-    src: require("@/assets/images/profile_pictures/chat.png"),
-  },
-  {
-    name: "chien.png",
-    src: require("@/assets/images/profile_pictures/chien.png"),
-  },
-  {
-    name: "default.png",
-    src: require("@/assets/images/profile_pictures/default.png"),
-  },
-  {
-    name: "Frisbee.png",
-    src: require("@/assets/images/profile_pictures/Frisbee.png"),
-  },
-  {
-    name: "lezard.png",
-    src: require("@/assets/images/profile_pictures/lezard.png"),
-  },
-  {
-    name: "nathan.png",
-    src: require("@/assets/images/profile_pictures/nathan.png"),
-  },
-];
-
-function getImageSource(imageName: string | null | undefined) {
-  if (!imageName) return profilePictures[2].src; // default.png
-  const found = profilePictures.find((img) => img.name === imageName);
-  return found ? found.src : profilePictures[2].src;
-}
+import { getProfileImage } from "@/components/perso_components/loadImages";
 
 export default function PlayerProfilScreen() {
   const { theme } = useTheme();
@@ -71,7 +38,6 @@ export default function PlayerProfilScreen() {
     try {
       setIsLoading(true);
       const userData = await authService.getUserById(currentPlayerId);
-      console.log("🚀 ~ loadUserData ~ currentPlayerId:", currentPlayerId);
 
       // Convertir les données API au format attendu par ProfileView
       const formattedUser = {
@@ -138,7 +104,7 @@ export default function PlayerProfilScreen() {
           onPress={() => setShowFullImage(false)}
         >
           <Image
-            source={getImageSource(user.imageName)}
+            source={getProfileImage(user.imageName)}
             style={{
               width: width * 0.8,
               height: width * 0.8,
@@ -169,7 +135,7 @@ export default function PlayerProfilScreen() {
       HeaderLeft={<BackButton theme={theme} />}
       HeaderRight={undefined}
       user={user}
-      getImageSource={getImageSource}
+      getImageSource={getProfileImage}
       connectSensor={connectSensor}
       logout={logout}
       editProfile={editProfile}
