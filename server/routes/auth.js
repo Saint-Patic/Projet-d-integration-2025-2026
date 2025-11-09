@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../index");
-const bcrypt = require("bcrypt");
+const argon2 = require("argon2");
 
 // Helper to call procedures
 async function callProcedure(sql, params = []) {
@@ -38,8 +38,7 @@ router.post("/register", async (req, res) => {
       }
 
       // Hasher le mot de passe
-      const saltRounds = 10;
-      const password_hash = await bcrypt.hash(password, saltRounds);
+      const password_hash = await argon2.hash(password);
 
       // Insérer le nouvel utilisateur
       const result = await conn.query(

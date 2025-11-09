@@ -9,18 +9,16 @@ export interface LoginRequest {
 export interface LoginResponse {
   success: boolean;
   user: UserProfile;
-  token?: string; // Si vous utilisez des tokens d'authentification
+  token?: string;
 }
 
 export const authService = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     try {
-      console.log("Attempting login with:", { email: credentials.email });
       const response = await api.post<LoginResponse>(
         "/users/login",
         credentials
       );
-      console.log("Login successful:", response.data);
       return response.data;
     } catch (error: any) {
       console.error("Login error details:", {
