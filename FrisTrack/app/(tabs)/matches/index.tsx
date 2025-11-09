@@ -261,7 +261,6 @@ export default function HomeScreen() {
   );
 }
 
-// ...existing code...
 const styles = StyleSheet.create({
   matchesContainer: {
     flexDirection: "row",
