@@ -31,6 +31,15 @@ export const authService = {
       throw error;
     }
   },
+  getUserById: async (userId: number): Promise<UserProfile> => {
+    try {
+      const response = await api.get<UserProfile[]>(`/users/${userId}`);
+      return response.data[0];
+    } catch (error: any) {
+      console.error("Get user error:", error);
+      throw error;
+    }
+  },
 };
 
 export default api;

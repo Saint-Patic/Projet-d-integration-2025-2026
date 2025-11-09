@@ -27,6 +27,7 @@ const defaultImages = {
 
 interface Member {
   id: number;
+  user_id: number;
   name: string;
   image: any;
   position: string;
@@ -56,7 +57,8 @@ export default function TeamDetailsScreen() {
 
       // Convertir les données de l'API au format attendu
       const formattedMembers: Member[] = players.map((player, index) => ({
-        id: index + 1, // Vous devriez utiliser un vrai user_id si disponible
+        id: index + 1, // ID temporaire pour la liste
+        user_id: player.user_id, // ID réel de l'utilisateur
         name: player.player_name,
         image:
           defaultImages[((index % 5) + 1) as keyof typeof defaultImages] ||
@@ -116,10 +118,10 @@ export default function TeamDetailsScreen() {
     });
   };
 
-  const handlePlayerPress = (playerId: number) => {
+  const handlePlayerPress = (userId: number) => {
     router.push({
       pathname: "../../(modals)/player-profile",
-      params: { playerId: playerId.toString() },
+      params: { playerId: userId.toString() },
     });
   };
 
@@ -205,7 +207,7 @@ export default function TeamDetailsScreen() {
               key={idx}
             >
               {row.map((item) => (
-                <View style={styles.memberContainer} key={item.id}>
+                <View style={styles.memberContainer} key={item.user_id}>
                   <View style={styles.memberImageContainer}>
                     {isEditMode ? (
                       <TouchableOpacity
@@ -222,7 +224,7 @@ export default function TeamDetailsScreen() {
                               style={[
                                 styles.memberImageOverlay,
                                 {
-                                  backgroundColor: theme.primary + "66", // couleur du thème + transparence
+                                  backgroundColor: theme.primary + "66",
                                 },
                               ]}
                               pointerEvents="none"
@@ -238,7 +240,7 @@ export default function TeamDetailsScreen() {
                       </TouchableOpacity>
                     ) : (
                       <TouchableOpacity
-                        onPress={() => handlePlayerPress(item.id)}
+                        onPress={() => handlePlayerPress(item.user_id)}
                         activeOpacity={0.7}
                       >
                         <Image

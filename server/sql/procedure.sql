@@ -193,4 +193,12 @@ BEGIN
     ORDER BY u.lastname, u.firstname;
 END$$
 
+-- 16) récupérer les infos d'un user
+CREATE PROCEDURE get_user_info(IN p_user_id INT)
+BEGIN 
+    SELECT * 
+    FROM users 
+    WHERE user_id = p_user_id;
+END $$    
+
 DELIMITER ;

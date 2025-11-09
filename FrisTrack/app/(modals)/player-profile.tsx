@@ -5,13 +5,16 @@ import {
   Platform,
   Dimensions,
   Pressable,
+  ActivityIndicator,
+  View,
 } from "react-native";
 import { Image } from "expo-image";
-
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import ProfileView from "@/components/perso_components/ProfileView";
+import { authService } from "@/services/getUserLogin";
+import { UserProfile } from "@/services/userService";
 
 const profilePictures = [
   {
@@ -40,79 +43,10 @@ const profilePictures = [
   },
 ];
 
-const mockPlayers: {
-  [key: string]: {
-    id: number;
-    nom: string;
-    prenom: string;
-    imageName: string;
-    pointure: number;
-    main: string;
-    poids: number;
-    taille: number;
-    age: number;
-  };
-} = {
-  1: {
-    id: 1,
-    nom: "Lemaire",
-    prenom: "Nathan",
-    imageName: "nathan.png",
-    pointure: 37,
-    main: "Droite",
-    poids: 52.5,
-    taille: 157,
-    age: 22,
-  },
-  2: {
-    id: 2,
-    nom: "Bontems",
-    prenom: "Antoine",
-    imageName: "lezard.png",
-    pointure: 42,
-    main: "Gauche",
-    poids: 75.0,
-    taille: 178,
-    age: 24,
-  },
-  3: {
-    id: 3,
-    nom: "Demarcq",
-    prenom: "Alexis",
-    imageName: "default.png",
-    pointure: 40,
-    main: "Ambidextre",
-    poids: 68.5,
-    taille: 172,
-    age: 21,
-  },
-  4: {
-    id: 4,
-    nom: "Lamand",
-    prenom: "Cyril",
-    imageName: "chien.png",
-    pointure: 44,
-    main: "Droite",
-    poids: 82.0,
-    taille: 185,
-    age: 26,
-  },
-  5: {
-    id: 5,
-    nom: "Wu",
-    prenom: "Jiale",
-    imageName: "chat.png",
-    pointure: 38,
-    main: "Gauche",
-    poids: 58.0,
-    taille: 162,
-    age: 20,
-  },
-};
-
-function getImageSource(imageName: string) {
+function getImageSource(imageName: string | null | undefined) {
+  if (!imageName) return profilePictures[2].src; // default.png
   const found = profilePictures.find((img) => img.name === imageName);
-  return found ? found.src : profilePictures[0].src;
+  return found ? found.src : profilePictures[2].src;
 }
 
 export default function PlayerProfilScreen() {
@@ -120,20 +54,72 @@ export default function PlayerProfilScreen() {
   const { playerId } = useLocalSearchParams();
   const currentPlayerId = playerId ? parseInt(playerId as string) : 1;
   const [showFullImage, setShowFullImage] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const navigation = useNavigation();
+
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  const getUserData = React.useCallback(() => {
-    return mockPlayers[currentPlayerId] || mockPlayers[1];
+  useEffect(() => {
+    loadUserData();
   }, [currentPlayerId]);
 
-  const [user, setUser] = useState(getUserData());
-  useEffect(() => {
-    setUser(getUserData());
-  }, [getUserData]);
+  const loadUserData = async () => {
+    try {
+      setIsLoading(true);
+      const userData = await authService.getUserById(currentPlayerId);
+      console.log("🚀 ~ loadUserData ~ currentPlayerId:", currentPlayerId);
+
+      // Convertir les données API au format attendu par ProfileView
+      const formattedUser = {
+        id: userData.user_id,
+        nom: userData.lastname,
+        prenom: userData.firstname,
+        imageName: userData.profile_picture || "default.png",
+        pointure: userData.foot_size || 0,
+        main:
+          userData.dominant_hand === "left"
+            ? "Gauche"
+            : userData.dominant_hand === "right"
+            ? "Droite"
+            : userData.dominant_hand === "ambidextrous"
+            ? "Ambidextre"
+            : "-",
+        poids: userData.user_weight || 0,
+        taille: userData.user_height || 0,
+        age: userData.birthdate
+          ? new Date().getFullYear() -
+            new Date(userData.birthdate).getFullYear()
+          : 0,
+      };
+
+      setUser(formattedUser);
+    } catch (error) {
+      console.error("Error loading user data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", backgroundColor: theme.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   if (showFullImage) {
     const { width } = Dimensions.get("window");
@@ -167,7 +153,6 @@ export default function PlayerProfilScreen() {
     );
   }
 
-  // handlers minimal pour affichage joueur (pas d'édition)
   const connectSensor = () => {
     console.log("Connexion capteur (player view)");
   };

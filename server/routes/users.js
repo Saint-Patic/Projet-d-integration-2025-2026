@@ -301,4 +301,17 @@ router.get("/check-pseudo/:pseudo", async (req, res) => {
   }
 });
 
+// GET /api/users/:id
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const rows = await callProcedure("CALL get_user_info(?)", [id]);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "db error" });
+  }
+});
+
 module.exports = router;

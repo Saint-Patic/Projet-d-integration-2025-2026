@@ -13,8 +13,10 @@ export interface Team {
 export interface TeamPlayer {
   team_id: number;
   team_name: string;
+  user_id: number;
   player_name: string;
   role_attack: "handler" | "stack";
+  profile_picture?: string;
 }
 
 export const getTeams = async (): Promise<Team[]> => {
