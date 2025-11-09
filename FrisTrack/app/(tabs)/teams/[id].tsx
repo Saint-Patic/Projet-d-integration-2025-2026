@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Platform,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
@@ -13,55 +14,86 @@ import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
+import { getTeamPlayers, TeamPlayer } from "@/services/getTeams";
 
-// Exemple de données fictives - utilisation des mêmes images que dans profil.tsx
-const positionTerrain = { 1: "handler", 2: "stack" };
+// Mapping des images par défaut
+const defaultImages = {
+  1: require("@/assets/images/profile_pictures/nathan.png"),
+  2: require("@/assets/images/profile_pictures/lezard.png"),
+  3: require("@/assets/images/profile_pictures/default.png"),
+  4: require("@/assets/images/profile_pictures/chien.png"),
+  5: require("@/assets/images/profile_pictures/chat.png"),
+};
 
-const fakeMembers = [
-  {
-    id: 1,
-    name: "Nathan Lemaire",
-    image: require("@/assets/images/profile_pictures/nathan.png"),
-    position: positionTerrain["1"],
-  },
-  {
-    id: 2,
-    name: "Antoine Bontems",
-    image: require("@/assets/images/profile_pictures/lezard.png"),
-    position: positionTerrain["2"],
-  },
-  {
-    id: 3,
-    name: "Alexis Demarcq",
-    image: require("@/assets/images/profile_pictures/default.png"),
-    position: positionTerrain["2"],
-  },
-  {
-    id: 4,
-    name: "Cyril Lamand",
-    image: require("@/assets/images/profile_pictures/chien.png"),
-    position: positionTerrain["1"],
-  },
-  {
-    id: 5,
-    name: "Jiale Wu",
-    image: require("@/assets/images/profile_pictures/chat.png"),
-    position: positionTerrain["2"],
-  },
-];
+interface Member {
+  id: number;
+  name: string;
+  image: any;
+  position: string;
+}
 
 export default function TeamDetailsScreen() {
   const { id, teamName, editMode } = useLocalSearchParams();
   const navigation = useNavigation();
   const { theme } = useTheme();
   const [isEditMode, setIsEditMode] = useState(editMode === "true");
-  const [members, setMembers] = useState(fakeMembers);
+  const [members, setMembers] = useState<Member[]>([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
+  useEffect(() => {
+    loadTeamPlayers();
+  }, [id]);
+
+  const loadTeamPlayers = async () => {
+    try {
+      setIsLoading(true);
+      const players = await getTeamPlayers(Number(id));
+
+      // Convertir les données de l'API au format attendu
+      const formattedMembers: Member[] = players.map((player, index) => ({
+        id: index + 1, // Vous devriez utiliser un vrai user_id si disponible
+        name: player.player_name,
+        image:
+          defaultImages[((index % 5) + 1) as keyof typeof defaultImages] ||
+          defaultImages[1],
+        position: player.role_attack === "handler" ? "handler" : "stack",
+      }));
+
+      setMembers(formattedMembers);
+    } catch (error) {
+      console.error("Error loading team players:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <ScreenLayout
+        title="Détails équipe"
+        headerLeft={<BackButton theme={theme} />}
+        theme={theme}
+      >
+        <View
+          style={[
+            styles.container,
+            {
+              backgroundColor: theme.background,
+              justifyContent: "center",
+              alignItems: "center",
+            },
+          ]}
+        >
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      </ScreenLayout>
+    );
+  }
   // Calcule le nombre de colonnes dynamiquement
   const screenWidth = Dimensions.get("window").width;
   let columns = 2;

@@ -176,4 +176,21 @@ BEGIN
     WHERE email = p_email;
 END$$
 
+-- 15) récupérer les joueurs d'une équipe donnée 
+CREATE PROCEDURE getPlayerTeam(IN p_team_id INT)
+BEGIN  
+    SELECT 
+        t.team_id,
+        t.team_name,
+        u.user_id,
+        CONCAT(u.firstname, ' ', u.lastname) AS player_name,
+        ut.role_attack,
+        u.profile_picture
+    FROM team t
+    LEFT JOIN user_team ut ON t.team_id = ut.team_id
+    LEFT JOIN users u ON ut.user_id = u.user_id
+    WHERE t.team_id = p_team_id
+    ORDER BY u.lastname, u.firstname;
+END$$
+
 DELIMITER ;

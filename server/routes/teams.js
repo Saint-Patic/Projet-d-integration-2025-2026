@@ -51,4 +51,15 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// GET /api/teams/:id/players
+router.get("/:id/players", async (req, res) => {
+  try {
+    const rows = await callProcedure("CALL getPlayerTeam(?)", [req.params.id]);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "db error" });
+  }
+});
+
 module.exports = router;

@@ -10,6 +10,13 @@ export interface Team {
   coach_id?: number;
 }
 
+export interface TeamPlayer {
+  team_id: number;
+  team_name: string;
+  player_name: string;
+  role_attack: "handler" | "stack";
+}
+
 export const getTeams = async (): Promise<Team[]> => {
   try {
     const response = await api.get<Team[]>("/teams");
@@ -37,5 +44,15 @@ export const getPlayerCount = async (id: number): Promise<Team | null> => {
   } catch (error) {
     console.error(`Error fetching team ${id}:`, error);
     return null;
+  }
+};
+
+export const getTeamPlayers = async (id: number): Promise<TeamPlayer[]> => {
+  try {
+    const response = await api.get<TeamPlayer[]>(`/teams/${id}/players`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching players for team ${id}:`, error);
+    return [];
   }
 };
