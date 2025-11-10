@@ -32,6 +32,7 @@ export default function TeamDetailsScreen() {
   const { theme } = useTheme();
   const [isEditMode, setIsEditMode] = useState(editMode === "true");
   const [members, setMembers] = useState<Member[]>([]);
+  const [originalMembers, setOriginalMembers] = useState<Member[]>([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -53,6 +54,7 @@ export default function TeamDetailsScreen() {
       }));
 
       setMembers(formattedMembers);
+      setOriginalMembers(formattedMembers);
     } catch (error) {
       console.error("Error loading team players:", error);
     } finally {
@@ -115,10 +117,7 @@ export default function TeamDetailsScreen() {
   };
 
   const HeaderRight = () => (
-    <TouchableOpacity
-      onPress={() => setIsEditMode(!isEditMode)}
-      style={{ marginRight: 16 }}
-    >
+    <TouchableOpacity onPress={toggleEditMode} style={{ marginRight: 16 }}>
       <Ionicons
         name={isEditMode ? "checkmark" : "pencil"}
         size={24}
@@ -127,29 +126,57 @@ export default function TeamDetailsScreen() {
     </TouchableOpacity>
   );
 
-  const handlePositionChange = async (
+  const handlePositionChange = (
     userId: number,
-    teamId: number,
     newPosition: "handler" | "stack"
   ) => {
+    setMembers((prevMembers) =>
+      prevMembers.map((member) =>
+        member.user_id === userId
+          ? { ...member, position: newPosition }
+          : member
+      )
+    );
+  };
+
+  const saveChanges = async () => {
     try {
-      await userService.updateTeamRoleAttack({
-        user_id: userId,
-        team_id: teamId,
-        role_attack: newPosition,
+      // Comparer les positions actuelles avec les originales
+      const changedMembers = members.filter((member) => {
+        const original = originalMembers.find(
+          (m) => m.user_id === member.user_id
+        );
+        return original && original.position !== member.position;
       });
 
-      // Mettre à jour l'état local si nécessaire
-      setMembers((prevMembers) =>
-        prevMembers.map((member) =>
-          member.user_id === userId
-            ? { ...member, position: newPosition }
-            : member
-        )
+      // Mettre à jour uniquement les joueurs dont la position a changé
+      const updatePromises = changedMembers.map((member) =>
+        userService.updateTeamRoleAttack({
+          user_id: member.user_id,
+          team_id: Number(id),
+          role_attack: member.position as "handler" | "stack",
+        })
       );
+
+      await Promise.all(updatePromises);
+
+      // Mettre à jour l'état original après sauvegarde
+      setOriginalMembers([...members]);
+      setIsEditMode(false);
+
+      console.log(`${changedMembers.length} position(s) mise(s) à jour`);
     } catch (error) {
-      console.error("Erreur lors de la mise à jour du rôle:", error);
-      // Afficher un message d'erreur à l'utilisateur
+      console.error("Erreur lors de la sauvegarde des changements:", error);
+    }
+  };
+
+  const toggleEditMode = () => {
+    if (isEditMode) {
+      // Si on quitte le mode édition, sauvegarder les changements
+      saveChanges();
+    } else {
+      // Si on entre en mode édition, juste activer le mode
+      setIsEditMode(true);
     }
   };
 
@@ -300,11 +327,7 @@ export default function TeamDetailsScreen() {
                           },
                         ]}
                         onPress={() =>
-                          handlePositionChange(
-                            item.user_id,
-                            Number(id),
-                            "handler"
-                          )
+                          handlePositionChange(item.user_id, "handler")
                         }
                       >
                         <ThemedText
@@ -331,11 +354,7 @@ export default function TeamDetailsScreen() {
                           },
                         ]}
                         onPress={() =>
-                          handlePositionChange(
-                            item.user_id,
-                            Number(id),
-                            "stack"
-                          )
+                          handlePositionChange(item.user_id, "stack")
                         }
                       >
                         <ThemedText

@@ -317,29 +317,28 @@ router.get("/:id", async (req, res) => {
 // PUT /api/users/team-role-attack
 // body: { user_id, team_id, role_attack }
 router.put("/team-role-attack", async (req, res) => {
-  const { user_id, team_id, role_attack } = req.body;
-
-  if (!user_id || !team_id || !role_attack) {
-    return res.status(400).json({
-      error: "user_id, team_id et role_attack sont requis",
-    });
-  }
-
-  // Valider que role_attack est soit 'handler' soit 'stack'
-  if (!["handler", "stack"].includes(role_attack)) {
-    return res.status(400).json({
-      error: "role_attack doit être 'handler' ou 'stack'",
-    });
-  }
-
   try {
+    const { user_id, team_id, role_attack } = req.body;
+
+    if (!user_id || !team_id || !role_attack) {
+      return res.status(400).json({
+        error: "user_id, team_id et role_attack sont requis",
+      });
+    }
+
+    // Valider que role_attack est soit 'handler' soit 'stack'
+    if (!["handler", "stack"].includes(role_attack)) {
+      return res.status(400).json({
+        error: "role_attack doit être 'handler' ou 'stack'",
+      });
+    }
     const conn = await pool.getConnection();
     try {
-      const [result] = await conn.query(
+      const result = await conn.query(
         `UPDATE user_team 
          SET role_attack = ? 
-         WHERE user_id = ? AND team_id = ?`,
-        [role_attack, user_id, team_id]
+         WHERE team_id = ? AND user_id = ?`,
+        [role_attack, team_id, user_id]
       );
 
       if (result.affectedRows === 0) {
@@ -357,7 +356,7 @@ router.put("/team-role-attack", async (req, res) => {
       conn.release();
     }
   } catch (err) {
-    console.error(err);
+    console.error("Erreur lors de la mise à jour du role_attack:", err);
     res.status(500).json({ error: "Erreur serveur lors de la mise à jour" });
   }
 });
