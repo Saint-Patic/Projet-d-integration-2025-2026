@@ -1,7 +1,16 @@
 import axios from "axios";
 
+const getBaseURL = () => {
+  if (__DEV__) {
+    console.log(`EXPO_PUBLIC_API_URL = ${process.env.EXPO_PUBLIC_API_URL}`);
+    return process.env.EXPO_PUBLIC_API_URL || "http://localhost:3300/api";
+  }
+
+  return "https://votre-api-production.com/api";
+};
+
 const api = axios.create({
-  baseURL: "http://192.168.129.224:3300/api",
+  baseURL: getBaseURL(),
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

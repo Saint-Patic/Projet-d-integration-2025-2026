@@ -1,7 +1,18 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../index");
-const bcrypt = require("bcrypt");
+const argon2 = require("argon2");
+
+// Helper to call procedures
+async function callProcedure(sql, params = []) {
+  const conn = await pool.getConnection();
+  try {
+    const [rows] = await conn.query(sql, params);
+    return rows;
+  } finally {
+    conn.release();
+  }
+}
 
 // POST /api/auth/register
 // body: { email, password, firstname, lastname, pseudo, birthdate }
@@ -18,18 +29,16 @@ router.post("/register", async (req, res) => {
     const conn = await pool.getConnection();
     try {
       // Vérifier si l'email existe déjà
-      const [existingUser] = await conn.query(
-        "SELECT user_id FROM users WHERE email = ?",
-        [email]
-      );
+      const existingUser = await callProcedure("CALL check_email_exists(?)", [
+        email,
+      ]);
 
       if (existingUser.length > 0) {
         return res.status(409).json({ error: "Cet email est déjà utilisé" });
       }
 
       // Hasher le mot de passe
-      const saltRounds = 10;
-      const password_hash = await bcrypt.hash(password, saltRounds);
+      const password_hash = await argon2.hash(password);
 
       // Insérer le nouvel utilisateur
       const result = await conn.query(

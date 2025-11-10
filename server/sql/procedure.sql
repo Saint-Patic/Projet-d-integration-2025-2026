@@ -72,4 +72,133 @@ BEGIN
     WHERE user_id = p_user_id;
 END$$
 
+-- 5) Récupérer tous les matchs
+CREATE PROCEDURE get_all_matches()
+BEGIN
+    SELECT 
+        m.match_id AS id,
+        t1.team_name AS team_name_1,
+        t2.team_name AS team_name_2,
+        tm1.score AS team_score_1,
+        tm2.score AS team_score_2,
+        tm1.home_away_team AS team1_status,
+        tm2.home_away_team AS team2_status,
+        m.match_date AS date
+    FROM match_frisbee m
+    JOIN team_match tm1 ON m.match_id = tm1.match_id
+    JOIN team_match tm2 ON m.match_id = tm2.match_id AND tm1.team_id <> tm2.team_id
+    JOIN team t1 ON tm1.team_id = t1.team_id
+    JOIN team t2 ON tm2.team_id = t2.team_id
+    WHERE tm1.home_away_team = 'home' AND tm2.home_away_team = 'away';
+END$$
+
+-- 6) Récupérer un match par ID
+CREATE PROCEDURE get_match_by_id(IN p_match_id INT)
+BEGIN
+    SELECT 
+        m.match_id AS id,
+        t1.team_name AS team_name_1,
+        t2.team_name AS team_name_2,
+        tm1.score AS team_score_1,
+        tm2.score AS team_score_2,
+        tm1.home_away_team AS team1_status,
+        tm2.home_away_team AS team2_status,
+        m.match_date AS date
+    FROM match_frisbee m
+    JOIN team_match tm1 ON m.match_id = tm1.match_id
+    JOIN team_match tm2 ON m.match_id = tm2.match_id AND tm1.team_id <> tm2.team_id
+    JOIN team t1 ON tm1.team_id = t1.team_id
+    JOIN team t2 ON tm2.team_id = t2.team_id
+    WHERE tm1.home_away_team = 'home' 
+        AND tm2.home_away_team = 'away' 
+        AND m.match_id = p_match_id;
+END$$
+
+-- 7) Récupérer toutes les équipes
+CREATE PROCEDURE get_all_teams()
+BEGIN
+    SELECT team_id AS id, team_name, logo FROM team;
+END$$
+
+-- 8) Récupérer une équipe par ID
+CREATE PROCEDURE get_team_by_id(IN p_team_id INT)
+BEGIN
+    SELECT team_id AS id, team_name, logo 
+    FROM team 
+    WHERE team_id = p_team_id;
+END$$
+
+-- 9) Compter les joueurs d'une équipe
+CREATE PROCEDURE get_team_player_count(IN p_team_id INT)
+BEGIN
+    SELECT COUNT(*) AS playerCount 
+    FROM user_team 
+    WHERE team_id = p_team_id;
+END$$
+
+-- 10) Login utilisateur
+CREATE PROCEDURE get_user_by_email(IN p_email VARCHAR(100))
+BEGIN
+    SELECT email, password_hash 
+    FROM users 
+    WHERE email = p_email;
+END$$
+
+-- 11) Vérifier si un email existe
+CREATE PROCEDURE check_email_exists(IN p_email VARCHAR(100))
+BEGIN
+    SELECT user_id 
+    FROM users 
+    WHERE email = p_email;
+END$$
+
+-- 12) Récupérer un utilisateur complet par email
+CREATE PROCEDURE get_full_user_by_email(IN p_email VARCHAR(100))
+BEGIN
+    SELECT * 
+    FROM users 
+    WHERE email = p_email;
+END$$
+
+-- 13) Vérifier la disponibilité d'un pseudo
+CREATE PROCEDURE check_pseudo_available(IN p_pseudo VARCHAR(50))
+BEGIN
+    SELECT user_id 
+    FROM users 
+    WHERE pseudo = p_pseudo;
+END$$
+
+-- 14) Vérifier si un email existe déjà (pour l'inscription)
+CREATE PROCEDURE check_email_for_registration(IN p_email VARCHAR(100))
+BEGIN
+    SELECT user_id 
+    FROM users 
+    WHERE email = p_email;
+END$$
+
+-- 15) récupérer les joueurs d'une équipe donnée 
+CREATE PROCEDURE getPlayerTeam(IN p_team_id INT)
+BEGIN  
+    SELECT 
+        t.team_id,
+        t.team_name,
+        u.user_id,
+        CONCAT(u.firstname, ' ', u.lastname) AS player_name,
+        ut.role_attack,
+        u.profile_picture
+    FROM team t
+    LEFT JOIN user_team ut ON t.team_id = ut.team_id
+    LEFT JOIN users u ON ut.user_id = u.user_id
+    WHERE t.team_id = p_team_id
+    ORDER BY u.lastname, u.firstname;
+END$$
+
+-- 16) récupérer les infos d'un user
+CREATE PROCEDURE get_user_info(IN p_user_id INT)
+BEGIN 
+    SELECT * 
+    FROM users 
+    WHERE user_id = p_user_id;
+END $$    
+
 DELIMITER ;

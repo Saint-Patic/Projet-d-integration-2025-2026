@@ -17,10 +17,15 @@ import {
 import EditProfile from "@/components/perso_components/EditProfile";
 import { useTheme } from "@/contexts/ThemeContext";
 
+import { registerService } from "@/services/addUserLogin";
+
 export default function CaractForm() {
-  const { email, password } = useLocalSearchParams<{
+  const { email, password, nom, prenom, pseudo } = useLocalSearchParams<{
     email: string;
     password: string;
+    nom: string;
+    prenom: string;
+    pseudo: string;
   }>();
   const { theme } = useTheme();
 
@@ -39,6 +44,7 @@ export default function CaractForm() {
   const [poidsInput, setPoidsInput] = useState(form.poids.toString());
   const [tailleInput, setTailleInput] = useState(form.taille.toString());
   const [ageInput, setAgeInput] = useState(form.age.toString());
+  const [isLoading, setIsLoading] = useState(false);
 
   const [mainSelection, setMainSelection] = useState<{
     gauche: boolean;
@@ -83,40 +89,80 @@ export default function CaractForm() {
     return filtered;
   }
 
-  const handleSave = () => {
-    let ageNumber = form.age;
-    if (form.ageDate) {
-      const now = new Date();
-      ageNumber = Math.floor(
-        (now.getTime() - new Date(form.ageDate).getTime()) /
-          (1000 * 60 * 60 * 24 * 365.25)
-      );
+  const handleSave = async () => {
+    setIsLoading(true);
+
+    try {
+      let ageNumber = form.age;
+      if (form.ageDate) {
+        const now = new Date();
+        ageNumber = Math.floor(
+          (now.getTime() - new Date(form.ageDate).getTime()) /
+            (1000 * 60 * 60 * 24 * 365.25)
+        );
+      }
+
+      const mainValue =
+        mainSelection.gauche && mainSelection.droite
+          ? "Ambidextre"
+          : mainSelection.gauche
+          ? "Gauche"
+          : "Droite";
+
+      // Calculer la date de naissance à partir de l'âge
+      const birthdate = form.ageDate
+        ? new Date(form.ageDate).toISOString().split("T")[0]
+        : new Date(new Date().getFullYear() - ageNumber, 0, 1)
+            .toISOString()
+            .split("T")[0];
+
+      const userData = {
+        email: email as string,
+        password: password as string,
+        firstname: nom as string,
+        lastname: prenom as string,
+        pseudo: pseudo as string,
+        birthdate,
+        user_weight: form.poids,
+        user_height: form.taille,
+        foot_size: form.pointure,
+        dominant_hand: mainValue as "Gauche" | "Droite" | "Ambidextre",
+      };
+
+      const response = await registerService.register(userData);
+
+      if (response.success) {
+        Alert.alert(
+          "Inscription réussie",
+          "Votre compte a été créé avec succès !",
+          [
+            {
+              text: "OK",
+              onPress: () => router.replace("./"),
+            },
+          ]
+        );
+      }
+    } catch (error: any) {
+      console.error("Erreur inscription:", error);
+
+      let errorMessage = "Une erreur est survenue lors de l'inscription";
+
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.error;
+
+        if (status === 409) {
+          errorMessage = message || "Email ou pseudo déjà utilisé";
+        } else if (status === 400) {
+          errorMessage = message || "Données invalides";
+        }
+      }
+
+      Alert.alert("Erreur", errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-    const mainValue =
-      mainSelection.gauche && mainSelection.droite
-        ? "Ambidextre"
-        : mainSelection.gauche
-        ? "Gauche"
-        : "Droite";
-
-    const payload = {
-      pointure: form.pointure,
-      main: mainValue,
-      poids: form.poids,
-      taille: form.taille,
-      age: ageNumber,
-    };
-
-    Alert.alert(
-      "Caractéristiques sauvegardées",
-      `Pointure: ${payload.pointure}\nMain: ${payload.main}\nPoids: ${payload.poids}\nTaille: ${payload.taille}\nÂge: ${payload.age}`,
-      [
-        {
-          text: "OK",
-          onPress: () => router.replace("./(tabs)/matches"),
-        },
-      ]
-    );
   };
 
   const handleCancel = () => {

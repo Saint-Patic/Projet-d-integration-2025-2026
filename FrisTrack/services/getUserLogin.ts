@@ -9,18 +9,16 @@ export interface LoginRequest {
 export interface LoginResponse {
   success: boolean;
   user: UserProfile;
-  token?: string; // Si vous utilisez des tokens d'authentification
+  token?: string;
 }
 
 export const authService = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     try {
-      console.log("Attempting login with:", { email: credentials.email });
       const response = await api.post<LoginResponse>(
         "/users/login",
         credentials
       );
-      console.log("Login successful:", response.data);
       return response.data;
     } catch (error: any) {
       console.error("Login error details:", {
@@ -30,6 +28,15 @@ export const authService = {
         url: error.config?.url,
         method: error.config?.method,
       });
+      throw error;
+    }
+  },
+  getUserById: async (userId: number): Promise<UserProfile> => {
+    try {
+      const response = await api.get<UserProfile[]>(`/users/${userId}`);
+      return response.data[0];
+    } catch (error: any) {
+      console.error("Get user error:", error);
       throw error;
     }
   },

@@ -19,6 +19,8 @@ import {
 } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
 export default function AuthPage() {
   const { email, password } = useLocalSearchParams<{
     email: string;
@@ -109,7 +111,7 @@ export default function AuthPage() {
     }
   };
 
-  const handlePseudoChange = (text: string) => {
+  const handlePseudoChange = async (text: string) => {
     setPseudo(text);
     setErrorMessage("");
     setPseudoAvailable(null);
@@ -122,6 +124,21 @@ export default function AuthPage() {
       setPseudoError("Lettres, chiffres, tirets et underscores uniquement");
     } else {
       setPseudoError("");
+
+      setCheckingPseudo(true);
+      try {
+        const response = await fetch(`${API_URL}/users/check-pseudo/${text}`);
+        const data = await response.json();
+        setPseudoAvailable(data.available);
+
+        if (!data.available) {
+          setPseudoError("Ce pseudo est déjà pris");
+        }
+      } catch (error) {
+        console.error("Erreur vérification pseudo:", error);
+      } finally {
+        setCheckingPseudo(false);
+      }
     }
   };
 
@@ -150,20 +167,10 @@ export default function AuthPage() {
       return;
     }
 
-    Alert.alert(
-      "Suite inscription",
-      `Création du nouvel utilisateur ${email} : ${prenom} - ${nom} (${pseudo})`,
-      [
-        {
-          text: "OK",
-          onPress: () =>
-            router.replace({
-              pathname: "./caract-form",
-              params: { email, password, nom, prenom, pseudo },
-            }),
-        },
-      ]
-    );
+    router.push({
+      pathname: "./caract-form",
+      params: { email, password, nom, prenom, pseudo },
+    });
   }
 
   const getInputStyle = (error: string, available: boolean | null) => {
@@ -265,7 +272,7 @@ export default function AuthPage() {
         {pseudoError !== "" && (
           <ThemedText style={styles.fieldErrorText}>{pseudoError}</ThemedText>
         )}
-        {pseudoAvailable === true && (
+        {pseudoAvailable === true && pseudoError === "" && (
           <ThemedText style={styles.successText}>
             Pseudo disponible ✓
           </ThemedText>
