@@ -97,7 +97,6 @@ export default function AuthPage() {
       console.error("Erreur de connexion:", error);
 
       if (error.response) {
-        // Erreur du serveur avec réponse
         const status = error.response.status;
         const message = error.response.data?.error || "Erreur de connexion";
 
@@ -109,7 +108,6 @@ export default function AuthPage() {
           setErrorMessage("Une erreur est survenue. Veuillez réessayer.");
         }
       } else if (error.request) {
-        // Pas de réponse du serveur
         setErrorMessage(
           "Impossible de contacter le serveur. Vérifiez votre connexion."
         );
@@ -121,7 +119,7 @@ export default function AuthPage() {
     }
   }
 
-  function handleRegister() {
+  async function handleRegister() {
     if (password === "" || email === "" || confirmPassword === "") {
       setErrorMessage("Tous les champs sont obligatoires");
       return;
@@ -144,16 +142,36 @@ export default function AuthPage() {
       return;
     }
 
-    Alert.alert("Inscription", `Création d'un nouvel utilisateur : ${email}`, [
-      {
-        text: "OK",
-        onPress: () =>
-          router.replace({
-            pathname: "./nom-prenom-pseudo",
-            params: { email, password },
-          }),
-      },
-    ]);
+    // Vérification que l'email n'existe pas déjà
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      // Appel API pour vérifier si l'email existe
+      const response = await authService.checkEmail(email);
+
+      if (response.exists) {
+        setErrorMessage("Cette adresse email est déjà utilisée");
+        setIsLoading(false);
+        return;
+      }
+
+      // Si l'email n'existe pas, continuer vers la page suivante
+      setIsLoading(false);
+      router.replace({
+        pathname: "./nom-prenom-pseudo",
+        params: { email, password },
+      });
+    } catch (error: any) {
+      console.error("Erreur vérification email:", error);
+
+      if (error.response?.status === 409) {
+        setErrorMessage("Cette adresse email est déjà utilisée");
+      } else {
+        setErrorMessage("Impossible de vérifier l'email. Veuillez réessayer.");
+      }
+      setIsLoading(false);
+    }
   }
 
   function handleSubmit() {
@@ -273,6 +291,8 @@ export default function AuthPage() {
     </View>
   );
 }
+
+// ...existing code...
 
 const styles = StyleSheet.create({
   container: {

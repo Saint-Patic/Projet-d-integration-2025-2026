@@ -16,7 +16,7 @@ import {
 } from "expo-router";
 import EditProfile from "@/components/perso_components/EditProfile";
 import { useTheme } from "@/contexts/ThemeContext";
-
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { registerService } from "@/services/addUserLogin";
 
 export default function CaractForm() {
@@ -45,6 +45,7 @@ export default function CaractForm() {
   const [tailleInput, setTailleInput] = useState(form.taille.toString());
   const [ageInput, setAgeInput] = useState(form.age.toString());
   const [isLoading, setIsLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [mainSelection, setMainSelection] = useState<{
     gauche: boolean;
@@ -88,6 +89,23 @@ export default function CaractForm() {
     if (type === "float") filtered = filtered.replace(",", ".");
     return filtered;
   }
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+    }
+
+    if (selectedDate) {
+      const now = new Date();
+      const age = Math.floor(
+        (now.getTime() - selectedDate.getTime()) /
+          (1000 * 60 * 60 * 24 * 365.25)
+      );
+
+      setForm({ ...form, ageDate: selectedDate, age });
+      setAgeInput(age.toString());
+    }
+  };
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -202,6 +220,9 @@ export default function CaractForm() {
         handleCancel={handleCancel}
         styles={styles}
         showNameAndImage={false}
+        showDatePicker={showDatePicker}
+        setShowDatePicker={setShowDatePicker}
+        onDateChange={onDateChange}
       />
     </View>
   );

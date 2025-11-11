@@ -251,7 +251,7 @@ router.post("/register", async (req, res) => {
     // Insérer le nouvel utilisateur
     const conn2 = await pool.getConnection();
     try {
-      const [result] = await conn2.query(
+      const result = await conn2.query(
         `INSERT INTO users 
          (firstname, lastname, pseudo, birthdate, email, password_hash, user_weight, user_height, foot_size, dominant_hand) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
