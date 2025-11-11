@@ -40,6 +40,14 @@ export const authService = {
       throw error;
     }
   },
+  checkEmail: async (email: string) => {
+    try {
+      const response = await api.post("/auth/check-email", { email });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 export default api;

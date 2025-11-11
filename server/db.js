@@ -6,6 +6,35 @@ const dotenv = require("dotenv");
 
 dotenv.config({ path: path.join(__dirname, ".env") });
 
+// Helper to convert BigInt to Number
+function convertBigIntToNumber(obj) {
+  if (obj === null || obj === undefined) return obj;
+
+  if (Array.isArray(obj)) {
+    return obj.map(convertBigIntToNumber);
+  }
+
+  if (typeof obj === "object") {
+    const newObj = {};
+    for (const key in obj) {
+      if (typeof obj[key] === "bigint") {
+        newObj[key] = Number(obj[key]);
+      } else if (typeof obj[key] === "object") {
+        newObj[key] = convertBigIntToNumber(obj[key]);
+      } else {
+        newObj[key] = obj[key];
+      }
+    }
+    return newObj;
+  }
+
+  if (typeof obj === "bigint") {
+    return Number(obj);
+  }
+
+  return obj;
+}
+
 function loadRoute(relativePath) {
   const fullPath = path.join(__dirname, relativePath + ".js");
   if (fs.existsSync(fullPath)) {
@@ -33,6 +62,16 @@ const auth = loadRoute("/routes/auth".replace(/^\.\//, "routes/"));
 const users = loadRoute("/routes/users".replace(/^\.\//, "routes/"));
 
 const app = express();
+
+// Middleware pour convertir BigInt en Number - DOIT être AVANT les autres middlewares
+app.use((req, res, next) => {
+  const originalJson = res.json;
+  res.json = function (data) {
+    return originalJson.call(this, convertBigIntToNumber(data));
+  };
+  next();
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -56,4 +95,5 @@ server.on("error", (err) => {
   console.error("Erreur serveur non gérée :", err);
   process.exit(1);
 });
+
 module.exports = app;

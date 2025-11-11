@@ -14,10 +14,48 @@ async function callProcedure(sql, params = []) {
   }
 }
 
+// POST /api/auth/check-email
+// body: { email }
+router.post("/check-email", async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: "L'email est requis" });
+  }
+
+  try {
+    const result = await callProcedure("CALL check_email_exists(?)", [email]);
+
+    // Si result[0] contient des données, l'email existe
+    const exists = result[0] && result[0].length > 0;
+
+    res.status(200).json({
+      exists,
+      message: exists ? "Email déjà utilisé" : "Email disponible",
+    });
+  } catch (err) {
+    console.error(err);
+    res
+      .status(500)
+      .json({ error: "Erreur serveur lors de la vérification de l'email" });
+  }
+});
+
 // POST /api/auth/register
-// body: { email, password, firstname, lastname, pseudo, birthdate }
+// body: { email, password, firstname, lastname, pseudo, birthdate, user_weight, user_height, foot_size, dominant_hand }
 router.post("/register", async (req, res) => {
-  const { email, password, firstname, lastname, pseudo, birthdate } = req.body;
+  const {
+    email,
+    password,
+    firstname,
+    lastname,
+    pseudo,
+    birthdate,
+    user_weight,
+    user_height,
+    foot_size,
+    dominant_hand,
+  } = req.body;
 
   if (!email || !password || !firstname || !lastname || !birthdate) {
     return res
@@ -33,21 +71,32 @@ router.post("/register", async (req, res) => {
         email,
       ]);
 
-      if (existingUser.length > 0) {
+      if (existingUser[0] && existingUser[0].length > 0) {
         return res.status(409).json({ error: "Cet email est déjà utilisé" });
       }
 
       // Hasher le mot de passe
       const password_hash = await argon2.hash(password);
 
-      // Insérer le nouvel utilisateur
+      // Insérer le nouvel utilisateur avec tous les champs
       const result = await conn.query(
-        `INSERT INTO users (firstname, lastname, pseudo, birthdate, email, password_hash, user_type) 
-         VALUES (?, ?, ?, ?, ?, ?, 'playeronly')`,
-        [firstname, lastname, pseudo || null, birthdate, email, password_hash]
+        `INSERT INTO users (firstname, lastname, pseudo, birthdate, email, password_hash, user_type, user_weight, user_height, foot_size, dominant_hand) 
+         VALUES (?, ?, ?, ?, ?, ?, 'playeronly', ?, ?, ?, ?)`,
+        [
+          firstname,
+          lastname,
+          pseudo || null,
+          birthdate,
+          email,
+          password_hash,
+          user_weight || null,
+          user_height || null,
+          foot_size || null,
+          dominant_hand || null,
+        ]
       );
 
-      const user_id = result.insertId;
+      const user_id = result[0].insertId;
 
       res.status(201).json({
         success: true,
