@@ -84,7 +84,7 @@ export default function MatchDetailsScreen() {
         timerRef.current = null;
       }
     };
-  }, [match?.isRecording, match?.recordingStartTime, match?.recordingDuration]);
+  }, [match]);
 
   const formatTime = (total: number) => {
     const mm = Math.floor(total / 60)
