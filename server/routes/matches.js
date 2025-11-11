@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../index");
-const authMiddleware = require("../middleware/auth");
+// const authMiddleware = require("../middleware/auth");
 
 // Protéger toutes les routes avec le middleware
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 // Helper to call procedures
 async function callProcedure(sql, params = []) {
