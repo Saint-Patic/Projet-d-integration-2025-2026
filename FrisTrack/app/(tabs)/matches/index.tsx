@@ -10,19 +10,21 @@ import { ThemedText } from "@/components/themed-text";
 import { SwipeableCard } from "@/components/perso_components/swipeableCard";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { AddButton } from "@/components/perso_components/addButton";
-import { getMatches, updateMatch } from "@/services/getMatches";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter, useFocusEffect } from "expo-router";
+import { getMatches, updateMatch } from "@/services/getMatches";
 
-interface Match {
+export interface Match {
   id: number;
-  team1: string;
-  team2: string;
-  score1: number;
-  score2: number;
+  team_name_1: string;
+  team_name_2: string;
+  team_score_1: number;
+  team_score_2: number;
+  team1_status: string; // 'home' ou 'away'
+  team2_status: string; // 'home' ou 'away'
   date: string;
-  status: string;
-  color: string;
+  status?: string;
+  color?: string;
   isRecording?: boolean;
   hasRecording?: boolean;
   recordingStartTime?: number;
@@ -75,59 +77,68 @@ export default function HomeScreen() {
   };
 
   const toggleRecording = (matchId: number) => {
-    setMatches(matches.map(match => {
-      if (match.id === matchId) {
-        const isRecording = !match.isRecording;
-        if (isRecording) {
-          console.log(`Démarrage de l'enregistrement du match ${matchId}`);
-          // Enregistrer l'heure de début
-          const startTime = Date.now();
-          updateMatch(matchId, { isRecording: true, recordingStartTime: startTime });
-          return { ...match, isRecording: true, recordingStartTime: startTime };
-        } else {
-          console.log(`Arrêt de l'enregistrement du match ${matchId}`);
-          // Calculer la durée totale en secondes
-          const duration = match.recordingStartTime 
-            ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
-            : 0;
-          updateMatch(matchId, { 
-            isRecording: false, 
-            hasRecording: true,
-            recordingDuration: duration,
-            recordingStartTime: undefined
-          });
-          return { 
-            ...match, 
-            isRecording: false, 
-            hasRecording: true,
-            recordingDuration: duration,
-            recordingStartTime: undefined
-          };
+    setMatches(
+      matches.map((match) => {
+        if (match.id === matchId) {
+          const isRecording = !match.isRecording;
+          if (isRecording) {
+            console.log(`Démarrage de l'enregistrement du match ${matchId}`);
+            // Enregistrer l'heure de début
+            const startTime = Date.now();
+            updateMatch(matchId, {
+              isRecording: true,
+              recordingStartTime: startTime,
+            });
+            return {
+              ...match,
+              isRecording: true,
+              recordingStartTime: startTime,
+            };
+          } else {
+            console.log(`Arrêt de l'enregistrement du match ${matchId}`);
+            // Calculer la durée totale en secondes
+            const duration = match.recordingStartTime
+              ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
+              : 0;
+            updateMatch(matchId, {
+              isRecording: false,
+              hasRecording: true,
+              recordingDuration: duration,
+              recordingStartTime: undefined,
+            });
+            return {
+              ...match,
+              isRecording: false,
+              hasRecording: true,
+              recordingDuration: duration,
+              recordingStartTime: undefined,
+            };
+          }
         }
-      }
-      return match;
-    }));
+        return match;
+      })
+    );
   };
 
   const createNewMatch = () => {
     console.log("Création d'un nouveau match");
   };
 
-  const getTeamTextColor = (match: Match, isTeam1: boolean) => {
+  const getTeamTextColor = (match: Match, isteam_name_1: boolean) => {
     if (match.status !== "finished") {
       return theme.text;
     }
 
-    const team1Score = match.score1;
-    const team2Score = match.score2;
+    const team_name_1Score = match.team_score_1;
+    const team_name_2Score = match.team_score_2;
 
-    if (team1Score === team2Score) {
+    if (team_name_1Score === team_name_2Score) {
       return theme.text;
     }
 
-    const isWinner = isTeam1
-      ? team1Score > team2Score
-      : team2Score > team1Score;
+    const isWinner = isteam_name_1
+      ? team_name_1Score > team_name_2Score
+      : team_name_2Score > team_name_1Score;
 
     return isWinner ? "#00e6cc" : "#ff8080";
   };
@@ -153,7 +164,7 @@ export default function HomeScreen() {
                   { color: getTeamTextColor(match, true) },
                 ]}
               >
-                {match.team1}
+                {match.team_name_1}
               </ThemedText>
               <View
                 style={[
@@ -161,7 +172,9 @@ export default function HomeScreen() {
                   { backgroundColor: theme.primary },
                 ]}
               >
-                <ThemedText style={styles.score}>{match.score1}</ThemedText>
+                <ThemedText style={styles.score}>
+                  {match.team_score_1}
+                </ThemedText>
               </View>
             </View>
             <View
@@ -181,7 +194,7 @@ export default function HomeScreen() {
                   { color: getTeamTextColor(match, false) },
                 ]}
               >
-                {match.team2}
+                {match.team_name_2}
               </ThemedText>
               <View
                 style={[
@@ -189,7 +202,9 @@ export default function HomeScreen() {
                   { backgroundColor: theme.primary },
                 ]}
               >
-                <ThemedText style={styles.score}>{match.score2}</ThemedText>
+                <ThemedText style={styles.score}>
+                  {match.team_score_2}
+                </ThemedText>
               </View>
             </View>
           </View>
@@ -213,18 +228,15 @@ export default function HomeScreen() {
               style={[
                 styles.actionButton,
                 styles.secondaryButton,
-                { 
-                  backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60", 
-                  borderColor: match.isRecording ? "#e74c3c" : "#27ae60" 
+                {
+                  backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60",
+                  borderColor: match.isRecording ? "#e74c3c" : "#27ae60",
                 },
               ]}
               onPress={() => toggleRecording(match.id)}
             >
               <ThemedText
-                style={[
-                  styles.secondaryButtonText, 
-                  { color: "#ffffff" }
-                ]}
+                style={[styles.secondaryButtonText, { color: "#ffffff" }]}
               >
                 {match.isRecording ? "⏹ Stop" : "▶ Start"}
               </ThemedText>
@@ -249,7 +261,6 @@ export default function HomeScreen() {
   );
 }
 
-// ...existing code...
 const styles = StyleSheet.create({
   matchesContainer: {
     flexDirection: "row",

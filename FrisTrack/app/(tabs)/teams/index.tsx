@@ -10,16 +10,17 @@ import { ThemedText } from "@/components/themed-text";
 import { SwipeableCard } from "@/components/perso_components/swipeableCard";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { AddButton } from "@/components/perso_components/addButton";
-import { getTeams } from "@/services/getTeams";
+import { getTeams, getPlayerCount } from "@/services/getTeams";
 import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/contexts/ThemeContext";
 
 interface Team {
   id: number;
-  name: string;
-  playerCount: number;
-  color: string;
+  team_name: string;
+  logo?: string;
+  playerCount?: number;
+  coach_id?: number;
 }
 
 export default function TeamScreen() {
@@ -28,9 +29,21 @@ export default function TeamScreen() {
   const { theme } = useTheme();
 
   useEffect(() => {
-    getTeams().then((data) => {
-      setTeams(data);
-    });
+    const fetchTeamsWithPlayerCount = async () => {
+      const teamsData = await getTeams();
+      const teamsWithCount = await Promise.all(
+        teamsData.map(async (team) => {
+          const playerCountData = await getPlayerCount(team.id);
+          return {
+            ...team,
+            playerCount: playerCountData?.playerCount ?? 0,
+          };
+        })
+      );
+      setTeams(teamsWithCount);
+    };
+
+    fetchTeamsWithPlayerCount();
   }, []);
 
   const editTeam = (teamId: number) => {
@@ -41,7 +54,7 @@ export default function TeamScreen() {
         params: {
           id: teamId.toString(),
           teamId: teamId.toString(),
-          teamName: team.name,
+          teamName: team.team_name,
           editMode: "true",
         },
       });
@@ -82,7 +95,7 @@ export default function TeamScreen() {
         pathname: "../teams/add-player",
         params: {
           teamId: teamId.toString(),
-          teamName: team.name,
+          teamName: team.team_name,
         },
       });
     }
@@ -105,7 +118,7 @@ export default function TeamScreen() {
         <View style={styles.teamInfo}>
           <View style={styles.teamNameSection}>
             <ThemedText style={[styles.teamName, { color: theme.primary }]}>
-              {team.name}
+              {team.team_name}
             </ThemedText>
             <View
               style={[
@@ -115,7 +128,7 @@ export default function TeamScreen() {
             >
               <MaterialIcons name="person" size={16} color={theme.primary} />
               <ThemedText style={[styles.playerCount, { color: theme.text }]}>
-                {team.playerCount}
+                {team.playerCount || 0}
               </ThemedText>
             </View>
           </View>
@@ -128,7 +141,7 @@ export default function TeamScreen() {
               styles.primaryButton,
               { backgroundColor: theme.primary },
             ]}
-            onPress={() => viewTeamDetails(team.id, team.name)}
+            onPress={() => viewTeamDetails(team.id, team.team_name)}
           >
             <ThemedText style={styles.primaryButtonText}>
               Voir détails
