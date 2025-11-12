@@ -7,9 +7,11 @@ import {
   ScrollView,
   Platform,
   useWindowDimensions,
+  Modal,
 } from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 type Picture = { name: string; src: any };
 
@@ -38,8 +40,10 @@ interface Props {
   handleSave: () => void;
   handleCancel: () => void;
   styles: any;
-  // new optional props
-  showNameAndImage?: boolean; // default true
+  showNameAndImage?: boolean;
+  showDatePicker?: boolean;
+  setShowDatePicker?: (v: boolean) => void;
+  onDateChange?: (event: any, selectedDate?: Date) => void;
 }
 
 export default function EditProfile(props: Props) {
@@ -66,6 +70,9 @@ export default function EditProfile(props: Props) {
     handleCancel,
     styles,
     showNameAndImage = true,
+    showDatePicker = false,
+    setShowDatePicker = () => {},
+    onDateChange = () => {},
   } = props;
 
   const { width } = useWindowDimensions();
@@ -406,41 +413,30 @@ export default function EditProfile(props: Props) {
             />
           </View>
 
-          {/* âge: champ numérique simplifié */}
+          {/* Date de naissance avec DatePicker */}
           <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
             <ThemedText style={[styles.infoLabel, { color: theme.text }]}>
-              Âge
+              Date de naissance
             </ThemedText>
-
-            <TextInput
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
               style={[
                 styles.input,
                 {
-                  color: theme.text,
                   backgroundColor: theme.surface,
                   borderColor: theme.border,
                   borderWidth: 1,
+                  justifyContent: "center",
                 },
               ]}
-              value={ageInput}
-              onChangeText={(text) => {
-                const filtered = filterNumericInput(text, "int");
-                setAgeInput(filtered);
-                if (filtered !== "")
-                  setForm((f: any) => ({ ...f, age: parseInt(filtered) }));
-              }}
-              onBlur={() => {
-                let value = parseInt(ageInput);
-                if (isNaN(value)) value = form.age;
-                if (value < 1) value = 1;
-                if (value > 120) value = 120;
-                setAgeInput(value.toString());
-                setForm((f: any) => ({ ...f, age: value }));
-              }}
-              keyboardType="numeric"
-              placeholder="Âge"
-              placeholderTextColor="#aaa"
-            />
+            >
+              <ThemedText style={{ color: theme.text }}>
+                {form.ageDate
+                  ? new Date(form.ageDate).toLocaleDateString("fr-FR") +
+                    ` (${ageInput} ans)`
+                  : "Sélectionner"}
+              </ThemedText>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -470,6 +466,86 @@ export default function EditProfile(props: Props) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* DatePicker Modal pour iOS */}
+      {Platform.OS === "ios" && showDatePicker && (
+        <Modal
+          transparent={true}
+          animationType="slide"
+          visible={showDatePicker}
+          onRequestClose={() => setShowDatePicker(false)}
+        >
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "flex-end",
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: theme.surface,
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                padding: 20,
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginBottom: 10,
+                }}
+              >
+                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                  <ThemedText
+                    style={{
+                      color: theme.primary,
+                      fontSize: 16,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Annuler
+                  </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                  <ThemedText
+                    style={{
+                      color: theme.primary,
+                      fontSize: 16,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Confirmer
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={form.ageDate || new Date()}
+                mode="date"
+                display="spinner"
+                onChange={onDateChange}
+                maximumDate={new Date()}
+                minimumDate={new Date(1900, 0, 1)}
+                textColor={theme.text}
+                style={{ backgroundColor: theme.surface }}
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* DatePicker pour Android */}
+      {Platform.OS === "android" && showDatePicker && (
+        <DateTimePicker
+          value={form.ageDate || new Date()}
+          mode="date"
+          display="default"
+          onChange={onDateChange}
+          maximumDate={new Date()}
+          minimumDate={new Date(1900, 0, 1)}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }
