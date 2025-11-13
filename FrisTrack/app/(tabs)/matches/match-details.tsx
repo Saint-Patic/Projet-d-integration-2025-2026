@@ -7,11 +7,13 @@ import { useLocalSearchParams, useNavigation, router, useFocusEffect } from "exp
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
-import { getMatchById, updateMatch } from "@/services/getMatches";
+import { getMatchById, updateMatch, Match } from "@/services/getMatches";
 
 export default function MatchDetailsScreen() {
   const params = useLocalSearchParams();
-  const matchId = params.matchId ? parseInt(params.matchId as string, 10) : null;
+  const matchId = params.matchId
+    ? parseInt(params.matchId as string, 10)
+    : null;
   const navigation = useNavigation();
   const { theme } = useTheme();
 
@@ -93,7 +95,7 @@ export default function MatchDetailsScreen() {
   };
 
   // undefined = loading, null = not found, object = loaded
-  const [match, setMatch] = useState<any | undefined>(undefined);
+  const [match, setMatch] = useState<Match | null | undefined>(undefined);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -177,23 +179,25 @@ export default function MatchDetailsScreen() {
   // Démarre/arrête le chrono en fonction de match.isRecording
   useEffect(() => {
     if (!match) return;
-    
+
     // Si le match a une durée enregistrée (après Stop), l'afficher
     if (match.recordingDuration && !match.isRecording) {
       setElapsedSeconds(match.recordingDuration);
       return;
     }
-    
+
     if (match.isRecording && match.recordingStartTime) {
       // Calculer le temps écoulé depuis le début
       const updateElapsed = () => {
-        const elapsed = Math.floor((Date.now() - match.recordingStartTime) / 1000);
+        const elapsed = Math.floor(
+          (Date.now() - match.recordingStartTime!) / 1000
+        );
         setElapsedSeconds(elapsed);
       };
-      
+
       // Mise à jour initiale
       updateElapsed();
-      
+
       // Mise à jour toutes les secondes
       timerRef.current = setInterval(updateElapsed, 1000);
     } else {
@@ -203,7 +207,7 @@ export default function MatchDetailsScreen() {
         timerRef.current = null;
       }
     }
-    
+
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -220,6 +224,23 @@ export default function MatchDetailsScreen() {
     return `${mm}:${ss}`;
   };
 
+  const getTeamTextColor = (isTeam1: boolean) => {
+    if (!match || match.status !== "finished") {
+      return theme.text;
+    }
+
+    const team1Score = match.team_score_1;
+    const team2Score = match.team_score_2;
+
+    if (team1Score === team2Score) {
+      return theme.text;
+    }
+
+    const isWinner = isTeam1
+      ? team1Score > team2Score
+      : team2Score > team1Score;
+    return isWinner ? "#00e6cc" : "#ff8080";
+    
   // Corner click handler — receives which corner and optional event
   const onCornerPress = (key: keyof typeof corners) => (e?: GestureResponderEvent) => {
     // Toggle selection: if same corner is already active, deselect it
@@ -265,9 +286,15 @@ export default function MatchDetailsScreen() {
 
   if (match === undefined) {
     return (
-      <ScreenLayout title="Détails du match" headerLeft={<BackButton theme={theme} />} theme={theme}>
+      <ScreenLayout
+        title="Détails du match"
+        headerLeft={<BackButton theme={theme} />}
+        theme={theme}
+      >
         <View style={[styles.container, { backgroundColor: theme.background }]}>
-          <ThemedText style={[styles.loadingText, { color: theme.text }]}>Chargement...</ThemedText>
+          <ThemedText style={[styles.loadingText, { color: theme.text }]}>
+            Chargement...
+          </ThemedText>
         </View>
       </ScreenLayout>
     );
@@ -275,9 +302,15 @@ export default function MatchDetailsScreen() {
 
   if (match === null) {
     return (
-      <ScreenLayout title="Détails du match" headerLeft={<BackButton theme={theme} />} theme={theme}>
+      <ScreenLayout
+        title="Détails du match"
+        headerLeft={<BackButton theme={theme} />}
+        theme={theme}
+      >
         <View style={[styles.container, { backgroundColor: theme.background }]}>
-          <ThemedText style={[styles.loadingText, { color: theme.text }]}>Match introuvable</ThemedText>
+          <ThemedText style={[styles.loadingText, { color: theme.text }]}>
+            Match introuvable
+          </ThemedText>
           <TouchableOpacity
             style={[styles.backButton, { backgroundColor: theme.primary }]}
             onPress={handleBack}
@@ -294,29 +327,58 @@ export default function MatchDetailsScreen() {
       <View style={[styles.container, { backgroundColor: theme.background }]}> 
         {/* Initial choice removed from top; will be shown above the field area instead */}
         <View style={styles.headerRow}>
-          <ThemedText style={[styles.dateText, { color: theme.text }]}>Date: {match.date}</ThemedText>
+          <ThemedText style={[styles.dateText, { color: theme.text }]}>
+            Date: {new Date(match.date).toLocaleDateString("fr-FR")}
+          </ThemedText>
         </View>
 
         <View style={styles.scoreRow}>
-          <View style={[styles.scoreBox, { borderColor: theme.border }]}> 
-            <ThemedText style={[styles.scoreNumber, { color: theme.text }]}>{match.score1}</ThemedText>
-            <ThemedText style={[styles.teamLabel, { color: theme.primary }]}>{match.team1}</ThemedText>
+          <View style={[styles.scoreBox, { borderColor: theme.border }]}>
+            <ThemedText
+              style={[styles.scoreNumber, { color: getTeamTextColor(true) }]}
+            >
+              {match.team_score_1}
+            </ThemedText>
+            <ThemedText style={[styles.teamLabel, { color: theme.primary }]}>
+              {match.team_name_1}
+            </ThemedText>
+            <ThemedText style={[styles.statusText, { color: theme.text }]}>
+              ({match.team1_status})
+            </ThemedText>
           </View>
 
-          <View style={[styles.scoreBox, { borderColor: theme.border }]}> 
-            <ThemedText style={[styles.scoreNumber, { color: theme.text }]}>{match.score2}</ThemedText>
-            <ThemedText style={[styles.teamLabel, { color: theme.primary }]}>{match.team2}</ThemedText>
+          <ThemedText style={[styles.versus, { color: theme.primary }]}>
+            VS
+          </ThemedText>
+
+          <View style={[styles.scoreBox, { borderColor: theme.border }]}>
+            <ThemedText
+              style={[styles.scoreNumber, { color: getTeamTextColor(false) }]}
+            >
+              {match.team_score_2}
+            </ThemedText>
+            <ThemedText style={[styles.teamLabel, { color: theme.primary }]}>
+              {match.team_name_2}
+            </ThemedText>
+            <ThemedText style={[styles.statusText, { color: theme.text }]}>
+              ({match.team2_status})
+            </ThemedText>
           </View>
         </View>
 
         <View style={styles.metaRow}>
-          <ThemedText style={[styles.metaText, { color: theme.text }]}>Statut: {match.status}</ThemedText>
-          <ThemedText style={[styles.metaText, { color: theme.text }]}>Lieu: {match.venue === "indoor" ? "Intérieur" : "Extérieur"}</ThemedText>
+          {match.status && (
+            <ThemedText style={[styles.metaText, { color: theme.text }]}>
+              Statut: {match.status}
+            </ThemedText>
+          )}
         </View>
 
         {/* Affichage du temps total (toujours affiché, même à 00:00) */}
         <View style={styles.timerContainer}>
-          <ThemedText style={[styles.timerText, { color: theme.text }]}>⏱ Temps de match: {formatTime(elapsedSeconds)}</ThemedText>
+          <ThemedText style={[styles.timerText, { color: theme.text }]}>
+            ⏱ Temps de match: {formatTime(elapsedSeconds)}
+          </ThemedText>
         </View>
 
         {/* Timer + Bouton Start/Stop (visible uniquement si pas encore de recording) */}
@@ -324,42 +386,51 @@ export default function MatchDetailsScreen() {
           <View style={styles.recordingBlock}>
             {match.isRecording && (
               <View style={styles.timerContainer}>
-                <ThemedText style={[styles.timerText, { color: theme.text }]}>⏱ {formatTime(elapsedSeconds)}</ThemedText>
+                <ThemedText style={[styles.timerText, { color: theme.text }]}>
+                  ⏱ {formatTime(elapsedSeconds)}
+                </ThemedText>
               </View>
             )}
             <TouchableOpacity
               style={[
                 styles.reviewButton,
-                { backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60" }
+                { backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60" },
               ]}
               onPress={() => {
                 if (match.isRecording) {
                   // Stop: calculer la durée et marquer l'enregistrement
-                  const duration = match.recordingStartTime 
+                  const duration = match.recordingStartTime
                     ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
                     : elapsedSeconds;
                   // Persister dans le service
-                  updateMatch(matchId!, { 
-                    isRecording: false, 
+                  updateMatch(matchId!, {
+                    isRecording: false,
                     hasRecording: true,
                     recordingDuration: duration,
-                    recordingStartTime: undefined
+                    recordingStartTime: undefined,
                   });
-                  setMatch({ 
-                    ...match, 
-                    isRecording: false, 
+                  setMatch({
+                    ...match,
+                    isRecording: false,
                     hasRecording: true,
                     recordingDuration: duration,
-                    recordingStartTime: undefined
+                    recordingStartTime: undefined,
                   });
                   setElapsedSeconds(duration);
                 } else {
                   // Start: démarrer avec timestamp
                   const startTime = Date.now();
                   // Persister dans le service
-                  updateMatch(matchId!, { isRecording: true, recordingStartTime: startTime });
+                  updateMatch(matchId!, {
+                    isRecording: true,
+                    recordingStartTime: startTime,
+                  });
                   setElapsedSeconds(0);
-                  setMatch({ ...match, isRecording: true, recordingStartTime: startTime });
+                  setMatch({
+                    ...match,
+                    isRecording: true,
+                    recordingStartTime: startTime,
+                  });
                 }
               }}
             >
@@ -658,11 +729,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 24,
   },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: "800",
-    marginBottom: 6,
-  },
   dateText: {
     fontSize: 14,
     fontWeight: "600",
@@ -670,6 +736,7 @@ const styles = StyleSheet.create({
   scoreRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 24,
   },
   scoreBox: {
@@ -692,6 +759,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     marginTop: 8,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 4,
+    fontStyle: "italic",
+  },
+  versus: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginHorizontal: 8,
   },
   metaRow: {
     marginBottom: 36,

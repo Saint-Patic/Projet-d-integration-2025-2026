@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   TouchableOpacity,
   StyleSheet,
   Platform,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
@@ -13,55 +14,79 @@ import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
+import { getTeamPlayers } from "@/services/getTeams";
+import { getProfileImage } from "@/components/perso_components/loadImages";
+import { userService } from "@/services/userService";
 
-// Exemple de données fictives - utilisation des mêmes images que dans profil.tsx
-const positionTerrain = { 1: "handler", 2: "stack" };
-
-const fakeMembers = [
-  {
-    id: 1,
-    name: "Nathan Lemaire",
-    image: require("@/assets/images/profile_pictures/nathan.png"),
-    position: positionTerrain["1"],
-  },
-  {
-    id: 2,
-    name: "Antoine Bontems",
-    image: require("@/assets/images/profile_pictures/lezard.png"),
-    position: positionTerrain["2"],
-  },
-  {
-    id: 3,
-    name: "Alexis Demarcq",
-    image: require("@/assets/images/profile_pictures/default.png"),
-    position: positionTerrain["2"],
-  },
-  {
-    id: 4,
-    name: "Cyril Lamand",
-    image: require("@/assets/images/profile_pictures/chien.png"),
-    position: positionTerrain["1"],
-  },
-  {
-    id: 5,
-    name: "Jiale Wu",
-    image: require("@/assets/images/profile_pictures/chat.png"),
-    position: positionTerrain["2"],
-  },
-];
+interface Member {
+  id: number;
+  user_id: number;
+  name: string;
+  image: any;
+  position: string;
+}
 
 export default function TeamDetailsScreen() {
   const { id, teamName, editMode } = useLocalSearchParams();
   const navigation = useNavigation();
   const { theme } = useTheme();
   const [isEditMode, setIsEditMode] = useState(editMode === "true");
-  const [members, setMembers] = useState(fakeMembers);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [originalMembers, setOriginalMembers] = useState<Member[]>([]);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
+  const loadTeamPlayers = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const players = await getTeamPlayers(Number(id));
+
+      const formattedMembers: Member[] = players.map((player, index) => ({
+        id: index + 1,
+        user_id: player.user_id,
+        name: player.player_name,
+        image: getProfileImage(player.profile_picture),
+        position: player.role_attack === "handler" ? "handler" : "stack",
+      }));
+
+      setMembers(formattedMembers);
+      setOriginalMembers(formattedMembers);
+    } catch (error) {
+      console.error("Error loading team players:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadTeamPlayers();
+  }, [loadTeamPlayers]);
+  if (isLoading) {
+    return (
+      <ScreenLayout
+        title="Détails équipe"
+        headerLeft={<BackButton theme={theme} />}
+        theme={theme}
+      >
+        <View
+          style={[
+            styles.container,
+            {
+              backgroundColor: theme.background,
+              justifyContent: "center",
+              alignItems: "center",
+            },
+          ]}
+        >
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      </ScreenLayout>
+    );
+  }
   // Calcule le nombre de colonnes dynamiquement
   const screenWidth = Dimensions.get("window").width;
   let columns = 2;
@@ -84,18 +109,15 @@ export default function TeamDetailsScreen() {
     });
   };
 
-  const handlePlayerPress = (playerId: number) => {
+  const handlePlayerPress = (userId: number) => {
     router.push({
       pathname: "../../(modals)/player-profile",
-      params: { playerId: playerId.toString() },
+      params: { playerId: userId.toString() },
     });
   };
 
   const HeaderRight = () => (
-    <TouchableOpacity
-      onPress={() => setIsEditMode(!isEditMode)}
-      style={{ marginRight: 16 }}
-    >
+    <TouchableOpacity onPress={toggleEditMode} style={{ marginRight: 16 }}>
       <Ionicons
         name={isEditMode ? "checkmark" : "pencil"}
         size={24}
@@ -104,12 +126,58 @@ export default function TeamDetailsScreen() {
     </TouchableOpacity>
   );
 
-  const handlePositionChange = (playerId: number, newPosition: string) => {
+  const handlePositionChange = (
+    userId: number,
+    newPosition: "handler" | "stack"
+  ) => {
     setMembers((prevMembers) =>
       prevMembers.map((member) =>
-        member.id === playerId ? { ...member, position: newPosition } : member
+        member.user_id === userId
+          ? { ...member, position: newPosition }
+          : member
       )
     );
+  };
+
+  const saveChanges = async () => {
+    try {
+      // Comparer les positions actuelles avec les originales
+      const changedMembers = members.filter((member) => {
+        const original = originalMembers.find(
+          (m) => m.user_id === member.user_id
+        );
+        return original && original.position !== member.position;
+      });
+
+      // Mettre à jour uniquement les joueurs dont la position a changé
+      const updatePromises = changedMembers.map((member) =>
+        userService.updateTeamRoleAttack({
+          user_id: member.user_id,
+          team_id: Number(id),
+          role_attack: member.position as "handler" | "stack",
+        })
+      );
+
+      await Promise.all(updatePromises);
+
+      // Mettre à jour l'état original après sauvegarde
+      setOriginalMembers([...members]);
+      setIsEditMode(false);
+
+      console.log(`${changedMembers.length} position(s) mise(s) à jour`);
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde des changements:", error);
+    }
+  };
+
+  const toggleEditMode = () => {
+    if (isEditMode) {
+      // Si on quitte le mode édition, sauvegarder les changements
+      saveChanges();
+    } else {
+      // Si on entre en mode édition, juste activer le mode
+      setIsEditMode(true);
+    }
   };
 
   // Pour Cyril :)
@@ -173,7 +241,7 @@ export default function TeamDetailsScreen() {
               key={idx}
             >
               {row.map((item) => (
-                <View style={styles.memberContainer} key={item.id}>
+                <View style={styles.memberContainer} key={item.user_id}>
                   <View style={styles.memberImageContainer}>
                     {isEditMode ? (
                       <TouchableOpacity
@@ -190,7 +258,7 @@ export default function TeamDetailsScreen() {
                               style={[
                                 styles.memberImageOverlay,
                                 {
-                                  backgroundColor: theme.primary + "66", // couleur du thème + transparence
+                                  backgroundColor: theme.primary + "66",
                                 },
                               ]}
                               pointerEvents="none"
@@ -206,7 +274,7 @@ export default function TeamDetailsScreen() {
                       </TouchableOpacity>
                     ) : (
                       <TouchableOpacity
-                        onPress={() => handlePlayerPress(item.id)}
+                        onPress={() => handlePlayerPress(item.user_id)}
                         activeOpacity={0.7}
                       >
                         <Image
@@ -258,7 +326,9 @@ export default function TeamDetailsScreen() {
                             borderWidth: 1,
                           },
                         ]}
-                        onPress={() => handlePositionChange(item.id, "handler")}
+                        onPress={() =>
+                          handlePositionChange(item.user_id, "handler")
+                        }
                       >
                         <ThemedText
                           style={[
@@ -283,7 +353,9 @@ export default function TeamDetailsScreen() {
                             borderWidth: 1,
                           },
                         ]}
-                        onPress={() => handlePositionChange(item.id, "stack")}
+                        onPress={() =>
+                          handlePositionChange(item.user_id, "stack")
+                        }
                       >
                         <ThemedText
                           style={[

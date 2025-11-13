@@ -60,7 +60,6 @@ export const AddButton: React.FC<AddButtonProps> = ({
   );
 };
 
-// ...existing code...
 const styles = StyleSheet.create({
   addSection: {
     alignItems: "center",
