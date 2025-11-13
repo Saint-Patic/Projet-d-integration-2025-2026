@@ -240,7 +240,8 @@ export default function MatchDetailsScreen() {
       ? team1Score > team2Score
       : team2Score > team1Score;
     return isWinner ? "#00e6cc" : "#ff8080";
-    
+  };
+
   // Corner click handler — receives which corner and optional event
   const onCornerPress = (key: keyof typeof corners) => (e?: GestureResponderEvent) => {
     // Toggle selection: if same corner is already active, deselect it
