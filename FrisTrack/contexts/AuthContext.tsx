@@ -1,20 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { authUtils } from "@/services/authUtils";
+import { authService } from "@/services/getUserLogin";
 import apiClient from "@/services/apiClient";
-
-interface User {
-  id: number;
-  email: string;
-  firstname: string;
-  lastname: string;
-  pseudo: string;
-  birthdate: string;
-  user_weight: number;
-  user_height: number;
-  foot_size: number;
-  dominant_hand: "Gauche" | "Droite" | "Ambidextre";
-  profile_picture?: string;
-}
+import { User } from "@/types/user";
 
 interface AuthContextType {
   user: User | null;
@@ -58,12 +46,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: { email: string; password: string }) => {
     try {
-      const response = await apiClient.post("/users/login", credentials);
+      const response = await authService.login(credentials);
 
-      if (response.data?.success && response.data.token && response.data.user) {
-        await authUtils.saveAuth(response.data.token, response.data.user);
-        setToken(response.data.token);
-        setUser(response.data.user);
+      if (response?.success && response.token && response.user) {
+        // Sauvegarder dans AsyncStorage
+        await authUtils.saveAuth(response.token, response.user);
+
+        // Mettre à jour l'état
+        setToken(response.token);
+        setUser(response.user);
       } else {
         throw new Error("Invalid response format");
       }

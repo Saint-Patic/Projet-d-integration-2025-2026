@@ -46,7 +46,7 @@ router.post("/login", async (req, res) => {
           .json({ error: "Email ou mot de passe incorrect" });
       }
 
-      const userRow = users[0];
+      const userRow = users;
 
       // Vérifier le mot de passe avec argon2
       const isPasswordValid = await argon2.verify(

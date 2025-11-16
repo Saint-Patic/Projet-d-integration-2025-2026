@@ -24,14 +24,14 @@ interface Props {
   setForm: (f: any) => void;
   showImagePicker?: boolean;
   setShowImagePicker?: (v: boolean) => void;
-  pointureInput: string;
-  setPointureInput: (s: string) => void;
-  poidsInput: string;
-  setPoidsInput: (s: string) => void;
-  tailleInput: string;
-  setTailleInput: (s: string) => void;
-  ageInput: string;
-  setAgeInput: (s: string) => void;
+  pointure: string;
+  setPointure: (s: string) => void;
+  poids: string;
+  setPoids: (s: string) => void;
+  taille: string;
+  setTaille: (s: string) => void;
+  age: string;
+  setAge: (s: string) => void;
   mainSelection: { gauche: boolean; droite: boolean };
   setMainSelection: React.Dispatch<
     React.SetStateAction<{ gauche: boolean; droite: boolean }>
@@ -55,14 +55,14 @@ export default function EditProfile(props: Props) {
     setForm,
     showImagePicker = false,
     setShowImagePicker = () => {},
-    pointureInput,
-    setPointureInput,
-    poidsInput,
-    setPoidsInput,
-    tailleInput,
-    setTailleInput,
-    ageInput,
-    setAgeInput,
+    pointure,
+    setPointure,
+    poids,
+    setPoids,
+    taille,
+    setTaille,
+    age,
+    setAge,
     mainSelection,
     setMainSelection,
     filterNumericInput,
@@ -235,10 +235,10 @@ export default function EditProfile(props: Props) {
                   borderWidth: 1,
                 },
               ]}
-              value={pointureInput}
+              value={pointure}
               onChangeText={(text) => {
                 const filtered = filterNumericInput(text, "int");
-                setPointureInput(filtered);
+                setPointure(filtered);
                 if (filtered !== "")
                   setForm((f: any) => ({
                     ...f,
@@ -246,11 +246,11 @@ export default function EditProfile(props: Props) {
                   }));
               }}
               onBlur={() => {
-                let value = parseInt(pointureInput);
+                let value = parseInt(pointure);
                 if (isNaN(value)) value = form.pointure;
                 if (value < 15) value = 15;
                 if (value > 65) value = 65;
-                setPointureInput(value.toString());
+                setPointure(value.toString());
                 setForm((f: any) => ({ ...f, pointure: value }));
               }}
               keyboardType="numeric"
@@ -354,10 +354,10 @@ export default function EditProfile(props: Props) {
                   borderWidth: 1,
                 },
               ]}
-              value={poidsInput}
+              value={poids}
               onChangeText={(text) => {
                 const filtered = filterNumericInput(text, "float");
-                setPoidsInput(filtered);
+                setPoids(filtered);
                 if (filtered !== "" && filtered !== "." && filtered !== ",")
                   setForm((f: any) => ({
                     ...f,
@@ -365,11 +365,11 @@ export default function EditProfile(props: Props) {
                   }));
               }}
               onBlur={() => {
-                let value = parseFloat(poidsInput);
+                let value = parseFloat(poids);
                 if (isNaN(value)) value = form.poids;
                 if (value < 10) value = 10;
                 if (value > 300) value = 300;
-                setPoidsInput(value.toString());
+                setPoids(value.toString());
                 setForm((f: any) => ({ ...f, poids: value }));
               }}
               keyboardType="numeric"
@@ -392,19 +392,19 @@ export default function EditProfile(props: Props) {
                   borderWidth: 1,
                 },
               ]}
-              value={tailleInput}
+              value={taille}
               onChangeText={(text) => {
                 const filtered = filterNumericInput(text, "int");
-                setTailleInput(filtered);
+                setTaille(filtered);
                 if (filtered !== "")
                   setForm((f: any) => ({ ...f, taille: parseInt(filtered) }));
               }}
               onBlur={() => {
-                let value = parseInt(tailleInput);
+                let value = parseInt(taille);
                 if (isNaN(value)) value = form.taille;
                 if (value < 50) value = 50;
                 if (value > 250) value = 250;
-                setTailleInput(value.toString());
+                setTaille(value.toString());
                 setForm((f: any) => ({ ...f, taille: value }));
               }}
               keyboardType="numeric"
@@ -433,7 +433,7 @@ export default function EditProfile(props: Props) {
               <ThemedText style={{ color: theme.text }}>
                 {form.ageDate
                   ? new Date(form.ageDate).toLocaleDateString("fr-FR") +
-                    ` (${ageInput} ans)`
+                    ` (${age} ans)`
                   : "Sélectionner"}
               </ThemedText>
             </TouchableOpacity>

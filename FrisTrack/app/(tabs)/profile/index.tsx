@@ -68,29 +68,29 @@ export default function ProfilScreen() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [user, setUser] = useState({
-    id: 0,
-    nom: "",
-    prenom: "",
-    imageName: "default.png",
-    pointure: 0,
-    main: "Droite",
-    poids: 0,
-    taille: 0,
+    user_id: 0,
+    lastname: "",
+    firstname: "",
+    profile_picture: "default.png",
+    foot_size: 0,
+    dominant_hand: "right",
+    user_weight: 0,
+    user_height: 0,
     age: 0,
   });
   const [form, setForm] = useState({ ...user });
 
   // Etats temporaires pour les champs numériques
-  const [poidsInput, setPoidsInput] = useState(user.poids.toString());
-  const [pointureInput, setPointureInput] = useState(user.pointure.toString());
-  const [tailleInput, setTailleInput] = useState(user.taille.toString());
+  const [poidsInput, setPoidsInput] = useState(user.user_weight.toString());
+  const [pointureInput, setPointureInput] = useState(user.foot_size.toString());
+  const [tailleInput, setTailleInput] = useState(user.user_height.toString());
   const [ageInput, setAgeInput] = useState(user.age.toString());
 
   // Pour la main dominante (ambidextre)
   const [mainSelection, setMainSelection] = useState(
-    user.main === "Ambidextre"
+    user.dominant_hand === "ambidextrous"
       ? { gauche: true, droite: true }
-      : user.main === "Gauche"
+      : user.dominant_hand === "left"
       ? { gauche: true, droite: false }
       : { gauche: false, droite: true }
   );
@@ -112,21 +112,14 @@ export default function ProfilScreen() {
       const userData = await userService.getUserById(authUser.user_id);
 
       const formattedUser = {
-        id: userData.user_id,
-        nom: userData.lastname,
-        prenom: userData.firstname,
-        imageName: userData.profile_picture || "default.png",
-        pointure: userData.foot_size || 0,
-        main:
-          userData.dominant_hand === "left"
-            ? "Gauche"
-            : userData.dominant_hand === "right"
-            ? "Droite"
-            : userData.dominant_hand === "ambidextrous"
-            ? "Ambidextre"
-            : "Droite",
-        poids: userData.user_weight || 0,
-        taille: userData.user_height || 0,
+        user_id: userData.user_id,
+        lastname: userData.lastname,
+        firstname: userData.firstname,
+        profile_picture: userData.profile_picture || "default.png",
+        foot_size: userData.foot_size || 0,
+        dominant_hand: userData.dominant_hand || "right",
+        user_weight: userData.user_weight || 0,
+        user_height: userData.user_height || 0,
         age: userData.birthdate
           ? new Date().getFullYear() -
             new Date(userData.birthdate).getFullYear()
@@ -153,14 +146,14 @@ export default function ProfilScreen() {
 
   const editProfile = () => {
     setForm({ ...user });
-    setPoidsInput(user.poids.toString());
-    setPointureInput(user.pointure.toString());
-    setTailleInput(user.taille.toString());
+    setPoidsInput(user.user_weight.toString());
+    setPointureInput(user.foot_size.toString());
+    setTailleInput(user.user_height.toString());
     setAgeInput(user.age.toString());
     setMainSelection(
-      user.main === "Ambidextre"
+      user.dominant_hand === "ambidextrous"
         ? { gauche: true, droite: true }
-        : user.main === "Gauche"
+        : user.dominant_hand === "left"
         ? { gauche: true, droite: false }
         : { gauche: false, droite: true }
     );
@@ -172,29 +165,21 @@ export default function ProfilScreen() {
     if (!authUser) return;
 
     try {
-      let mainValue = "Droite";
+      let dominantHand = "right";
       if (mainSelection.gauche && mainSelection.droite)
-        mainValue = "Ambidextre";
-      else if (mainSelection.gauche) mainValue = "Gauche";
-
-      // Convertir au format backend
-      const dominantHand =
-        mainValue === "Ambidextre"
-          ? "ambidextrous"
-          : mainValue === "Gauche"
-          ? "left"
-          : "right";
+        dominantHand = "ambidextrous";
+      else if (mainSelection.gauche) dominantHand = "left";
 
       await userService.updateProfile({
         user_id: authUser.user_id,
-        user_weight: form.poids,
-        user_height: form.taille,
-        foot_size: form.pointure,
+        user_weight: form.user_weight,
+        user_height: form.user_height,
+        foot_size: form.foot_size,
         dominant_hand: dominantHand,
-        profile_picture: form.imageName,
+        profile_picture: form.profile_picture,
       });
 
-      const newForm = { ...form, main: mainValue };
+      const newForm = { ...form, dominant_hand: dominantHand };
       setUser({ ...newForm });
       setEditMode(false);
       setShowImagePicker(false);
@@ -252,7 +237,7 @@ export default function ProfilScreen() {
           onPress={() => setShowFullImage(false)}
         >
           <Image
-            source={getImageSource(user.imageName)}
+            source={getImageSource(user.profile_picture)}
             style={{
               width: width * 0.8,
               height: width * 0.8,
@@ -299,32 +284,32 @@ export default function ProfilScreen() {
       theme={theme}
     >
       {editMode ? (
-        // Contenu du mode édition sans wrapper ScreenLayout supplémentaire
         <EditProfile
-          theme={theme}
-          profilePictures={profilePictures}
-          getImageSource={getImageSource}
-          form={form}
-          setForm={setForm}
-          showImagePicker={showImagePicker}
-          setShowImagePicker={setShowImagePicker}
-          pointureInput={pointureInput}
-          setPointureInput={setPointureInput}
-          poidsInput={poidsInput}
-          setPoidsInput={setPoidsInput}
-          tailleInput={tailleInput}
-          setTailleInput={setTailleInput}
-          ageInput={ageInput}
-          setAgeInput={setAgeInput}
-          mainSelection={mainSelection}
-          setMainSelection={setMainSelection}
-          filterNumericInput={filterNumericInput}
-          handleSave={handleSave}
-          handleCancel={handleCancel}
-          styles={styles}
+          {...({
+            theme,
+            profilePictures,
+            getImageSource,
+            form,
+            setForm,
+            showImagePicker,
+            setShowImagePicker,
+            pointureInput,
+            setPointureInput,
+            poidsInput,
+            setPoidsInput,
+            tailleInput,
+            setTailleInput,
+            ageInput,
+            setAgeInput,
+            mainSelection,
+            setMainSelection,
+            filterNumericInput,
+            handleSave,
+            handleCancel,
+            styles,
+          } as any)}
         />
       ) : (
-        // Contenu du mode affichage sans wrapper ScreenLayout supplémentaire
         <ProfileView
           theme={theme}
           user={user}
