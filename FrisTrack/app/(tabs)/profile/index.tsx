@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TouchableOpacity,
   StyleSheet,
   Platform,
   Dimensions,
   Pressable,
+  View,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +17,9 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { BackButton } from "@/components/perso_components/BackButton";
 import EditProfile from "@/components/perso_components/EditProfile";
 import ProfileView from "@/components/perso_components/ProfileView";
+import { useAuth } from "@/contexts/AuthContext";
+import { userService } from "@/services/userService";
+import { authUtils } from "@/services/authUtils";
 
 const profilePictures = [
   {
@@ -55,19 +61,22 @@ function filterNumericInput(text: string, type: "int" | "float"): string {
 
 export default function ProfilScreen() {
   const { theme } = useTheme();
+  const { user: authUser, logout: authLogout } = useAuth();
   const [editMode, setEditMode] = useState(false);
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [user, setUser] = useState({
-    id: 1,
-    nom: "Lemaire",
-    prenom: "Nathan",
-    imageName: "nathan.png",
-    pointure: 37,
+    id: 0,
+    nom: "",
+    prenom: "",
+    imageName: "default.png",
+    pointure: 0,
     main: "Droite",
-    poids: 52.5,
-    taille: 157,
-    age: 22,
+    poids: 0,
+    taille: 0,
+    age: 0,
   });
   const [form, setForm] = useState({ ...user });
 
@@ -86,6 +95,62 @@ export default function ProfilScreen() {
       : { gauche: false, droite: true }
   );
 
+  useEffect(() => {
+    loadUserProfile();
+  }, [authUser]);
+
+  const loadUserProfile = async () => {
+    if (!authUser) {
+      console.log("No authUser, skipping profile load");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      console.log("Loading profile for user:", authUser.user_id);
+      const userData = await userService.getUserById(authUser.user_id);
+
+      const formattedUser = {
+        id: userData.user_id,
+        nom: userData.lastname,
+        prenom: userData.firstname,
+        imageName: userData.profile_picture || "default.png",
+        pointure: userData.foot_size || 0,
+        main:
+          userData.dominant_hand === "left"
+            ? "Gauche"
+            : userData.dominant_hand === "right"
+            ? "Droite"
+            : userData.dominant_hand === "ambidextrous"
+            ? "Ambidextre"
+            : "Droite",
+        poids: userData.user_weight || 0,
+        taille: userData.user_height || 0,
+        age: userData.birthdate
+          ? new Date().getFullYear() -
+            new Date(userData.birthdate).getFullYear()
+          : 0,
+      };
+
+      setUser(formattedUser);
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const connectSensor = () => {
+    console.log("Connexion à un capteur");
+  };
+
+  const logout = async () => {
+    await authLogout();
+    await authUtils.clearAuth();
+    router.replace("/");
+  };
+
   const editProfile = () => {
     setForm({ ...user });
     setPoidsInput(user.poids.toString());
@@ -103,23 +168,43 @@ export default function ProfilScreen() {
     setShowImagePicker(false);
   };
 
-  const connectSensor = () => {
-    console.log("Connexion à un capteur");
-  };
+  const handleSave = async () => {
+    if (!authUser) return;
 
-  const logout = () => {
-    router.replace({ pathname: "../.." });
-  };
+    try {
+      let mainValue = "Droite";
+      if (mainSelection.gauche && mainSelection.droite)
+        mainValue = "Ambidextre";
+      else if (mainSelection.gauche) mainValue = "Gauche";
 
-  const handleSave = () => {
-    let mainValue = "Droite";
-    if (mainSelection.gauche && mainSelection.droite) mainValue = "Ambidextre";
-    else if (mainSelection.gauche) mainValue = "Gauche";
-    const newForm = { ...form, main: mainValue };
-    console.log("Enregistrer profil :", { ...form });
-    setUser({ ...newForm });
-    setEditMode(false);
-    setShowImagePicker(false);
+      // Convertir au format backend
+      const dominantHand =
+        mainValue === "Ambidextre"
+          ? "ambidextrous"
+          : mainValue === "Gauche"
+          ? "left"
+          : "right";
+
+      await userService.updateProfile({
+        user_id: authUser.user_id,
+        user_weight: form.poids,
+        user_height: form.taille,
+        foot_size: form.pointure,
+        dominant_hand: dominantHand,
+        profile_picture: form.imageName,
+      });
+
+      const newForm = { ...form, main: mainValue };
+      setUser({ ...newForm });
+      setEditMode(false);
+      setShowImagePicker(false);
+
+      // Recharger le profil
+      await loadUserProfile();
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      Alert.alert("Erreur", "Impossible de sauvegarder le profil");
+    }
   };
 
   const handleCancel = () => {
@@ -179,6 +264,29 @@ export default function ProfilScreen() {
           />
         </TouchableOpacity>
       </Pressable>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <ScreenLayout
+        title="Mon profil"
+        headerRight={<HeaderRight />}
+        headerLeft={<HeaderLeft />}
+        theme={theme}
+      >
+        <View
+          style={[
+            styles.container,
+            {
+              justifyContent: "center",
+              alignItems: "center",
+            },
+          ]}
+        >
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      </ScreenLayout>
     );
   }
 
