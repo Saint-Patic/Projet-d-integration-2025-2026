@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../index");
+const authMiddleware = require("../middleware/auth");
 
 // Helper to call procedures
 async function callProcedure(sql, params = []) {
@@ -14,7 +15,7 @@ async function callProcedure(sql, params = []) {
 }
 
 // GET /api/teams
-router.get("/", async (req, res) => {
+router.get("/", authMiddleware, async (req, res) => {
   try {
     const rows = await callProcedure("CALL get_all_teams()");
     res.json(rows);
@@ -24,8 +25,24 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET /api/teams/:id
+router.get("/:id", authMiddleware, async (req, res) => {
+  try {
+    const rows = await callProcedure("CALL get_team_by_id(?)", [req.params.id]);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "db error" });
+  }
+});
+
 // GET /api/teams/:id/player-count
-router.get("/:id/player-count", async (req, res) => {
+router.get("/:id/player-count", authMiddleware, async (req, res) => {
   try {
     const rows = await callProcedure("CALL get_team_player_count(?)", [
       req.params.id,
@@ -40,19 +57,8 @@ router.get("/:id/player-count", async (req, res) => {
   }
 });
 
-// GET /api/teams/:id
-router.get("/:id", async (req, res) => {
-  try {
-    const rows = await callProcedure("CALL get_team_by_id(?)", [req.params.id]);
-    res.json(rows[0] || null);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "db error" });
-  }
-});
-
 // GET /api/teams/:id/players
-router.get("/:id/players", async (req, res) => {
+router.get("/:id/players", authMiddleware, async (req, res) => {
   try {
     const rows = await callProcedure("CALL getPlayerTeam(?)", [req.params.id]);
     res.json(rows);
