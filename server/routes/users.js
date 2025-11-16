@@ -70,6 +70,18 @@ router.post("/login", async (req, res) => {
       // Connexion réussie - ne pas renvoyer le hash du mot de passe
       const { password_hash, ...userWithoutPassword } = userRow;
 
+      // Convertir les dates en format ISO string
+      if (userWithoutPassword.birthdate) {
+        userWithoutPassword.birthdate = new Date(
+          userWithoutPassword.birthdate
+        ).toISOString();
+      }
+      if (userWithoutPassword.created_at) {
+        userWithoutPassword.created_at = new Date(
+          userWithoutPassword.created_at
+        ).toISOString();
+      }
+
       console.log(
         "Login successful - User data:",
         JSON.stringify(userWithoutPassword, null, 2)
@@ -95,7 +107,19 @@ router.get("/:id", authMiddleware, async (req, res) => {
 
   try {
     const rows = await callProcedure("CALL get_user_info(?)", [id]);
-    res.json(rows);
+
+    // Convertir les dates si présentes
+    if (rows && rows.length > 0) {
+      const user = rows[0];
+      if (user.birthdate) {
+        user.birthdate = new Date(user.birthdate).toISOString();
+      }
+      if (user.created_at) {
+        user.created_at = new Date(user.created_at).toISOString();
+      }
+    }
+
+    res.json(rows[0] || null);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "db error" });

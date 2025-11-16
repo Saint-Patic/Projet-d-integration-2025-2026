@@ -6,12 +6,12 @@ import {
   Dimensions,
   Pressable,
   View,
-  ActivityIndicator,
   Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { useTheme } from "@/contexts/ThemeContext";
 import { BackButton } from "@/components/perso_components/BackButton";
@@ -59,15 +59,31 @@ function filterNumericInput(text: string, type: "int" | "float"): string {
   return filtered;
 }
 
+function calculateAge(birthdate: string | undefined): number {
+  if (!birthdate) return 0;
+
+  const birth = new Date(birthdate);
+  const today = new Date();
+
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+
+  // Ajuster l'âge si l'anniversaire n'est pas encore passé cette année
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  return age;
+}
+
 export default function ProfilScreen() {
   const { theme } = useTheme();
   const { user: authUser, logout: authLogout } = useAuth();
   const [editMode, setEditMode] = useState(false);
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const [user, setUser] = useState({
+  const [form, setForm] = useState({
     user_id: 0,
     lastname: "",
     firstname: "",
@@ -78,61 +94,35 @@ export default function ProfilScreen() {
     user_height: 0,
     age: 0,
   });
-  const [form, setForm] = useState({ ...user });
 
   // Etats temporaires pour les champs numériques
-  const [poidsInput, setPoidsInput] = useState(user.user_weight.toString());
-  const [pointureInput, setPointureInput] = useState(user.foot_size.toString());
-  const [tailleInput, setTailleInput] = useState(user.user_height.toString());
-  const [ageInput, setAgeInput] = useState(user.age.toString());
+  const [poidsInput, setPoidsInput] = useState("0");
+  const [pointureInput, setPointureInput] = useState("0");
+  const [tailleInput, setTailleInput] = useState("0");
+  const [ageInput, setAgeInput] = useState("0");
 
   // Pour la main dominante (ambidextre)
-  const [mainSelection, setMainSelection] = useState(
-    user.dominant_hand === "ambidextrous"
-      ? { gauche: true, droite: true }
-      : user.dominant_hand === "left"
-      ? { gauche: true, droite: false }
-      : { gauche: false, droite: true }
-  );
+  const [mainSelection, setMainSelection] = useState({
+    gauche: false,
+    droite: true,
+  });
 
-  useEffect(() => {
-    loadUserProfile();
-  }, [authUser]);
-
-  const loadUserProfile = async () => {
-    if (!authUser) {
-      console.log("No authUser, skipping profile load");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      console.log("Loading profile for user:", authUser.user_id);
-      const userData = await userService.getUserById(authUser.user_id);
-
-      const formattedUser = {
-        user_id: userData.user_id,
-        lastname: userData.lastname,
-        firstname: userData.firstname,
-        profile_picture: userData.profile_picture || "default.png",
-        foot_size: userData.foot_size || 0,
-        dominant_hand: userData.dominant_hand || "right",
-        user_weight: userData.user_weight || 0,
-        user_height: userData.user_height || 0,
-        age: userData.birthdate
-          ? new Date().getFullYear() -
-            new Date(userData.birthdate).getFullYear()
-          : 0,
-      };
-
-      setUser(formattedUser);
-    } catch (error) {
-      console.error("Error loading user profile:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Calculer les données utilisateur à partir de authUser
+  const user = authUser
+    ? {
+        user_id: authUser.user_id,
+        lastname: authUser.lastname,
+        firstname: authUser.firstname,
+        profile_picture: authUser.profile_picture || "default.png",
+        foot_size: authUser.foot_size || 0,
+        dominant_hand: authUser.dominant_hand || "right",
+        user_weight: authUser.user_weight || 0,
+        user_height: authUser.user_height || 0,
+        age: calculateAge(authUser.birthdate),
+      }
+    : null;
+  console.log("🚀 ~ ProfilScreen ~ user:", user);
+  console.log("🚀 ~ ProfilScreen ~ authUser.birthdate:", authUser?.birthdate);
 
   const connectSensor = () => {
     console.log("Connexion à un capteur");
@@ -145,6 +135,8 @@ export default function ProfilScreen() {
   };
 
   const editProfile = () => {
+    if (!user) return;
+
     setForm({ ...user });
     setPoidsInput(user.user_weight.toString());
     setPointureInput(user.foot_size.toString());
@@ -179,13 +171,10 @@ export default function ProfilScreen() {
         profile_picture: form.profile_picture,
       });
 
-      const newForm = { ...form, dominant_hand: dominantHand };
-      setUser({ ...newForm });
       setEditMode(false);
       setShowImagePicker(false);
 
-      // Recharger le profil
-      await loadUserProfile();
+      Alert.alert("Succès", "Profil mis à jour avec succès");
     } catch (error) {
       console.error("Error saving profile:", error);
       Alert.alert("Erreur", "Impossible de sauvegarder le profil");
@@ -220,7 +209,7 @@ export default function ProfilScreen() {
   );
 
   // Affichage de l'image en grand (overlay modal)
-  if (showFullImage) {
+  if (showFullImage && user) {
     const { width } = Dimensions.get("window");
     return (
       <Pressable
@@ -252,7 +241,7 @@ export default function ProfilScreen() {
     );
   }
 
-  if (isLoading) {
+  if (!user) {
     return (
       <ScreenLayout
         title="Mon profil"
@@ -269,7 +258,13 @@ export default function ProfilScreen() {
             },
           ]}
         >
-          <ActivityIndicator size="large" color={theme.primary} />
+          <ThemedText>Aucun utilisateur connecté</ThemedText>
+          <TouchableOpacity
+            onPress={() => router.replace("/")}
+            style={[styles.actionButton, styles.editButton, { marginTop: 20 }]}
+          >
+            <ThemedText style={styles.buttonText}>Se connecter</ThemedText>
+          </TouchableOpacity>
         </View>
       </ScreenLayout>
     );

@@ -62,7 +62,7 @@ export default function EditProfile(props: Props) {
     taille,
     setTaille,
     age,
-    setAge,
+
     mainSelection,
     setMainSelection,
     filterNumericInput,

@@ -55,6 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Mettre à jour l'état
         setToken(response.token);
         setUser(response.user);
+
+        // Note: Le thème sera synchronisé via useTheme dans les composants qui en ont besoin
       } else {
         throw new Error("Invalid response format");
       }
@@ -79,8 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (!user) return;
 
-      await authUtils.updateUser(userData);
-      setUser({ ...user, ...userData });
+      const updatedUser = { ...user, ...userData };
+      await authUtils.updateUser(updatedUser);
+      setUser(updatedUser);
     } catch (error) {
       console.error("Update user error:", error);
       throw error;
@@ -89,10 +92,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const response = await apiClient.get("/users/me");
-      if (response.data?.success && response.data.user) {
-        await authUtils.updateUser(response.data.user);
-        setUser(response.data.user);
+      if (!user) return;
+
+      const userData = await apiClient.get(`/users/${user.user_id}`);
+      if (userData.data) {
+        await authUtils.updateUser(userData.data);
+        setUser(userData.data);
       }
     } catch (error) {
       console.error("Refresh user error:", error);
