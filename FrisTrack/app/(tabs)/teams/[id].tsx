@@ -110,6 +110,10 @@ export default function TeamDetailsScreen() {
   };
 
   const handlePlayerPress = (userId: number) => {
+    if (!userId || userId <= 0) {
+      console.warn("Invalid user ID:", userId);
+      return;
+    }
     router.push({
       pathname: "../../(modals)/player-profile",
       params: { playerId: userId.toString() },

@@ -11,10 +11,11 @@ import {
 import { Image } from "expo-image";
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import ProfileView from "@/components/perso_components/ProfileView";
 import { authService } from "@/services/getUserLogin";
 import { getProfileImage } from "@/components/perso_components/loadImages";
+import { ThemedText } from "@/components/themed-text";
 
 export default function PlayerProfilScreen() {
   const { theme } = useTheme();
@@ -23,6 +24,7 @@ export default function PlayerProfilScreen() {
   const [showFullImage, setShowFullImage] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const navigation = useNavigation();
 
@@ -37,11 +39,13 @@ export default function PlayerProfilScreen() {
   const loadUserData = async () => {
     try {
       setIsLoading(true);
+      setError(false);
       const userData = await authService.getUserById(currentPlayerId);
 
       if (!userData) {
         console.error("User not found");
         setUser(null);
+        setError(true);
         return;
       }
 
@@ -70,6 +74,7 @@ export default function PlayerProfilScreen() {
     } catch (error) {
       console.error("Error loading user data:", error);
       setUser(null);
+      setError(true);
     } finally {
       setIsLoading(false);
     }
@@ -88,8 +93,41 @@ export default function PlayerProfilScreen() {
     );
   }
 
-  if (!user) {
-    return null;
+  if (error || !user) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", backgroundColor: theme.background },
+        ]}
+      >
+        <BackButton
+          theme={theme}
+          style={{ position: "absolute", top: 40, left: 20 }}
+        />
+        <ThemedText
+          style={{
+            color: theme.text,
+            fontSize: 18,
+            textAlign: "center",
+            paddingHorizontal: 32,
+          }}
+        >
+          Utilisateur introuvable
+        </ThemedText>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={[
+            styles.errorButton,
+            { backgroundColor: theme.primary, marginTop: 20 },
+          ]}
+        >
+          <ThemedText style={{ color: "#fff", fontWeight: "600" }}>
+            Retour
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   if (showFullImage) {
@@ -253,5 +291,10 @@ const styles = StyleSheet.create({
     top: 40,
     left: 20,
     zIndex: 101,
+  },
+  errorButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
   },
 });
