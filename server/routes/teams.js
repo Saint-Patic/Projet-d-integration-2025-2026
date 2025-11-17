@@ -25,6 +25,30 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/teams/user/:userId
+router.get("/user/:userId", authMiddleware, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+
+    if (Number.isNaN(userId)) {
+      return res.status(400).json({ error: "Invalid userId" });
+    }
+
+    const rows = await callProcedure("CALL get_user_team(?)", [userId]);
+
+    if (!rows || rows.length === 0) {
+      return res
+        .status(404)
+        .json({ error: `Team not found for the user ${userId}` });
+    }
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "db error" });
+  }
+});
+
 // GET /api/teams/:id
 router.get("/:id", authMiddleware, async (req, res) => {
   try {

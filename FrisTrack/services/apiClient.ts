@@ -4,7 +4,7 @@ import { router } from "expo-router";
 
 const getBaseURL = () => {
   if (__DEV__) {
-    console.log(`EXPO_PUBLIC_API_URL = ${process.env.EXPO_PUBLIC_API_URL}`);
+    // console.log(`EXPO_PUBLIC_API_URL = ${process.env.EXPO_PUBLIC_API_URL}`);
     return process.env.EXPO_PUBLIC_API_URL || "http://localhost:3300/api";
   }
 
@@ -30,7 +30,7 @@ apiClient.interceptors.request.use(
       }
 
       if (__DEV__) {
-        console.log("Auth Token:", token ? "Present" : "Missing");
+        // console.log("Auth Token:", token ? "Present" : "Missing");
       }
     } catch (error) {
       console.error("Error retrieving auth token:", error);

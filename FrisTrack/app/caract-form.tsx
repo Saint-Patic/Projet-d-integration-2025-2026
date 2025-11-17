@@ -8,6 +8,8 @@ import {
   BackHandler,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
+import { useTheme } from "@/contexts/ThemeContext";
+import { registerService } from "@/services/addUserLogin";
 import {
   router,
   useNavigation,
@@ -15,9 +17,11 @@ import {
   useLocalSearchParams,
 } from "expo-router";
 import EditProfile from "@/components/perso_components/EditProfile";
-import { useTheme } from "@/contexts/ThemeContext";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { registerService } from "@/services/addUserLogin";
+import {
+  profilePictures,
+  getProfileImage,
+} from "@/components/perso_components/loadImages";
+const EditProfileAny: any = EditProfile;
 
 export default function CaractForm() {
   const { email, password, nom, prenom, pseudo } = useLocalSearchParams<{
@@ -44,7 +48,7 @@ export default function CaractForm() {
   const [poidsInput, setPoidsInput] = useState(form.poids.toString());
   const [tailleInput, setTailleInput] = useState(form.taille.toString());
   const [ageInput, setAgeInput] = useState(form.age.toString());
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [mainSelection, setMainSelection] = useState<{
@@ -196,11 +200,11 @@ export default function CaractForm() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#4a4a55" />
       <ThemedText style={styles.title}>Caractéristiques</ThemedText>
-
-      <EditProfile
+      <EditProfileAny
         theme={theme}
         HeaderRight={undefined}
-        profilePictures={[]}
+        profilePictures={profilePictures}
+        getImageSource={getProfileImage}
         form={form}
         setForm={setForm}
         showImagePicker={showImagePicker}

@@ -81,3 +81,13 @@ export const finishMatch = async (
     color: score1 > score2 ? "#27ae60" : "#e74c3c",
   });
 };
+
+export const getMatchesByUser = async (userId: number): Promise<Match[]> => {
+  try {
+    const response = await apiClient.get<Match[]>(`/matches/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching matches for user ${userId}:`, error);
+    throw error;
+  }
+};

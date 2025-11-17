@@ -58,3 +58,13 @@ export const getTeamPlayers = async (id: number): Promise<TeamPlayer[]> => {
     return [];
   }
 };
+
+export const getTeamsByUser = async (userId: number): Promise<Team[]> => {
+  try {
+    const response = await apiClient.get<Team[]>(`/teams/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching teams for user ${userId}:`, error);
+    throw error;
+  }
+};

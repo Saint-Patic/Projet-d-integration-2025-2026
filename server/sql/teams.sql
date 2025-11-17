@@ -46,4 +46,15 @@ BEGIN
     ORDER BY u.lastname, u.firstname;
 END$$
 
+CREATE PROCEDURE get_user_team(IN p_user INT)
+BEGIN
+    SELECT 
+        t.team_id AS id, 
+        t.team_name, 
+        t.logo 
+    FROM team t 
+    JOIN user_team ut ON t.team_id = ut.team_id
+    WHERE ut.user_id = p_user;
+END$$
+
 DELIMITER ;

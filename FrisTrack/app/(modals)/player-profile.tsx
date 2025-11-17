@@ -39,14 +39,19 @@ export default function PlayerProfilScreen() {
       setIsLoading(true);
       const userData = await authService.getUserById(currentPlayerId);
 
-      // Convertir les données API au format attendu par ProfileView
+      if (!userData) {
+        console.error("User not found");
+        setUser(null);
+        return;
+      }
+
       const formattedUser = {
         id: userData.user_id,
-        nom: userData.lastname,
-        prenom: userData.firstname,
-        imageName: userData.profile_picture || "default.png",
-        pointure: userData.foot_size || 0,
-        main:
+        lastname: userData.lastname,
+        firstname: userData.firstname,
+        profile_picture: userData.profile_picture || "default.png",
+        foot_size: userData.foot_size || 0,
+        dominant_hand:
           userData.dominant_hand === "left"
             ? "Gauche"
             : userData.dominant_hand === "right"
@@ -54,17 +59,17 @@ export default function PlayerProfilScreen() {
             : userData.dominant_hand === "ambidextrous"
             ? "Ambidextre"
             : "-",
-        poids: userData.user_weight || 0,
-        taille: userData.user_height || 0,
+        user_weight: userData.user_weight || 0,
+        user_height: userData.user_height || 0,
         age: userData.birthdate
           ? new Date().getFullYear() -
             new Date(userData.birthdate).getFullYear()
           : 0,
       };
-
       setUser(formattedUser);
     } catch (error) {
       console.error("Error loading user data:", error);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +109,7 @@ export default function PlayerProfilScreen() {
           onPress={() => setShowFullImage(false)}
         >
           <Image
-            source={getProfileImage(user.imageName)}
+            source={getProfileImage(user.profile_picture)}
             style={{
               width: width * 0.8,
               height: width * 0.8,

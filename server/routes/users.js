@@ -262,7 +262,7 @@ router.put("/team-role-attack", authMiddleware, async (req, res) => {
 
   const conn = await pool.getConnection();
   try {
-    const [result] = await conn.query(
+    const result = await conn.query(
       `UPDATE user_team 
        SET role_attack = ? 
        WHERE team_id = ? AND user_id = ?`,

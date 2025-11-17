@@ -24,8 +24,8 @@ export const authService = {
   },
   getUserById: async (userId: number): Promise<User> => {
     try {
-      const response = await apiClient.get<User[]>(`/users/${userId}`);
-      return response.data[0];
+      const response = await apiClient.get<User>(`/users/${userId}`);
+      return response.data;
     } catch (error: any) {
       console.error("Get user error:", error);
       throw error;

@@ -33,9 +33,8 @@ export interface UpdateProfileResponse {
 export const userService = {
   getUserById: async (userId: number): Promise<User> => {
     try {
-      console.log("Fetching user data for ID:", userId);
       const response = await apiClient.get<User>(`/users/${userId}`);
-      console.log("User data retrieved successfully");
+
       return response.data;
     } catch (error: any) {
       console.error("Error fetching user data by ID:", {
@@ -48,11 +47,10 @@ export const userService = {
   },
   getUserByEmail: async (email: string): Promise<GetUserResponse> => {
     try {
-      console.log("Fetching user data for:", email);
       const response = await apiClient.get<GetUserResponse>(
         `/users/email/${encodeURIComponent(email)}`
       );
-      console.log("User data retrieved successfully");
+
       return response.data;
     } catch (error: any) {
       console.error("Error fetching user data:", {
@@ -67,12 +65,11 @@ export const userService = {
     data: UpdateProfileRequest
   ): Promise<UpdateProfileResponse> => {
     try {
-      console.log("Updating user profile:", data);
       const response = await apiClient.put<UpdateProfileResponse>(
         "/users/profile",
         data
       );
-      console.log("Profile updated successfully");
+
       return response.data;
     } catch (error: any) {
       console.error("Error updating profile:", {
@@ -87,12 +84,11 @@ export const userService = {
     data: UpdateRoleAttackRequest
   ): Promise<UpdateRoleAttackResponse> => {
     try {
-      console.log("Updating role_attack:", data);
       const response = await apiClient.put<UpdateRoleAttackResponse>(
         "/users/team-role-attack",
         data
       );
-      console.log("Role attack updated successfully");
+
       return response.data;
     } catch (error: any) {
       console.error("Error updating role attack:", {

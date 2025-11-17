@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   TouchableOpacity,
   StyleSheet,
@@ -20,38 +20,10 @@ import ProfileView from "@/components/perso_components/ProfileView";
 import { useAuth } from "@/contexts/AuthContext";
 import { userService } from "@/services/userService";
 import { authUtils } from "@/services/authUtils";
-
-const profilePictures = [
-  {
-    name: "chat.png",
-    src: require("@/assets/images/profile_pictures/chat.png"),
-  },
-  {
-    name: "chien.png",
-    src: require("@/assets/images/profile_pictures/chien.png"),
-  },
-  {
-    name: "default.png",
-    src: require("@/assets/images/profile_pictures/default.png"),
-  },
-  {
-    name: "Frisbee.png",
-    src: require("@/assets/images/profile_pictures/Frisbee.png"),
-  },
-  {
-    name: "lezard.png",
-    src: require("@/assets/images/profile_pictures/lezard.png"),
-  },
-  {
-    name: "nathan.png",
-    src: require("@/assets/images/profile_pictures/nathan.png"),
-  },
-];
-
-function getImageSource(imageName: string) {
-  const found = profilePictures.find((img) => img.name === imageName);
-  return found ? found.src : profilePictures[0].src;
-}
+import {
+  profilePictures,
+  getProfileImage,
+} from "@/components/perso_components/loadImages";
 
 function filterNumericInput(text: string, type: "int" | "float"): string {
   let filtered = text.replace(type === "int" ? /[^0-9]/g : /[^0-9.,]/g, "");
@@ -121,8 +93,6 @@ export default function ProfilScreen() {
         age: calculateAge(authUser.birthdate),
       }
     : null;
-  console.log("🚀 ~ ProfilScreen ~ user:", user);
-  console.log("🚀 ~ ProfilScreen ~ authUser.birthdate:", authUser?.birthdate);
 
   const connectSensor = () => {
     console.log("Connexion à un capteur");
@@ -226,7 +196,7 @@ export default function ProfilScreen() {
           onPress={() => setShowFullImage(false)}
         >
           <Image
-            source={getImageSource(user.profile_picture)}
+            source={getProfileImage(user.profile_picture)}
             style={{
               width: width * 0.8,
               height: width * 0.8,
@@ -283,7 +253,7 @@ export default function ProfilScreen() {
           {...({
             theme,
             profilePictures,
-            getImageSource,
+            getImageSource: getProfileImage,
             form,
             setForm,
             showImagePicker,
@@ -308,7 +278,7 @@ export default function ProfilScreen() {
         <ProfileView
           theme={theme}
           user={user}
-          getImageSource={getImageSource}
+          getImageSource={getProfileImage}
           connectSensor={connectSensor}
           logout={logout}
           editProfile={editProfile}

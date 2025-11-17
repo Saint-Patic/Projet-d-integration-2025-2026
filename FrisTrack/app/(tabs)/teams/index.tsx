@@ -10,27 +10,25 @@ import { ThemedText } from "@/components/themed-text";
 import { SwipeableCard } from "@/components/perso_components/swipeableCard";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { AddButton } from "@/components/perso_components/addButton";
-import { getTeams, getPlayerCount } from "@/services/getTeams";
+import { getTeamsByUser, getPlayerCount } from "@/services/getTeams";
 import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/contexts/ThemeContext";
-
-interface Team {
-  id: number;
-  team_name: string;
-  logo?: string;
-  playerCount?: number;
-  coach_id?: number;
-}
+import { useAuth } from "@/contexts/AuthContext";
+import { Team } from "@/types/user";
 
 export default function TeamScreen() {
   const [teams, setTeams] = useState<Team[]>([]);
   const router = useRouter();
   const { theme } = useTheme();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchTeamsWithPlayerCount = async () => {
-      const teamsData = await getTeams();
+      if (!user?.user_id) return;
+
+      const teamsData = await getTeamsByUser(user.user_id);
+
       const teamsWithCount = await Promise.all(
         teamsData.map(async (team) => {
           const playerCountData = await getPlayerCount(team.id);
@@ -44,7 +42,7 @@ export default function TeamScreen() {
     };
 
     fetchTeamsWithPlayerCount();
-  }, []);
+  }, [user]);
 
   const editTeam = (teamId: number) => {
     const team = teams.find((t) => t.id === teamId);
@@ -82,7 +80,7 @@ export default function TeamScreen() {
     router.push({
       pathname: "/(tabs)/teams/[id]",
       params: {
-        id: teamId.toString(), // Changé de teamId vers id
+        id: teamId.toString(),
         teamName,
       },
     });
