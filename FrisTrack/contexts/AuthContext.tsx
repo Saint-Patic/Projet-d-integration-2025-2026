@@ -92,16 +92,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      if (!user) return;
+      const token = await authUtils.getToken();
+      if (!token) return;
 
-      const userData = await apiClient.get(`/users/${user.user_id}`);
-      if (userData.data) {
-        await authUtils.updateUser(userData.data);
-        setUser(userData.data);
+      const userData = await authUtils.getUser();
+      if (!userData?.user_id) return;
+
+      const freshUserData = await apiClient.get(`/users/${userData.user_id}`);
+      if (freshUserData.data) {
+        setUser(freshUserData.data);
+        await authUtils.updateUser(freshUserData.data);
       }
     } catch (error) {
-      console.error("Refresh user error:", error);
-      throw error;
+      console.error("Error refreshing user:", error);
     }
   };
 

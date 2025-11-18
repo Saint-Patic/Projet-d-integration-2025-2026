@@ -30,6 +30,18 @@ export interface UpdateProfileResponse {
   success: boolean;
 }
 
+export interface UpdateBasicInfoRequest {
+  user_id: number;
+  firstname?: string;
+  lastname?: string;
+  birthdate?: string;
+  email?: string;
+}
+
+export interface UpdateBasicInfoResponse {
+  success: boolean;
+}
+
 export const userService = {
   getUserById: async (userId: number): Promise<User> => {
     try {
@@ -92,6 +104,25 @@ export const userService = {
       return response.data;
     } catch (error: any) {
       console.error("Error updating role attack:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
+  },
+  updateBasicInfo: async (
+    data: UpdateBasicInfoRequest
+  ): Promise<UpdateBasicInfoResponse> => {
+    try {
+      const response = await apiClient.put<UpdateBasicInfoResponse>(
+        "/users/basic",
+        data
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Error updating basic info:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,

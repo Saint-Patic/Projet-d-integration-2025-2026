@@ -11,8 +11,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "changeme";
 async function callProcedure(sql, params) {
   const conn = await pool.getConnection();
   try {
-    const [rows] = await conn.query(sql, params);
-    return rows;
+    const rows = await conn.query(sql, params);
+    return rows[0] || rows;
   } finally {
     conn.release();
   }
@@ -151,12 +151,19 @@ router.put("/basic", authMiddleware, async (req, res) => {
   }
 
   try {
+    // Convertir la date ISO en format MySQL DATE (YYYY-MM-DD)
+    let formattedBirthdate = null;
+    if (birthdate) {
+      const date = new Date(birthdate);
+      formattedBirthdate = date.toISOString().split("T")[0]; // Format: YYYY-MM-DD
+    }
+
     await callProcedure("CALL update_user_basic(?, ?, ?, ?, ?, ?)", [
       user_id,
       firstname || null,
       lastname || null,
       pseudo || null,
-      birthdate || null,
+      formattedBirthdate,
       email || null,
     ]);
     res.json({ success: true });
