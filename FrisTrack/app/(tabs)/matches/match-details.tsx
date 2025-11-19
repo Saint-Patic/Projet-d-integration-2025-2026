@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getMatchById, updateMatch, Match } from "@/services/getMatches";
+import { createField } from "@/services/fieldService";
 
 export default function MatchDetailsScreen() {
   const params = useLocalSearchParams();
@@ -75,6 +76,16 @@ export default function MatchDetailsScreen() {
     setShowNameModal(false);
     setNewTerrainName("");
     await persistTerrains(next);
+
+    // Send to backend to persist into DB
+    try {
+      const res = await createField({ name: tname, corners: savedCorners });
+      if (res?.id) {
+        setSelectedTerrainId(res.id.toString());
+      }
+    } catch (err) {
+      console.error("Failed to persist field to server:", err);
+    }
   };
 
   const loadTerrain = (terrain: any) => {
