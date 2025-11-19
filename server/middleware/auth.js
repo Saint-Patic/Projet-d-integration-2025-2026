@@ -1,6 +1,16 @@
 const jwt = require("jsonwebtoken");
+const { JWT_SECRET } = require("../config/jwt");
 
-const JWT_SECRET = process.env.JWT_SECRET || "changeme";
+let JWT_SECRET = JWT_SECRET;
+if (!JWT_SECRET) {
+  if (process.env.JWT_SECRET === "production") {
+    throw new error(
+      "JWT_secret environment variable must be set in production"
+    );
+  } else {
+    JWT_SECRET = "changeme";
+  }
+}
 
 const authMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];

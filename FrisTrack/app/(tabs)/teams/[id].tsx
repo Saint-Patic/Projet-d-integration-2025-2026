@@ -6,6 +6,7 @@ import {
   Platform,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
@@ -112,6 +113,10 @@ export default function TeamDetailsScreen() {
   const handlePlayerPress = (userId: number) => {
     if (!userId || userId <= 0) {
       console.warn("Invalid user ID:", userId);
+      Alert.alert(
+        "Erreur",
+        "Impossible d'ouvrir le profil de ce joueur. Données invalides."
+      );
       return;
     }
     router.push({

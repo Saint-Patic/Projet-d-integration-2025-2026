@@ -4,8 +4,50 @@ const pool = require("../index");
 const argon2 = require("argon2");
 const jwt = require("jsonwebtoken");
 const authMiddleware = require("../middleware/auth");
+const { JWT_SECRET } = require("../config/jwt");
 
-const JWT_SECRET = process.env.JWT_SECRET || "changeme";
+// Simple in-memory rate limiter for pseudo checks
+const pseudoCheckLimiter = new Map();
+const PSEUDO_CHECK_LIMIT = 10; // Max checks per window
+const PSEUDO_CHECK_WINDOW = 60 * 1000; // 1 minute
+
+function checkPseudoRateLimit(ip) {
+  const now = Date.now();
+  const userRecord = pseudoCheckLimiter.get(ip);
+
+  if (!userRecord) {
+    pseudoCheckLimiter.set(ip, {
+      count: 1,
+      resetTime: now + PSEUDO_CHECK_WINDOW,
+    });
+    return true;
+  }
+
+  if (now > userRecord.resetTime) {
+    pseudoCheckLimiter.set(ip, {
+      count: 1,
+      resetTime: now + PSEUDO_CHECK_WINDOW,
+    });
+    return true;
+  }
+
+  if (userRecord.count >= PSEUDO_CHECK_LIMIT) {
+    return false;
+  }
+
+  userRecord.count++;
+  return true;
+}
+
+// Clean up old entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of pseudoCheckLimiter.entries()) {
+    if (now > record.resetTime) {
+      pseudoCheckLimiter.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000); // Clean every 5 minutes
 
 // Helper to run a CALL statement with parameters
 async function callProcedure(sql, params) {
@@ -129,6 +171,23 @@ router.get("/:id", authMiddleware, async (req, res) => {
 // GET /api/users/check-pseudo/:pseudo
 router.get("/check-pseudo/:pseudo", async (req, res) => {
   const { pseudo } = req.params;
+  const clientIp = req.ip || req.connection.remoteAddress;
+
+  // Rate limiting check
+  if (!checkPseudoRateLimit(clientIp)) {
+    return res.status(429).json({
+      error: "Trop de requêtes. Veuillez réessayer dans quelques instants.",
+    });
+  }
+
+  // Validation du format du pseudo
+  const pseudoRegex = /^[a-zA-Z0-9_\-]{3,}$/;
+  if (!pseudoRegex.test(pseudo)) {
+    return res.status(400).json({
+      error: "Format de pseudo invalide",
+      available: false,
+    });
+  }
 
   try {
     const rows = await callProcedure("CALL check_pseudo_available(?)", [
@@ -136,7 +195,7 @@ router.get("/check-pseudo/:pseudo", async (req, res) => {
     ]);
     res.json({ available: rows.length === 0 });
   } catch (err) {
-    console.error(err);
+    console.error("Error checking pseudo:", err);
     res.status(500).json({ error: "Erreur serveur" });
   }
 });

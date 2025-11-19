@@ -28,6 +28,11 @@ import {
   profilePictures,
   getProfileImage,
 } from "@/components/perso_components/loadImages";
+import {
+  getDominantHandSelection,
+  getDominantHandFromSelection,
+} from "@/utils/dominantHandUtils";
+import apiClient from "@/services/apiClient";
 
 function filterNumericInput(text: string, type: "int" | "float"): string {
   let filtered = text.replace(type === "int" ? /[^0-9]/g : /[^0-9.,]/g, "");
@@ -80,7 +85,7 @@ export default function ProfilScreen() {
   const [poidsInput, setPoidsInput] = useState("0");
   const [pointureInput, setPointureInput] = useState("0");
   const [tailleInput, setTailleInput] = useState("0");
-  const [pseudoInput, setPseudoInput] = useState("0");
+  // const [pseudoInput, setPseudoInput] = useState("0");
 
   // Validation states
   const [lastnameError, setLastnameError] = useState("");
@@ -146,13 +151,12 @@ export default function ProfilScreen() {
       if (form.pseudo.length >= 3 && validatePseudo(form.pseudo)) {
         setCheckingPseudo(true);
         try {
-          const response = await fetch(
+          const response = await apiClient.get(
             `${API_URL}/users/check-pseudo/${form.pseudo}`
           );
-          const data = await response.json();
-          setPseudoAvailable(data.available);
+          setPseudoAvailable(response.data);
 
-          if (!data.available) {
+          if (!response.data) {
             setPseudoError("Ce pseudo est déjà pris");
           } else {
             setPseudoError("");
@@ -274,15 +278,8 @@ export default function ProfilScreen() {
     setOriginalPseudo(user.pseudo || "");
     setPoidsInput(user.user_weight.toString());
     setPointureInput(user.foot_size.toString());
-    setPseudoInput(user.pseudo || "");
     setTailleInput(user.user_height.toString());
-    setMainSelection(
-      user.dominant_hand === "ambidextrous"
-        ? { gauche: true, droite: true }
-        : user.dominant_hand === "left"
-        ? { gauche: true, droite: false }
-        : { gauche: false, droite: true }
-    );
+    setMainSelection(getDominantHandSelection(user.dominant_hand));
     setEditMode(true);
     setShowImagePicker(false);
     setFirstnameError("");
@@ -309,10 +306,7 @@ export default function ProfilScreen() {
     }
 
     try {
-      let dominantHand = "right";
-      if (mainSelection.gauche && mainSelection.droite)
-        dominantHand = "ambidextrous";
-      else if (mainSelection.gauche) dominantHand = "left";
+      const dominantHand = getDominantHandFromSelection(mainSelection);
 
       // Mise à jour du profil
       await userService.updateProfile({

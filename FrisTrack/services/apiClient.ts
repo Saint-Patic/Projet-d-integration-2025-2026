@@ -37,13 +37,14 @@ apiClient.interceptors.request.use(
     }
 
     // Logger la requête
-    console.log("API Request:", {
-      url: config.url,
-      method: config.method,
-      baseURL: config.baseURL,
-      data: config.data,
-    });
-
+    if (__DEV__) {
+      console.log("API Request:", {
+        url: config.url,
+        method: config.method,
+        baseURL: config.baseURL,
+        data: config.data,
+      });
+    }
     return config;
   },
   (error) => {
@@ -53,54 +54,56 @@ apiClient.interceptors.request.use(
 );
 
 // Intercepteur de réponse pour logger et gérer les erreurs
-apiClient.interceptors.response.use(
-  (response) => {
-    console.log("API Response:", {
-      url: response.config.url,
-      status: response.status,
-      data: response.data,
-    });
-    return response;
-  },
-  async (error) => {
-    const errorDetails = {
-      message: error.message,
-      url: error.config?.url,
-      baseURL: error.config?.baseURL,
-      method: error.config?.method,
-      status: error.response?.status,
-      data: error.response?.data,
-    };
+if (__DEV__) {
+  apiClient.interceptors.response.use(
+    (response) => {
+      console.log("API Response:", {
+        url: response.config.url,
+        status: response.status,
+        data: response.data,
+      });
+      return response;
+    },
+    async (error) => {
+      const errorDetails = {
+        message: error.message,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        method: error.config?.method,
+        status: error.response?.status,
+        data: error.response?.data,
+      };
 
-    console.error("API Error:", errorDetails);
+      console.error("API Error:", errorDetails);
 
-    // Gestion des erreurs spécifiques
-    if (error.code === "ECONNABORTED") {
-      console.error(
-        "Request timeout - Check if your backend server is running"
-      );
-    } else if (error.message === "Network Error") {
-      console.error("Network Error - Possible causes:");
-      console.error("1. Backend server is not running");
-      console.error("2. Incorrect baseURL configuration");
-      console.error("3. CORS issues");
-      console.error("4. Device/emulator cannot reach the backend");
-    }
-
-    // Gérer l'expiration du token (401)
-    if (error.response?.status === 401) {
-      console.warn("Token expired or invalid - Logging out");
-
-      try {
-        await AsyncStorage.multiRemove(["authToken", "userData"]);
-        router.replace("/");
-      } catch (storageError) {
-        console.error("Error clearing auth data:", storageError);
+      // Gestion des erreurs spécifiques
+      if (error.code === "ECONNABORTED") {
+        console.error(
+          "Request timeout - Check if your backend server is running"
+        );
+      } else if (error.message === "Network Error") {
+        console.error("Network Error - Possible causes:");
+        console.error("1. Backend server is not running");
+        console.error("2. Incorrect baseURL configuration");
+        console.error("3. CORS issues");
+        console.error("4. Device/emulator cannot reach the backend");
       }
-    }
 
-    return Promise.reject(error);
-  }
-);
+      // Gérer l'expiration du token (401)
+      if (error.response?.status === 401) {
+        console.warn("Token expired or invalid - Logging out");
+
+        try {
+          await AsyncStorage.multiRemove(["authToken", "userData"]);
+          router.replace("/");
+        } catch (storageError) {
+          console.error("Error clearing auth data:", storageError);
+        }
+      }
+
+      return Promise.reject(error);
+    }
+  );
+}
 
 export default apiClient;

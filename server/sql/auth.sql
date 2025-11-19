@@ -8,14 +8,6 @@ BEGIN
     WHERE email = p_email;
 END$$
 
--- Vérifier si un email existe
-CREATE PROCEDURE check_email_exists(IN p_email VARCHAR(100))
-BEGIN
-    SELECT user_id 
-    FROM users 
-    WHERE email = p_email;
-END$$
-
 -- Vérifier si un email existe déjà (pour l'inscription)
 CREATE PROCEDURE check_email_for_registration(IN p_email VARCHAR(100))
 BEGIN

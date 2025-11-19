@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../index");
+const jwt = require("jsonwebtoken");
 const authMiddleware = require("../middleware/auth");
+const { JWT_SECRET } = require("../config/jwt");
 
 // Helper to call procedures
 async function callProcedure(sql, params = []) {
@@ -37,9 +39,7 @@ router.get("/user/:userId", authMiddleware, async (req, res) => {
     const rows = await callProcedure("CALL get_matches_by_user(?)", [userId]);
 
     if (!rows || rows.length === 0) {
-      return res
-        .status(404)
-        .json({ error: `Match not found for the user ${userId}` });
+      return res.status(200).json([]); // pas de match pour le user
     }
 
     res.json(rows);

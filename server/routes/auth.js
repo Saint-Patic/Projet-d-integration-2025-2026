@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../index");
 const argon2 = require("argon2");
+const jwt = require("jsonwebtoken");
+const authMiddleware = require("../middleware/auth");
+const { JWT_SECRET } = require("../config/jwt");
 
 // Helper to call procedures
 async function callProcedure(sql, params = []) {
@@ -152,7 +155,13 @@ router.post("/register", async (req, res) => {
       message: "Utilisateur créé avec succès",
     });
   } catch (err) {
-    console.error(err);
+    console.error("Erreur lors de l'inscription:", err);
+
+    // Gérer les erreurs de contraintes de base de données
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "Email ou pseudo déjà utilisé" });
+    }
+
     res.status(500).json({ error: "Erreur serveur lors de l'inscription" });
   } finally {
     conn.release();
