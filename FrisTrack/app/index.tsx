@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   TextInput,
   TouchableOpacity,
-  Alert,
   StyleSheet,
   Platform,
   StatusBar,
@@ -12,9 +11,11 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { router, useNavigation } from "expo-router";
 import { authService } from "@/services/getUserLogin";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function AuthPage() {
   const navigation = useNavigation();
+  const { login } = useAuth();
 
   useEffect(() => {
     navigation.setOptions({
@@ -89,10 +90,8 @@ export default function AuthPage() {
     setErrorMessage("");
 
     try {
-      const response = await authService.login({ email, password });
-      if (response?.success) {
-        router.replace("./(tabs)/matches");
-      }
+      await login({ email, password });
+      router.replace("./(tabs)/matches");
     } catch (error: any) {
       console.error("Erreur de connexion:", error);
 
@@ -291,8 +290,6 @@ export default function AuthPage() {
     </View>
   );
 }
-
-// ...existing code...
 
 const styles = StyleSheet.create({
   container: {

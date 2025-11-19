@@ -1,20 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { authUtils } from "@/services/authUtils";
+import { authService } from "@/services/getUserLogin";
 import apiClient from "@/services/apiClient";
-
-interface User {
-  id: number;
-  email: string;
-  firstname: string;
-  lastname: string;
-  pseudo: string;
-  birthdate: string;
-  user_weight: number;
-  user_height: number;
-  foot_size: number;
-  dominant_hand: "Gauche" | "Droite" | "Ambidextre";
-  profile_picture?: string;
-}
+import { User } from "@/types/user";
 
 interface AuthContextType {
   user: User | null;
@@ -58,12 +46,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: { email: string; password: string }) => {
     try {
-      const response = await apiClient.post("/users/login", credentials);
+      const response = await authService.login(credentials);
 
-      if (response.data?.success && response.data.token && response.data.user) {
-        await authUtils.saveAuth(response.data.token, response.data.user);
-        setToken(response.data.token);
-        setUser(response.data.user);
+      if (response?.success && response.token && response.user) {
+        // Sauvegarder dans AsyncStorage
+        await authUtils.saveAuth(response.token, response.user);
+
+        // Mettre à jour l'état
+        setToken(response.token);
+        setUser(response.user);
+
+        // Note: Le thème sera synchronisé via useTheme dans les composants qui en ont besoin
       } else {
         throw new Error("Invalid response format");
       }
@@ -88,8 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (!user) return;
 
-      await authUtils.updateUser(userData);
-      setUser({ ...user, ...userData });
+      const updatedUser = { ...user, ...userData };
+      await authUtils.updateUser(updatedUser);
+      setUser(updatedUser);
     } catch (error) {
       console.error("Update user error:", error);
       throw error;
@@ -98,14 +92,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const response = await apiClient.get("/users/me");
-      if (response.data?.success && response.data.user) {
-        await authUtils.updateUser(response.data.user);
-        setUser(response.data.user);
+      const token = await authUtils.getToken();
+      if (!token) return;
+
+      const userData = await authUtils.getUser();
+      if (!userData?.user_id) return;
+
+      const freshUserData = await apiClient.get(`/users/${userData.user_id}`);
+      if (freshUserData.data) {
+        setUser(freshUserData.data);
+        await authUtils.updateUser(freshUserData.data);
       }
     } catch (error) {
-      console.error("Refresh user error:", error);
-      throw error;
+      console.error("Error refreshing user:", error);
     }
   };
 

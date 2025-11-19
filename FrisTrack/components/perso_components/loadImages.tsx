@@ -7,6 +7,15 @@ export const profileImages: { [key: string]: any } = {
   "nathan.png": require("@/assets/images/profile_pictures/nathan.png"),
 };
 
+export const profilePictures = [
+  { name: "chat.png", src: profileImages["chat.png"] },
+  { name: "chien.png", src: profileImages["chien.png"] },
+  { name: "default.png", src: profileImages["default.png"] },
+  { name: "Frisbee.png", src: profileImages["Frisbee.png"] },
+  { name: "lezard.png", src: profileImages["lezard.png"] },
+  { name: "nathan.png", src: profileImages["nathan.png"] },
+];
+
 export function getProfileImage(imageName: string | null | undefined) {
   return (
     profileImages[imageName || "default.png"] || profileImages["default.png"]

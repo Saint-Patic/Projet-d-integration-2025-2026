@@ -1,21 +1,12 @@
-import api from "./api";
-import { UserProfile } from "./userService";
+import apiClient from "./apiClient";
+import { User, LoginRequest, LoginResponse } from "@/types/user";
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  success: boolean;
-  user: UserProfile;
-  token?: string;
-}
+export { LoginRequest, LoginResponse };
 
 export const authService = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     try {
-      const response = await api.post<LoginResponse>(
+      const response = await apiClient.post<LoginResponse>(
         "/users/login",
         credentials
       );
@@ -24,17 +15,17 @@ export const authService = {
       console.error("Login error details:", {
         message: error.message,
         code: error.code,
-        baseURL: api.defaults.baseURL,
+        baseURL: apiClient.defaults.baseURL,
         url: error.config?.url,
         method: error.config?.method,
       });
       throw error;
     }
   },
-  getUserById: async (userId: number): Promise<UserProfile> => {
+  getUserById: async (userId: number): Promise<User> => {
     try {
-      const response = await api.get<UserProfile[]>(`/users/${userId}`);
-      return response.data[0];
+      const response = await apiClient.get<User>(`/users/${userId}`);
+      return response.data;
     } catch (error: any) {
       console.error("Get user error:", error);
       throw error;
@@ -42,7 +33,7 @@ export const authService = {
   },
   checkEmail: async (email: string) => {
     try {
-      const response = await api.post("/auth/check-email", { email });
+      const response = await apiClient.post("/auth/check-email", { email });
       return response.data;
     } catch (error) {
       throw error;
@@ -50,4 +41,4 @@ export const authService = {
   },
 };
 
-export default api;
+export default apiClient;

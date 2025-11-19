@@ -39,7 +39,7 @@ export default function ProfileView(props: Props) {
           }}
         >
           <Image
-            source={getImageSource(user.imageName)}
+            source={getImageSource(user.profile_picture)}
             style={[styles.profileImage, { borderColor: theme.primary }]}
           />
         </TouchableOpacity>
@@ -54,7 +54,7 @@ export default function ProfileView(props: Props) {
           { color: theme.text, textShadowColor: `${theme.primary}50` },
         ]}
       >
-        {user.prenom} {user.nom}
+        {user.firstname} {user.lastname}
       </ThemedText>
 
       <View
@@ -68,7 +68,7 @@ export default function ProfileView(props: Props) {
             Pointure
           </ThemedText>
           <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-            {user.pointure}
+            {user.foot_size}
           </ThemedText>
         </View>
         <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
@@ -76,7 +76,7 @@ export default function ProfileView(props: Props) {
             Main dominante
           </ThemedText>
           <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-            {user.main}
+            {user.dominant_hand}
           </ThemedText>
         </View>
         <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
@@ -84,7 +84,7 @@ export default function ProfileView(props: Props) {
             Poids
           </ThemedText>
           <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-            {user.poids} kg
+            {user.user_weight} kg
           </ThemedText>
         </View>
         <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>
@@ -92,7 +92,7 @@ export default function ProfileView(props: Props) {
             Taille
           </ThemedText>
           <ThemedText style={[styles.infoValue, { color: theme.primary }]}>
-            {user.taille} cm
+            {user.user_height} cm
           </ThemedText>
         </View>
         <View style={[styles.infoRow, { borderBottomColor: theme.border }]}>

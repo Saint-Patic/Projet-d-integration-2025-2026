@@ -8,6 +8,8 @@ import {
   BackHandler,
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
+import { useTheme } from "@/contexts/ThemeContext";
+import { registerService } from "@/services/addUserLogin";
 import {
   router,
   useNavigation,
@@ -15,9 +17,16 @@ import {
   useLocalSearchParams,
 } from "expo-router";
 import EditProfile from "@/components/perso_components/EditProfile";
-import { useTheme } from "@/contexts/ThemeContext";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { registerService } from "@/services/addUserLogin";
+import {
+  profilePictures,
+  getProfileImage,
+} from "@/components/perso_components/loadImages";
+import {
+  getDominantHandSelection,
+  getDominantHandFromSelection,
+  translateDominantHandToEnglish,
+} from "@/utils/dominantHandUtils";
+const EditProfileAny: any = EditProfile;
 
 export default function CaractForm() {
   const { email, password, nom, prenom, pseudo } = useLocalSearchParams<{
@@ -44,19 +53,13 @@ export default function CaractForm() {
   const [poidsInput, setPoidsInput] = useState(form.poids.toString());
   const [tailleInput, setTailleInput] = useState(form.taille.toString());
   const [ageInput, setAgeInput] = useState(form.age.toString());
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [mainSelection, setMainSelection] = useState<{
     gauche: boolean;
     droite: boolean;
-  }>(
-    form.main === "Ambidextre"
-      ? { gauche: true, droite: true }
-      : form.main === "Gauche"
-      ? { gauche: true, droite: false }
-      : { gauche: false, droite: true }
-  );
+  }>(getDominantHandSelection(form.main));
 
   // minimal image picker state (not used here because we hide photo in EditProfile)
   const [showImagePicker, setShowImagePicker] = useState(false);
@@ -120,12 +123,7 @@ export default function CaractForm() {
         );
       }
 
-      const mainValue =
-        mainSelection.gauche && mainSelection.droite
-          ? "Ambidextre"
-          : mainSelection.gauche
-          ? "Gauche"
-          : "Droite";
+      const mainValue = getDominantHandFromSelection(mainSelection);
 
       // Calculer la date de naissance à partir de l'âge
       const birthdate = form.ageDate
@@ -144,7 +142,7 @@ export default function CaractForm() {
         user_weight: form.poids,
         user_height: form.taille,
         foot_size: form.pointure,
-        dominant_hand: mainValue as "Gauche" | "Droite" | "Ambidextre",
+        dominant_hand: mainValue,
       };
 
       const response = await registerService.register(userData);
@@ -196,11 +194,11 @@ export default function CaractForm() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#4a4a55" />
       <ThemedText style={styles.title}>Caractéristiques</ThemedText>
-
-      <EditProfile
+      <EditProfileAny
         theme={theme}
         HeaderRight={undefined}
-        profilePictures={[]}
+        profilePictures={profilePictures}
+        getImageSource={getProfileImage}
         form={form}
         setForm={setForm}
         showImagePicker={showImagePicker}

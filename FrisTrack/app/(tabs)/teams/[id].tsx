@@ -6,6 +6,7 @@ import {
   Platform,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { ThemedText } from "@/components/themed-text";
@@ -110,6 +111,14 @@ export default function TeamDetailsScreen() {
   };
 
   const handlePlayerPress = (userId: number) => {
+    if (!userId || userId <= 0) {
+      console.warn("Invalid user ID:", userId);
+      Alert.alert(
+        "Erreur",
+        "Impossible d'ouvrir le profil de ce joueur. Données invalides."
+      );
+      return;
+    }
     router.push({
       pathname: "../../(modals)/player-profile",
       params: { playerId: userId.toString() },
@@ -149,24 +158,42 @@ export default function TeamDetailsScreen() {
         return original && original.position !== member.position;
       });
 
-      // Mettre à jour uniquement les joueurs dont la position a changé
-      const updatePromises = changedMembers.map((member) =>
-        userService.updateTeamRoleAttack({
-          user_id: member.user_id,
-          team_id: Number(id),
-          role_attack: member.position as "handler" | "stack",
-        })
-      );
+      if (changedMembers.length === 0) {
+        setIsEditMode(false);
 
-      await Promise.all(updatePromises);
+        return;
+      }
 
-      // Mettre à jour l'état original après sauvegarde
-      setOriginalMembers([...members]);
-      setIsEditMode(false);
+      let successCount = 0;
+      let errorCount = 0;
 
-      console.log(`${changedMembers.length} position(s) mise(s) à jour`);
+      for (const member of changedMembers) {
+        try {
+          const updateData = {
+            user_id: member.user_id,
+            team_id: Number(id),
+            role_attack: member.position as "handler" | "stack",
+          };
+
+          await userService.updateTeamRoleAttack(updateData);
+          successCount++;
+        } catch (error) {
+          console.error(`Erreur pour le joueur ${member.name}:`, error);
+          errorCount++;
+        }
+      }
+
+      if (errorCount === 0) {
+        setOriginalMembers([...members]);
+        setIsEditMode(false);
+      } else {
+        await loadTeamPlayers();
+        setIsEditMode(false);
+      }
     } catch (error) {
       console.error("Erreur lors de la sauvegarde des changements:", error);
+      // Restaurer les valeurs originales en cas d'erreur
+      setMembers([...originalMembers]);
     }
   };
 
