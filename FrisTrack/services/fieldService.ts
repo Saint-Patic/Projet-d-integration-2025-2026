@@ -18,4 +18,14 @@ export const createField = async (payload: FieldCreateRequest) => {
   }
 };
 
-export default { createField };
+export const getFields = async () => {
+  try {
+    const res = await api.get("/fields");
+    return res.data;
+  } catch (err) {
+    console.error("Error fetching fields:", err);
+    throw err;
+  }
+};
+
+export default { createField, getFields };

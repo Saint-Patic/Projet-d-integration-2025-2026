@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getMatchById, updateMatch, Match } from "@/services/getMatches";
-import { createField } from "@/services/fieldService";
+import { createField, getFields } from "@/services/fieldService";
 
 export default function MatchDetailsScreen() {
   const params = useLocalSearchParams();
@@ -38,6 +38,8 @@ export default function MatchDetailsScreen() {
 
   // Local persistence for saved terrains (stored as array under STORAGE_KEY)
   const [savedTerrains, setSavedTerrains] = useState<any[]>([]);
+  const [serverTerrains, setServerTerrains] = useState<any[]>([]);
+  const [loadingServerTerrains, setLoadingServerTerrains] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
   const [newTerrainName, setNewTerrainName] = useState("");
   const [selectedTerrainId, setSelectedTerrainId] = useState<string | null>(null);
@@ -90,11 +92,38 @@ export default function MatchDetailsScreen() {
 
   const loadTerrain = (terrain: any) => {
     if (!terrain || !terrain.corners) return;
-    setSavedCorners(terrain.corners);
+    // Normalize server terrain shape (lat/lon) to the savedCorners format (Location-like with .coords)
+    const normalizeCorner = (c: any) => {
+      if (!c) return null;
+      if (c.coords && typeof c.coords.latitude === "number") return c;
+      // assume { coords: { latitude, longitude } } or { latitude, longitude }
+      const lat = c.coords?.latitude ?? c.latitude ?? c.lat;
+      const lon = c.coords?.longitude ?? c.longitude ?? c.lon;
+      return { coords: { latitude: Number(lat), longitude: Number(lon) } };
+    };
+
+    setSavedCorners({
+      tl: normalizeCorner(terrain.corners.tl),
+      tr: normalizeCorner(terrain.corners.tr),
+      bl: normalizeCorner(terrain.corners.bl),
+      br: normalizeCorner(terrain.corners.br),
+    });
     setTerrainValidated(true);
     setActiveCorner(null);
     if (terrain.id) setSelectedTerrainId(terrain.id.toString());
     setShowSavedTerrains(false);
+  };
+
+  const fetchServerTerrains = async () => {
+    setLoadingServerTerrains(true);
+    try {
+      const list = await getFields();
+      setServerTerrains(list || []);
+    } catch (err) {
+      console.error("Failed to fetch server terrains:", err);
+    } finally {
+      setLoadingServerTerrains(false);
+    }
   };
 
   const deleteTerrain = async (id: string) => {
@@ -610,28 +639,37 @@ export default function MatchDetailsScreen() {
         {/* Picker: allow choosing an existing saved terrain at any time (toggleable) */}
         {showSavedTerrains && (
           <View style={styles.terrainsPicker}>
-          <ThemedText style={[styles.metaText, { color: theme.text }]}>Terrains sauvegardés</ThemedText>
-          {savedTerrains.length === 0 ? (
-            <ThemedText style={[styles.metaText, { color: theme.text }]}>Pas de terrains sauvegardés</ThemedText>
-          ) : (
-            <ScrollView style={{ width: "100%", maxHeight: 160 }}>
-              {savedTerrains.map((t) => (
-                <View key={t.id} style={[styles.terrainItem, selectedTerrainId === t.id && styles.terrainSelected]}>
-                  <View style={{ flex: 1 }}>
-                    <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name}</ThemedText>
-                  </View>
-                  <View style={styles.actionGroup}>
-                    <TouchableOpacity onPress={() => loadTerrain(t)} style={styles.terrainLoadAction}>
-                      <ThemedText style={styles.terrainLoadActionText}>Charger</ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
-                      <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-          )}
+            <ThemedText style={[styles.metaText, { color: theme.text }]}>Terrains sauvegardés</ThemedText>
+            {loadingServerTerrains ? (
+              <ThemedText style={[styles.metaText, { color: theme.text }]}>Chargement...</ThemedText>
+            ) : (() => {
+              const list = serverTerrains && serverTerrains.length > 0 ? serverTerrains : savedTerrains;
+              if (!list || list.length === 0) {
+                return <ThemedText style={[styles.metaText, { color: theme.text }]}>Pas de terrains sauvegardés</ThemedText>;
+              }
+              return (
+                <ScrollView style={{ width: "100%", maxHeight: 160 }}>
+                  {list.map((t: any) => (
+                    <View key={t.id} style={[styles.terrainItem, selectedTerrainId === t.id && styles.terrainSelected]}>
+                      <View style={{ flex: 1 }}>
+                        <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name ?? t.field_name}</ThemedText>
+                      </View>
+                      <View style={styles.actionGroup}>
+                        <TouchableOpacity onPress={() => loadTerrain(t)} style={styles.terrainLoadAction}>
+                          <ThemedText style={styles.terrainLoadActionText}>Charger</ThemedText>
+                        </TouchableOpacity>
+                        {/* If it's a local terrain we allow delete; server deletion not implemented here */}
+                        {t.id && savedTerrains.find((s) => s.id === t.id) ? (
+                          <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
+                            <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              );
+            })()}
           </View>
         )}
 
@@ -640,7 +678,13 @@ export default function MatchDetailsScreen() {
           <View style={{ alignItems: "center", marginTop: 10 }}>
             <TouchableOpacity
               accessibilityLabel="toggle-saved-terrains"
-              onPress={() => setShowSavedTerrains((s) => !s)}
+              onPress={() => {
+                setShowSavedTerrains((s) => {
+                  const next = !s;
+                  if (next) fetchServerTerrains();
+                  return next;
+                });
+              }}
               style={[styles.smallToggleButton, { backgroundColor: theme.primary }]}
             >
               <ThemedText style={styles.confirmButtonText}>{showSavedTerrains ? "Masquer terrains" : "Voir terrains"}</ThemedText>

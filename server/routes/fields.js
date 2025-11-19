@@ -54,4 +54,40 @@ router.post("/", async (req, res) => {
   }
 });
 
+// GET /api/fields
+// Returns list of fields with corners normalized to { tl: { coords: { latitude, longitude } }, ... }
+router.get("/", async (req, res) => {
+  try {
+    // Use ST_X/ ST_Y to extract lon/lat from POINT columns (X=lon, Y=lat)
+    const sql = `SELECT id, field_name,
+      ST_X(corner_tl) AS tl_lon, ST_Y(corner_tl) AS tl_lat,
+      ST_X(corner_tr) AS tr_lon, ST_Y(corner_tr) AS tr_lat,
+      ST_X(corner_bl) AS bl_lon, ST_Y(corner_bl) AS bl_lat,
+      ST_X(corner_br) AS br_lon, ST_Y(corner_br) AS br_lat
+      FROM field`;
+
+    const rows = await runQuery(sql);
+
+    // If mariadb returns [rows, fields], normalize
+    const data = Array.isArray(rows) && Array.isArray(rows[0]) ? rows[0] : rows;
+
+    const fields = (data || []).map((r) => ({
+      id: r.id,
+      name: r.field_name,
+      created_at: r.created_at,
+      corners: {
+        tl: { coords: { latitude: Number(r.tl_lat), longitude: Number(r.tl_lon) } },
+        tr: { coords: { latitude: Number(r.tr_lat), longitude: Number(r.tr_lon) } },
+        bl: { coords: { latitude: Number(r.bl_lat), longitude: Number(r.bl_lon) } },
+        br: { coords: { latitude: Number(r.br_lat), longitude: Number(r.br_lon) } },
+      },
+    }));
+
+    res.json(fields);
+  } catch (err) {
+    console.error("Error fetching fields:", err);
+    res.status(500).json({ error: "db error" });
+  }
+});
+
 module.exports = router;
