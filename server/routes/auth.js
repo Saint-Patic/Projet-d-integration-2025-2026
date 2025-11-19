@@ -2,9 +2,6 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../index");
 const argon2 = require("argon2");
-const jwt = require("jsonwebtoken");
-const authMiddleware = require("../middleware/auth");
-const { JWT_SECRET } = require("../config/jwt");
 
 // Helper to call procedures
 async function callProcedure(sql, params = []) {
