@@ -80,6 +80,7 @@ export default function ProfilScreen() {
   const [poidsInput, setPoidsInput] = useState("0");
   const [pointureInput, setPointureInput] = useState("0");
   const [tailleInput, setTailleInput] = useState("0");
+  const [pseudoInput, setPseudoInput] = useState("0");
 
   // Validation states
   const [lastnameError, setLastnameError] = useState("");
@@ -135,12 +136,8 @@ export default function ProfilScreen() {
   // Check pseudo availability
   useEffect(() => {
     const checkPseudoAvailability = async () => {
-      console.log(
-        "🚀 ~ checkPseudoAvailability ~ originalPseudo:",
-        originalPseudo
-      );
-      console.log("🚀 ~ checkPseudoAvailability ~ form.pseudo:", form.pseudo);
-      if (form.pseudo === originalPseudo) {
+      // Vérifier que form.pseudo existe et n'est pas vide
+      if (!form.pseudo || form.pseudo === originalPseudo) {
         setPseudoAvailable(true);
         setPseudoError("");
         return;
@@ -169,7 +166,7 @@ export default function ProfilScreen() {
     };
 
     const timer = setTimeout(() => {
-      if (form.pseudo.length >= 3) {
+      if (form.pseudo && form.pseudo.length >= 3) {
         checkPseudoAvailability();
       }
     }, 500);
@@ -270,10 +267,14 @@ export default function ProfilScreen() {
   const editProfile = () => {
     if (!user) return;
 
-    setForm({ ...user });
+    setForm({
+      ...user,
+      pseudo: user.pseudo || "",
+    });
     setOriginalPseudo(user.pseudo || "");
     setPoidsInput(user.user_weight.toString());
     setPointureInput(user.foot_size.toString());
+    setPseudoInput(user.pseudo || "");
     setTailleInput(user.user_height.toString());
     setMainSelection(
       user.dominant_hand === "ambidextrous"
