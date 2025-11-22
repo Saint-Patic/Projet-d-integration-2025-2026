@@ -36,7 +36,7 @@ export default function AuthPage() {
   // Regex pour valider le mot de passe
   const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
-
+//zone mdp (un commentaire pr commit)
   const passwordCriteria = [
     {
       key: "length",
