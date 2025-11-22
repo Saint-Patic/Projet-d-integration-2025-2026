@@ -33,15 +33,15 @@ export default function AuthPage() {
   // Regex pour valider l'email
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-  // Regex pour valider le mot de passe
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
+  // Regex pour valider le mot de passe (min 15, au moins une minuscule, une majuscule, un caractère spécial)
+  // La validation complète est implémentée dans `validateMdp` et `validateMdpLowercaseRule`.
+  const passwordRegex = /^(?=.*[A-Z])(?=.*[@$!%*?&]).{15,}$/;
 //zone mdp (un commentaire pr commit)
   const passwordCriteria = [
     {
       key: "length",
-      label: "Au moins 10 caractères",
-      test: (pw: string) => pw.length >= 10,
+      label: "Au moins 15 caractères",
+      test: (pw: string) => pw.length >= 15,
     },
     {
       key: "upper",
@@ -50,13 +50,9 @@ export default function AuthPage() {
     },
     {
       key: "lower",
-      label: "Au moins 1 lettre minuscule",
-      test: (pw: string) => /[a-z]/.test(pw),
-    },
-    {
-      key: "digit",
-      label: "Au moins 1 chiffre",
-      test: (pw: string) => /\d/.test(pw),
+      label: "Au moins 1 lettre minuscule (ou premier/dernier caractère compté)",
+      // test implemented by validateMdpLowercaseRule
+      test: (pw: string) => validateMdpLowercaseRule(pw),
     },
     {
       key: "special",
@@ -72,7 +68,26 @@ export default function AuthPage() {
   }
 
   function validateMdp(mdp: string): boolean {
-    return passwordRegex.test(mdp);
+    // Basic pattern check (length + at least one uppercase + at least one special)
+    if (!passwordRegex.test(mdp)) return false;
+
+    // Require at least one uppercase and at least one special (already in regex)
+    // Check lowercase rule: either contains a lowercase OR first/last char counts as lowercase
+    if (!validateMdpLowercaseRule(mdp)) return false;
+
+    return true;
+  }
+
+  function validateMdpLowercaseRule(mdp: string): boolean {
+    // If there's any lowercase, it's valid
+    if (/[a-z]/.test(mdp)) return true;
+
+    // Otherwise, if first or last character is uppercase or special, count it as lowercase
+    if (!mdp || mdp.length === 0) return false;
+    const first = mdp.charAt(0);
+    const last = mdp.charAt(mdp.length - 1);
+    const isUpperOrSpecial = (ch: string) => /[A-Z@$!%*?&]/.test(ch);
+    return isUpperOrSpecial(first) || isUpperOrSpecial(last);
   }
 
   async function handleLogin() {
@@ -100,7 +115,8 @@ export default function AuthPage() {
         const message = error.response.data?.error || "Erreur de connexion";
 
         if (status === 401) {
-          setErrorMessage("Email ou mot de passe incorrect");
+          // Show the server-provided 401 message (more specific)
+          setErrorMessage(message);
         } else if (status === 400) {
           setErrorMessage(message);
         } else {
@@ -221,6 +237,8 @@ export default function AuthPage() {
           style={styles.input}
           secureTextEntry
           editable={!isLoading}
+          // Hide the native context menu to discourage copy/paste on mobile
+          contextMenuHidden={true}
         />
 
         {!isLogin && (
@@ -235,6 +253,8 @@ export default function AuthPage() {
             style={styles.input}
             secureTextEntry
             editable={!isLoading}
+            // Hide context menu to prevent copy/paste into confirmation field
+            contextMenuHidden={true}
           />
         )}
 
