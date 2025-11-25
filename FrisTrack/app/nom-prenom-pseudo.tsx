@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   TextInput,
   TouchableOpacity,
-  Alert,
   StyleSheet,
   Platform,
   StatusBar,
