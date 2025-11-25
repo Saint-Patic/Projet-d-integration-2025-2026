@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, TouchableOpacity, StyleSheet, GestureResponderEvent, TextInput, ScrollView, Modal, KeyboardAvoidingView, Platform } from "react-native";
+import { View, TouchableOpacity, StyleSheet, GestureResponderEvent, TextInput, ScrollView, Modal, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import * as Location from "expo-location";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getMatchById, updateMatch, Match } from "@/services/getMatches";
-import { createField, getFields } from "@/services/fieldService";
+import { createField, getFields, deleteField } from "@/services/fieldService";
 
 export default function MatchDetailsScreen() {
   const params = useLocalSearchParams();
@@ -658,12 +658,35 @@ export default function MatchDetailsScreen() {
                         <TouchableOpacity onPress={() => loadTerrain(t)} style={styles.terrainLoadAction}>
                           <ThemedText style={styles.terrainLoadActionText}>Charger</ThemedText>
                         </TouchableOpacity>
-                        {/* If it's a local terrain we allow delete; server deletion not implemented here */}
-                        {t.id && savedTerrains.find((s) => s.id === t.id) ? (
-                          <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
-                            <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
-                          </TouchableOpacity>
-                        ) : null}
+                            {/* Delete button: local terrains delete locally, server terrains call API */}
+                            {t.id && savedTerrains.find((s) => s.id === t.id) ? (
+                              <TouchableOpacity onPress={() => {
+                                Alert.alert("Supprimer le terrain", "Voulez-vous supprimer ce terrain local ?", [
+                                  { text: "Annuler", style: "cancel" },
+                                  { text: "Supprimer", style: "destructive", onPress: () => deleteTerrain(t.id) },
+                                ]);
+                              }} style={styles.terrainAction}>
+                                <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
+                              </TouchableOpacity>
+                            ) : (
+                              <TouchableOpacity onPress={() => {
+                                Alert.alert("Supprimer le terrain", "Voulez-vous supprimer ce terrain du serveur ?", [
+                                  { text: "Annuler", style: "cancel" },
+                                  { text: "Supprimer", style: "destructive", onPress: async () => {
+                                    try {
+                                      await deleteField(t.id);
+                                      setServerTerrains((prev) => prev.filter((s) => s.id !== t.id));
+                                      if (selectedTerrainId === t.id.toString()) setSelectedTerrainId(null);
+                                    } catch (err) {
+                                      console.error("Failed to delete server terrain:", err);
+                                      Alert.alert("Erreur", "Impossible de supprimer le terrain sur le serveur.");
+                                    }
+                                  } }
+                                ]);
+                              }} style={styles.terrainAction}>
+                                <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
+                              </TouchableOpacity>
+                            )}
                       </View>
                     </View>
                   ))}

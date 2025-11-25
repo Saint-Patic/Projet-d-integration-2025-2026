@@ -90,4 +90,26 @@ router.get("/", async (req, res) => {
   }
 });
 
+// DELETE /api/fields/:id
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`DELETE /api/fields/${id} called`);
+    if (!id) return res.status(400).json({ error: "Missing id" });
+
+    const sql = `DELETE FROM field WHERE id = ?`;
+    const result = await runQuery(sql, [id]);
+
+    // result may be OkPacket or [rows, fields]
+    const ok = result?.affectedRows ?? (Array.isArray(result) && result[0]?.affectedRows) ?? 0;
+
+    if (ok === 0) return res.status(404).json({ error: "Field not found" });
+
+    res.json({ success: true, affectedRows: ok });
+  } catch (err) {
+    console.error("Error deleting field:", err);
+    res.status(500).json({ error: "db error" });
+  }
+});
+
 module.exports = router;

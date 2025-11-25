@@ -28,4 +28,14 @@ export const getFields = async () => {
   }
 };
 
-export default { createField, getFields };
+export const deleteField = async (id: string | number) => {
+  try {
+    const res = await api.delete(`/fields/${id}`);
+    return res.data;
+  } catch (err) {
+    console.error("Error deleting field:", err);
+    throw err;
+  }
+};
+
+export default { createField, getFields, deleteField };
