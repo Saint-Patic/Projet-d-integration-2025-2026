@@ -2,6 +2,11 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../index");
 const argon2 = require("argon2");
+const validator = require("../middleware/validator");
+const {
+  registerLimiter,
+  generalLimiter,
+} = require("../middleware/rateLimiter");
 
 // Helper to call procedures
 async function callProcedure(sql, params = []) {
@@ -15,12 +20,11 @@ async function callProcedure(sql, params = []) {
 }
 
 // POST /api/auth/check-email
-// body: { email }
-router.post("/check-email", async (req, res) => {
+router.post("/check-email", generalLimiter, async (req, res) => {
   const { email } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ error: "L'email est requis" });
+  if (!email || !validator.validateEmail(email)) {
+    return res.status(400).json({ error: "Email invalide" });
   }
 
   try {
@@ -40,8 +44,7 @@ router.post("/check-email", async (req, res) => {
 });
 
 // POST /api/auth/register
-// body: { email, password, firstname, lastname, pseudo, birthdate, user_weight, user_height, foot_size, dominant_hand }
-router.post("/register", async (req, res) => {
+router.post("/register", registerLimiter, async (req, res) => {
   const {
     email,
     password,
@@ -63,15 +66,12 @@ router.post("/register", async (req, res) => {
   }
 
   // Validation email
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  if (!emailRegex.test(email)) {
+  if (!validator.validateEmail(email)) {
     return res.status(400).json({ error: "Format d'email invalide" });
   }
 
   // Validation mot de passe
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
-  if (!passwordRegex.test(password)) {
+  if (!validator.validatePassword(password)) {
     return res.status(400).json({
       error:
         "Le mot de passe doit contenir au moins 10 caractères, 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial",
@@ -79,22 +79,55 @@ router.post("/register", async (req, res) => {
   }
 
   // Validation nom et prénom
-  const nameRegex = /^[a-zA-ZÀ-ÿ\s\-]{2,}$/;
-  if (!nameRegex.test(firstname) || !nameRegex.test(lastname)) {
+  if (!validator.validateName(firstname) || !validator.validateName(lastname)) {
     return res
       .status(400)
       .json({ error: "Nom et prénom invalides (minimum 2 caractères)" });
   }
 
   // Validation pseudo si fourni
-  if (pseudo) {
-    const pseudoRegex = /^[a-zA-Z0-9_\-]{3,}$/;
-    if (!pseudoRegex.test(pseudo)) {
-      return res.status(400).json({
-        error:
-          "Pseudo invalide (minimum 3 caractères, lettres, chiffres, _ et - uniquement)",
-      });
-    }
+  if (pseudo && !validator.validatePseudo(pseudo)) {
+    return res.status(400).json({
+      error:
+        "Pseudo invalide (minimum 3 caractères, lettres, chiffres, _ et - uniquement)",
+    });
+  }
+
+  // Validation date de naissance
+  if (!validator.validateBirthdate(birthdate)) {
+    return res.status(400).json({ error: "Date de naissance invalide" });
+  }
+
+  // Validation des champs optionnels
+  if (
+    user_weight !== null &&
+    user_weight !== undefined &&
+    !validator.validateWeight(user_weight)
+  ) {
+    return res.status(400).json({ error: "Poids invalide (10-300 kg)" });
+  }
+
+  if (
+    user_height !== null &&
+    user_height !== undefined &&
+    !validator.validateHeight(user_height)
+  ) {
+    return res.status(400).json({ error: "Taille invalide (50-250 cm)" });
+  }
+
+  if (
+    foot_size !== null &&
+    foot_size !== undefined &&
+    !validator.validateFootSize(foot_size)
+  ) {
+    return res.status(400).json({ error: "Pointure invalide (15-65)" });
+  }
+
+  if (
+    dominant_hand &&
+    !["Ambidextre", "Gauche", "Droite"].includes(dominant_hand)
+  ) {
+    return res.status(400).json({ error: "Main dominante invalide" });
   }
 
   const conn = await pool.getConnection();
@@ -154,7 +187,6 @@ router.post("/register", async (req, res) => {
   } catch (err) {
     console.error("Erreur lors de l'inscription:", err);
 
-    // Gérer les erreurs de contraintes de base de données
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ error: "Email ou pseudo déjà utilisé" });
     }
