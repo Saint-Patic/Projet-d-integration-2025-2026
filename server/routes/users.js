@@ -32,7 +32,7 @@ router.post("/login", loginLimiter, async (req, res) => {
   try {
     const conn = await pool.getConnection();
     try {
-      const [users] = await conn.query(
+      const users = await conn.query(
         `SELECT user_id, firstname, lastname, pseudo, birthdate, email, password_hash, 
                 user_type, user_weight, user_height, foot_size, dominant_hand, 
                 profile_picture, created_at, color_mode, color_id
@@ -42,12 +42,13 @@ router.post("/login", loginLimiter, async (req, res) => {
       );
 
       if (!users || users.length === 0) {
+        // No user found for provided email
         return res
           .status(401)
-          .json({ error: "Email ou mot de passe incorrect" });
+          .json({ error: "Échec de la connexion, identifiant utilisateur invalide." });
       }
 
-      const userRow = users;
+      const userRow = users[0];
 
       const isPasswordValid = await argon2.verify(
         userRow.password_hash,
@@ -55,9 +56,8 @@ router.post("/login", loginLimiter, async (req, res) => {
       );
 
       if (!isPasswordValid) {
-        return res
-          .status(401)
-          .json({ error: "Email ou mot de passe incorrect" });
+        // Invalid password for existing user
+        return res.status(401).json({ error: "Connexion pour l'utilisateur fail : mot de passe invalide." });
       }
 
       const token = jwt.sign(
