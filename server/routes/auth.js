@@ -24,7 +24,7 @@ router.post("/check-email", async (req, res) => {
   }
 
   try {
-    const result = await callProcedure("CALL check_email_exists(?)", [email]);
+    const result = await callProcedure("CALL check_email_for_registration(?)", [email]);
     const exists = result[0] && result[0].length > 0;
 
     res.status(200).json({
