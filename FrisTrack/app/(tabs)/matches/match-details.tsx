@@ -649,8 +649,12 @@ export default function MatchDetailsScreen() {
               }
               return (
                 <ScrollView style={{ width: "100%", maxHeight: 160 }}>
-                  {list.map((t: any) => (
-                    <View key={t.id} style={[styles.terrainItem, selectedTerrainId === t.id && styles.terrainSelected]}>
+                  {list.map((t: any, idx: number) => {
+                    const key = t.id ?? t.id_field ?? t.field_name ?? `terrain-${idx}`;
+                    const selectedKey = selectedTerrainId ? String(selectedTerrainId) : null;
+                    const itemId = t.id ?? t.id_field ?? null;
+                    return (
+                      <View key={key} style={[styles.terrainItem, selectedKey === String(itemId) && styles.terrainSelected]}>
                       <View style={{ flex: 1 }}>
                         <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name ?? t.field_name}</ThemedText>
                       </View>
@@ -689,7 +693,8 @@ export default function MatchDetailsScreen() {
                             )}
                       </View>
                     </View>
-                  ))}
+                    );
+                  })}
                 </ScrollView>
               );
             })()}
