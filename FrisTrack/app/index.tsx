@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   TextInput,
   TouchableOpacity,
-  Alert,
   StyleSheet,
   Platform,
   StatusBar,
@@ -12,9 +11,11 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { router, useNavigation } from "expo-router";
 import { authService } from "@/services/getUserLogin";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function AuthPage() {
   const navigation = useNavigation();
+  const { login } = useAuth();
 
   useEffect(() => {
     navigation.setOptions({
@@ -32,15 +33,15 @@ export default function AuthPage() {
   // Regex pour valider l'email
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-  // Regex pour valider le mot de passe
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
-
+  // Regex pour valider le mot de passe (min 15, au moins une minuscule, une majuscule, un caractère spécial)
+  // La validation complète est implémentée dans `validateMdp` et `validateMdpLowercaseRule`.
+  const passwordRegex = /^(?=.*[A-Z])(?=.*[@$!%*?&]).{15,}$/;
+//zone mdp (un commentaire pr commit)
   const passwordCriteria = [
     {
       key: "length",
-      label: "Au moins 10 caractères",
-      test: (pw: string) => pw.length >= 10,
+      label: "Au moins 15 caractères",
+      test: (pw: string) => pw.length >= 15,
     },
     {
       key: "upper",
@@ -49,13 +50,9 @@ export default function AuthPage() {
     },
     {
       key: "lower",
-      label: "Au moins 1 lettre minuscule",
-      test: (pw: string) => /[a-z]/.test(pw),
-    },
-    {
-      key: "digit",
-      label: "Au moins 1 chiffre",
-      test: (pw: string) => /\d/.test(pw),
+      label: "Au moins 1 lettre minuscule (ou premier/dernier caractère compté)",
+      // test 
+      test: (pw: string) => validateMdpLowercaseRule(pw),
     },
     {
       key: "special",
@@ -71,7 +68,25 @@ export default function AuthPage() {
   }
 
   function validateMdp(mdp: string): boolean {
-    return passwordRegex.test(mdp);
+    // check du mdp sur le critère demander
+    if (!passwordRegex.test(mdp)) return false;
+
+    // vérifie si c'est bien minuscule début et fin du mdp
+    if (!validateMdpLowercaseRule(mdp)) return false;
+
+    return true;
+  }
+
+  function validateMdpLowercaseRule(mdp: string): boolean {
+    // check de minuscule
+    if (/[a-z]/.test(mdp)) return true;
+
+    // refuser les maj et symbole spéciaux au début et fin du mdp, si y'en a ça compte comme min
+    if (!mdp || mdp.length === 0) return false;
+    const first = mdp.charAt(0);
+    const last = mdp.charAt(mdp.length - 1);
+    const isUpperOrSpecial = (ch: string) => /[A-Z@$!%*?&]/.test(ch);
+    return isUpperOrSpecial(first) || isUpperOrSpecial(last);
   }
 
   async function handleLogin() {
@@ -89,10 +104,8 @@ export default function AuthPage() {
     setErrorMessage("");
 
     try {
-      const response = await authService.login({ email, password });
-      if (response?.success) {
-        router.replace("./(tabs)/matches");
-      }
+      await login({ email, password });
+      router.replace("./(tabs)/matches");
     } catch (error: any) {
       console.error("Erreur de connexion:", error);
 
@@ -101,7 +114,8 @@ export default function AuthPage() {
         const message = error.response.data?.error || "Erreur de connexion";
 
         if (status === 401) {
-          setErrorMessage("Email ou mot de passe incorrect");
+          // alert error
+          setErrorMessage(message);
         } else if (status === 400) {
           setErrorMessage(message);
         } else {
@@ -222,6 +236,8 @@ export default function AuthPage() {
           style={styles.input}
           secureTextEntry
           editable={!isLoading}
+          // refuser le copier coller du mdp
+          contextMenuHidden={true}
         />
 
         {!isLogin && (
@@ -236,6 +252,8 @@ export default function AuthPage() {
             style={styles.input}
             secureTextEntry
             editable={!isLoading}
+            // refuser le copier coller du mdp lors de la confirmation
+            contextMenuHidden={true}
           />
         )}
 
@@ -291,8 +309,6 @@ export default function AuthPage() {
     </View>
   );
 }
-
-// ...existing code...
 
 const styles = StyleSheet.create({
   container: {

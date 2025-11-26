@@ -1,18 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-interface User {
-  id: number;
-  email: string;
-  firstname: string;
-  lastname: string;
-  pseudo: string;
-  birthdate: string;
-  user_weight: number;
-  user_height: number;
-  foot_size: number;
-  dominant_hand: "Gauche" | "Droite" | "Ambidextre";
-  profile_picture?: string;
-}
+import { User } from "@/types/user";
 
 export const authUtils = {
   // Sauvegarder les données d'authentification

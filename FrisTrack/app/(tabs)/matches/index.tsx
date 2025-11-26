@@ -12,43 +12,33 @@ import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { AddButton } from "@/components/perso_components/addButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter, useFocusEffect } from "expo-router";
-import { getMatches, updateMatch } from "@/services/getMatches";
-
-export interface Match {
-  id: number;
-  team_name_1: string;
-  team_name_2: string;
-  team_score_1: number;
-  team_score_2: number;
-  team1_status: string; // 'home' ou 'away'
-  team2_status: string; // 'home' ou 'away'
-  date: string;
-  status?: string;
-  color?: string;
-  isRecording?: boolean;
-  hasRecording?: boolean;
-  recordingStartTime?: number;
-  recordingDuration?: number;
-}
+import { getMatchesByUser, updateMatch } from "@/services/getMatches";
+import { useAuth } from "@/contexts/AuthContext";
+import { Match } from "@/types/user";
 
 export default function HomeScreen() {
   const [matches, setMatches] = useState<Match[]>([]);
   const { theme } = useTheme();
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
-    getMatches().then((data) => {
-      setMatches(data);
-    });
-  }, []);
+    if (user?.user_id) {
+      getMatchesByUser(user.user_id).then((data) => {
+        setMatches(data);
+      });
+    }
+  }, [user]);
 
   // Recharger les données quand on revient sur cette page
   useFocusEffect(
     React.useCallback(() => {
-      getMatches().then((data) => {
-        setMatches(data);
-      });
-    }, [])
+      if (user?.user_id) {
+        getMatchesByUser(user.user_id).then((data) => {
+          setMatches(data);
+        });
+      }
+    }, [user])
   );
 
   const editMatch = (matchId: number) => {

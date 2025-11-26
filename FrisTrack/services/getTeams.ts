@@ -1,4 +1,4 @@
-import api from "./api";
+import apiClient from "./apiClient";
 
 export interface Team {
   id: number;
@@ -21,7 +21,7 @@ export interface TeamPlayer {
 
 export const getTeams = async (): Promise<Team[]> => {
   try {
-    const response = await api.get<Team[]>("/teams");
+    const response = await apiClient.get<Team[]>("/teams");
     return response.data;
   } catch (error) {
     console.error("Error fetching teams:", error);
@@ -31,7 +31,7 @@ export const getTeams = async (): Promise<Team[]> => {
 
 export const getTeamById = async (id: number): Promise<Team | null> => {
   try {
-    const response = await api.get<Team>(`/teams/${id}`);
+    const response = await apiClient.get<Team>(`/teams/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching team ${id}:`, error);
@@ -41,7 +41,7 @@ export const getTeamById = async (id: number): Promise<Team | null> => {
 
 export const getPlayerCount = async (id: number): Promise<Team | null> => {
   try {
-    const response = await api.get<Team>(`/teams/${id}/player-count`);
+    const response = await apiClient.get<Team>(`/teams/${id}/player-count`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching team ${id}:`, error);
@@ -51,10 +51,20 @@ export const getPlayerCount = async (id: number): Promise<Team | null> => {
 
 export const getTeamPlayers = async (id: number): Promise<TeamPlayer[]> => {
   try {
-    const response = await api.get<TeamPlayer[]>(`/teams/${id}/players`);
+    const response = await apiClient.get<TeamPlayer[]>(`/teams/${id}/players`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching players for team ${id}:`, error);
     return [];
+  }
+};
+
+export const getTeamsByUser = async (userId: number): Promise<Team[]> => {
+  try {
+    const response = await apiClient.get<Team[]>(`/teams/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching teams for user ${userId}:`, error);
+    throw error;
   }
 };

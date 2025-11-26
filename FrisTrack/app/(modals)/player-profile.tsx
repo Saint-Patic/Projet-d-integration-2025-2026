@@ -11,10 +11,11 @@ import {
 import { Image } from "expo-image";
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import ProfileView from "@/components/perso_components/ProfileView";
 import { authService } from "@/services/getUserLogin";
 import { getProfileImage } from "@/components/perso_components/loadImages";
+import { ThemedText } from "@/components/themed-text";
 
 export default function PlayerProfilScreen() {
   const { theme } = useTheme();
@@ -23,6 +24,7 @@ export default function PlayerProfilScreen() {
   const [showFullImage, setShowFullImage] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const navigation = useNavigation();
 
@@ -37,16 +39,23 @@ export default function PlayerProfilScreen() {
   const loadUserData = async () => {
     try {
       setIsLoading(true);
+      setError(false);
       const userData = await authService.getUserById(currentPlayerId);
 
-      // Convertir les données API au format attendu par ProfileView
+      if (!userData) {
+        console.error("User not found");
+        setUser(null);
+        setError(true);
+        return;
+      }
+
       const formattedUser = {
         id: userData.user_id,
-        nom: userData.lastname,
-        prenom: userData.firstname,
-        imageName: userData.profile_picture || "default.png",
-        pointure: userData.foot_size || 0,
-        main:
+        lastname: userData.lastname,
+        firstname: userData.firstname,
+        profile_picture: userData.profile_picture || "default.png",
+        foot_size: userData.foot_size || 0,
+        dominant_hand:
           userData.dominant_hand === "left"
             ? "Gauche"
             : userData.dominant_hand === "right"
@@ -54,17 +63,18 @@ export default function PlayerProfilScreen() {
             : userData.dominant_hand === "ambidextrous"
             ? "Ambidextre"
             : "-",
-        poids: userData.user_weight || 0,
-        taille: userData.user_height || 0,
+        user_weight: userData.user_weight || 0,
+        user_height: userData.user_height || 0,
         age: userData.birthdate
           ? new Date().getFullYear() -
             new Date(userData.birthdate).getFullYear()
           : 0,
       };
-
       setUser(formattedUser);
     } catch (error) {
       console.error("Error loading user data:", error);
+      setUser(null);
+      setError(true);
     } finally {
       setIsLoading(false);
     }
@@ -83,8 +93,41 @@ export default function PlayerProfilScreen() {
     );
   }
 
-  if (!user) {
-    return null;
+  if (error || !user) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", backgroundColor: theme.background },
+        ]}
+      >
+        <BackButton
+          theme={theme}
+          style={{ position: "absolute", top: 40, left: 20 }}
+        />
+        <ThemedText
+          style={{
+            color: theme.text,
+            fontSize: 18,
+            textAlign: "center",
+            paddingHorizontal: 32,
+          }}
+        >
+          Utilisateur introuvable
+        </ThemedText>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={[
+            styles.errorButton,
+            { backgroundColor: theme.primary, marginTop: 20 },
+          ]}
+        >
+          <ThemedText style={{ color: "#fff", fontWeight: "600" }}>
+            Retour
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   if (showFullImage) {
@@ -104,7 +147,7 @@ export default function PlayerProfilScreen() {
           onPress={() => setShowFullImage(false)}
         >
           <Image
-            source={getProfileImage(user.imageName)}
+            source={getProfileImage(user.profile_picture)}
             style={{
               width: width * 0.8,
               height: width * 0.8,
@@ -248,5 +291,10 @@ const styles = StyleSheet.create({
     top: 40,
     left: 20,
     zIndex: 101,
+  },
+  errorButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
   },
 });

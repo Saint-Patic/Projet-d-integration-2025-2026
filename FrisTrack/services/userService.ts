@@ -1,26 +1,9 @@
-import api from "./api";
-
-export interface UserProfile {
-  user_id: number;
-  firstname: string;
-  lastname: string;
-  pseudo: string;
-  birthdate: string;
-  email: string;
-  user_weight?: number;
-  user_height?: number;
-  foot_size?: number;
-  dominant_hand?: string;
-  profile_picture?: string;
-  user_type: string;
-  created_at: string;
-  color_mode?: string;
-  color_id?: number;
-}
+import apiClient from "./apiClient";
+import { User } from "@/types/user";
 
 export interface GetUserResponse {
   success: boolean;
-  user: UserProfile;
+  user: User;
 }
 export interface UpdateRoleAttackRequest {
   user_id: number;
@@ -33,17 +16,75 @@ export interface UpdateRoleAttackResponse {
   message: string;
 }
 
+export interface UpdateProfileRequest {
+  user_id: number;
+  user_weight?: number;
+  user_height?: number;
+  foot_size?: number;
+  dominant_hand?: string;
+  pseudo?: string;
+  profile_picture?: string;
+}
+
+export interface UpdateProfileResponse {
+  success: boolean;
+}
+
+export interface UpdateBasicInfoRequest {
+  user_id: number;
+  firstname?: string;
+  lastname?: string;
+  birthdate?: string;
+  email?: string;
+}
+
+export interface UpdateBasicInfoResponse {
+  success: boolean;
+}
+
 export const userService = {
+  getUserById: async (userId: number): Promise<User> => {
+    try {
+      const response = await apiClient.get<User>(`/users/${userId}`);
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Error fetching user data by ID:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
+  },
   getUserByEmail: async (email: string): Promise<GetUserResponse> => {
     try {
-      console.log("Fetching user data for:", email);
-      const response = await api.get<GetUserResponse>(
+      const response = await apiClient.get<GetUserResponse>(
         `/users/email/${encodeURIComponent(email)}`
       );
-      console.log("User data retrieved successfully");
+
       return response.data;
     } catch (error: any) {
       console.error("Error fetching user data:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
+  },
+  updateProfile: async (
+    data: UpdateProfileRequest
+  ): Promise<UpdateProfileResponse> => {
+    try {
+      const response = await apiClient.put<UpdateProfileResponse>(
+        "/users/profile",
+        data
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Error updating profile:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
@@ -55,15 +96,33 @@ export const userService = {
     data: UpdateRoleAttackRequest
   ): Promise<UpdateRoleAttackResponse> => {
     try {
-      console.log("Updating role_attack:", data);
-      const response = await api.put<UpdateRoleAttackResponse>(
+      const response = await apiClient.put<UpdateRoleAttackResponse>(
         "/users/team-role-attack",
         data
       );
-      console.log("Role attack updated successfully");
+
       return response.data;
     } catch (error: any) {
       console.error("Error updating role attack:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
+  },
+  updateBasicInfo: async (
+    data: UpdateBasicInfoRequest
+  ): Promise<UpdateBasicInfoResponse> => {
+    try {
+      const response = await apiClient.put<UpdateBasicInfoResponse>(
+        "/users/basic",
+        data
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error("Error updating basic info:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
