@@ -141,7 +141,6 @@ export default function ProfilScreen() {
   // Check pseudo availability
   useEffect(() => {
     const checkPseudoAvailability = async () => {
-      // Vérifier que form.pseudo existe et n'est pas vide
       if (!form.pseudo || form.pseudo === originalPseudo) {
         setPseudoAvailable(true);
         setPseudoError("");
@@ -151,16 +150,16 @@ export default function ProfilScreen() {
       if (form.pseudo.length >= 3 && validatePseudo(form.pseudo)) {
         setCheckingPseudo(true);
         try {
-          const response = await apiClient.get(
-            `${API_URL}/users/check-pseudo/${form.pseudo}`
-          );
-          setPseudoAvailable(response.data);
+          const url = `/users/check-pseudo/${encodeURIComponent(form.pseudo)}${
+            authUser ? `?excludeUserId=${authUser.user_id}` : ""
+          }`;
+          const { data } = await apiClient.get(url);
 
-          if (!response.data) {
-            setPseudoError("Ce pseudo est déjà pris");
-          } else {
-            setPseudoError("");
-          }
+          // supporte { available: boolean } ou boolean direct
+          const available = typeof data === "boolean" ? data : data?.available === true;
+
+          setPseudoAvailable(available);
+          setPseudoError(available ? "" : "Ce pseudo est déjà pris");
         } catch (error) {
           console.error("Erreur vérification pseudo:", error);
         } finally {
@@ -176,7 +175,7 @@ export default function ProfilScreen() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [form.pseudo]);
+  }, [form.pseudo, authUser?.user_id]);
 
   const handleFirstnameChange = (text: string) => {
     setForm({ ...form, firstname: text });

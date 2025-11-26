@@ -16,7 +16,7 @@ const {
 async function callProcedure(sql, params = []) {
   const conn = await pool.getConnection();
   try {
-    const [rows] = await conn.query(sql, params);
+    const rows = await conn.query(sql, params);
     return rows;
   } finally {
     conn.release();
@@ -135,8 +135,9 @@ router.get("/:id", authMiddleware, generalLimiter, async (req, res) => {
 
 // GET /api/users/check-pseudo/:pseudo
 router.get("/check-pseudo/:pseudo", generalLimiter, async (req, res) => {
+  
   const { pseudo } = req.params;
-
+  console.log("Checking pseudo availability for:", pseudo);
   // Validation du format du pseudo
   if (!validator.validatePseudo(pseudo)) {
     return res.status(400).json({
@@ -149,7 +150,8 @@ router.get("/check-pseudo/:pseudo", generalLimiter, async (req, res) => {
     const rows = await callProcedure("CALL check_pseudo_available(?)", [
       pseudo,
     ]);
-    res.json({ available: rows.length === 0 });
+    console.log("Pseudo check result:", rows);
+    res.json({ available: rows[0].length === 0 });
   } catch (err) {
     console.error("Error checking pseudo:", err);
     res.status(500).json({ error: "Erreur serveur" });
@@ -166,7 +168,7 @@ router.put("/basic", authMiddleware, updateLimiter, async (req, res) => {
   }
 
   // Vérifier que l'utilisateur ne peut modifier que ses propres données
-  if (req.user.userId !== parseInt(user_id, 10)) {
+  if (req.userId !== parseInt(user_id, 10)) {
     return res
       .status(403)
       .json({ error: "Non autorisé à modifier cet utilisateur" });
@@ -228,7 +230,7 @@ router.put("/password", authMiddleware, updateLimiter, async (req, res) => {
   }
 
   // Vérifier les permissions
-  if (req.user.userId !== parseInt(user_id, 10)) {
+  if (req.userId !== parseInt(user_id, 10)) {
     return res.status(403).json({ error: "Non autorisé" });
   }
 
@@ -272,7 +274,7 @@ router.put("/profile", authMiddleware, updateLimiter, async (req, res) => {
   }
 
   // Vérifier les permissions
-  if (req.user.userId !== parseInt(user_id, 10)) {
+  if (req.userId !== parseInt(user_id, 10)) {
     return res.status(403).json({ error: "Non autorisé" });
   }
 
@@ -350,7 +352,7 @@ router.put("/type", authMiddleware, updateLimiter, async (req, res) => {
   }
 
   // Vérifier les permissions
-  if (req.user.userId !== parseInt(user_id, 10)) {
+  if (req.userId !== parseInt(user_id, 10)) {
     return res.status(403).json({ error: "Non autorisé" });
   }
 
@@ -390,7 +392,7 @@ router.put(
        FROM user_team ut
        JOIN users u ON ut.user_id = u.user_id
        WHERE ut.team_id = ? AND ut.user_id = ?`,
-        [team_id, req.user.userId]
+        [team_id, req.userId]
       );
 
       if (!membership || membership.length === 0) {
