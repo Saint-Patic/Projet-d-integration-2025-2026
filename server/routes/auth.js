@@ -28,7 +28,9 @@ router.post("/check-email", generalLimiter, async (req, res) => {
   }
 
   try {
-    const result = await callProcedure("CALL check_email_exists(?)", [email]);
+    const result = await callProcedure("CALL check_email_for_registration(?)", [
+      email,
+    ]);
     const exists = result[0] && result[0].length > 0;
 
     res.status(200).json({
@@ -58,8 +60,22 @@ router.post("/register", registerLimiter, async (req, res) => {
     dominant_hand,
   } = req.body;
 
+  console.log("Registration request received:", {
+    email,
+    firstname,
+    lastname,
+    pseudo,
+    birthdate,
+    user_weight,
+    user_height,
+    foot_size,
+    dominant_hand,
+    passwordLength: password?.length,
+  });
+
   // Validation des champs obligatoires
   if (!email || !password || !firstname || !lastname || !birthdate) {
+    console.log("Missing required fields");
     return res
       .status(400)
       .json({ error: "Tous les champs obligatoires doivent être remplis" });
@@ -67,11 +83,13 @@ router.post("/register", registerLimiter, async (req, res) => {
 
   // Validation email
   if (!validator.validateEmail(email)) {
+    console.log("Invalid email format:", email);
     return res.status(400).json({ error: "Format d'email invalide" });
   }
 
   // Validation mot de passe
   if (!validator.validatePassword(password)) {
+    console.log("Invalid password format");
     return res.status(400).json({
       error:
         "Le mot de passe doit contenir au moins 10 caractères, 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial",
@@ -80,6 +98,7 @@ router.post("/register", registerLimiter, async (req, res) => {
 
   // Validation nom et prénom
   if (!validator.validateName(firstname) || !validator.validateName(lastname)) {
+    console.log("Invalid firstname or lastname:", firstname, lastname);
     return res
       .status(400)
       .json({ error: "Nom et prénom invalides (minimum 2 caractères)" });
@@ -87,6 +106,7 @@ router.post("/register", registerLimiter, async (req, res) => {
 
   // Validation pseudo si fourni
   if (pseudo && !validator.validatePseudo(pseudo)) {
+    console.log("Invalid pseudo:", pseudo);
     return res.status(400).json({
       error:
         "Pseudo invalide (minimum 3 caractères, lettres, chiffres, _ et - uniquement)",
@@ -95,6 +115,7 @@ router.post("/register", registerLimiter, async (req, res) => {
 
   // Validation date de naissance
   if (!validator.validateBirthdate(birthdate)) {
+    console.log("Invalid birthdate:", birthdate);
     return res.status(400).json({ error: "Date de naissance invalide" });
   }
 
@@ -125,17 +146,26 @@ router.post("/register", registerLimiter, async (req, res) => {
 
   if (
     dominant_hand &&
-    !["Ambidextre", "Gauche", "Droite"].includes(dominant_hand)
+    ![
+      "Ambidextre",
+      "Gauche",
+      "Droite",
+      "ambidextrous",
+      "left",
+      "right",
+    ].includes(dominant_hand)
   ) {
+    console.log("Invalid dominant_hand:", dominant_hand);
     return res.status(400).json({ error: "Main dominante invalide" });
   }
 
   const conn = await pool.getConnection();
   try {
     // Vérifier si l'email existe déjà
-    const existingEmail = await callProcedure("CALL check_email_exists(?)", [
-      email,
-    ]);
+    const existingEmail = await callProcedure(
+      "CALL check_email_for_registration(?)",
+      [email]
+    );
     if (existingEmail[0] && existingEmail[0].length > 0) {
       return res.status(409).json({ error: "Cet email est déjà utilisé" });
     }
@@ -156,9 +186,12 @@ router.post("/register", registerLimiter, async (req, res) => {
 
     // Convertir dominant_hand
     let handValue = null;
-    if (dominant_hand === "Ambidextre") handValue = "ambidextrous";
-    else if (dominant_hand === "Gauche") handValue = "left";
-    else if (dominant_hand === "Droite") handValue = "right";
+    if (dominant_hand === "Ambidextre" || dominant_hand === "ambidextrous")
+      handValue = "ambidextrous";
+    else if (dominant_hand === "Gauche" || dominant_hand === "left")
+      handValue = "left";
+    else if (dominant_hand === "Droite" || dominant_hand === "right")
+      handValue = "right";
 
     // Insérer le nouvel utilisateur
     const [result] = await conn.query(

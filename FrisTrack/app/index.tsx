@@ -36,7 +36,7 @@ export default function AuthPage() {
   // Regex pour valider le mot de passe (min 15, au moins une minuscule, une majuscule, un caractère spécial)
   // La validation complète est implémentée dans `validateMdp` et `validateMdpLowercaseRule`.
   const passwordRegex = /^(?=.*[A-Z])(?=.*[@$!%*?&]).{15,}$/;
-//zone mdp (un commentaire pr commit)
+  //zone mdp (un commentaire pr commit)
   const passwordCriteria = [
     {
       key: "length",
@@ -50,8 +50,9 @@ export default function AuthPage() {
     },
     {
       key: "lower",
-      label: "Au moins 1 lettre minuscule (ou premier/dernier caractère compté)",
-      // test 
+      label:
+        "Au moins 1 lettre minuscule (ou premier/dernier caractère compté)",
+      // test
       test: (pw: string) => validateMdpLowercaseRule(pw),
     },
     {
@@ -86,7 +87,7 @@ export default function AuthPage() {
     const first = mdp.charAt(0);
     const last = mdp.charAt(mdp.length - 1);
     const isUpperOrSpecial = (ch: string) => /[A-Z@$!%*?&]/.test(ch);
-    return isUpperOrSpecial(first) || isUpperOrSpecial(last);
+    return !isUpperOrSpecial(first) && !isUpperOrSpecial(last);
   }
 
   async function handleLogin() {
