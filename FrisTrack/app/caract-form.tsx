@@ -134,15 +134,17 @@ export default function CaractForm() {
       const userData = {
         email: email as string,
         password: password as string,
-        firstname: nom as string,
-        lastname: prenom as string,
+        firstname: prenom as string,
+        lastname: nom as string,
         pseudo: pseudo as string,
         birthdate,
-        user_weight: form.poids,
-        user_height: form.taille,
-        foot_size: form.pointure,
+        user_weight: parseFloat(poidsInput) || form.poids,
+        user_height: parseFloat(tailleInput) || form.taille,
+        foot_size: parseFloat(pointureInput) || form.pointure,
         dominant_hand: mainValue,
       };
+
+      console.log("userData before send:", userData);
 
       const response = await registerService.register(userData);
 
@@ -200,14 +202,14 @@ export default function CaractForm() {
         setForm={setForm}
         showImagePicker={showImagePicker}
         setShowImagePicker={setShowImagePicker}
-        pointureInput={pointureInput}
-        setPointureInput={setPointureInput}
-        poidsInput={poidsInput}
-        setPoidsInput={setPoidsInput}
-        tailleInput={tailleInput}
-        setTailleInput={setTailleInput}
-        ageInput={ageInput}
-        setAgeInput={setAgeInput}
+        pointure={pointureInput}
+        setPointure={setPointureInput}
+        poids={poidsInput}
+        setPoids={setPoidsInput}
+        taille={tailleInput}
+        setTaille={setTailleInput}
+        age={ageInput}
+        setAge={setAgeInput}
         mainSelection={mainSelection}
         setMainSelection={setMainSelection}
         filterNumericInput={filterNumericInput}
