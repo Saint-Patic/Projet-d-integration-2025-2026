@@ -24,7 +24,6 @@ import {
 import {
   getDominantHandSelection,
   getDominantHandFromSelection,
-  translateDominantHandToEnglish,
 } from "@/utils/dominantHandUtils";
 const EditProfileAny: any = EditProfile;
 
@@ -160,8 +159,6 @@ export default function CaractForm() {
         );
       }
     } catch (error: any) {
-      console.error("Erreur inscription:", error);
-
       let errorMessage = "Une erreur est survenue lors de l'inscription";
 
       if (error.response) {
