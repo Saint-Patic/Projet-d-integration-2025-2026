@@ -16,7 +16,7 @@ const {
 async function callProcedure(sql, params = []) {
   const conn = await pool.getConnection();
   try {
-    const [rows] = await conn.query(sql, params);
+    const rows = await conn.query(sql, params);
     return rows;
   } finally {
     conn.release();
@@ -54,9 +54,9 @@ router.post("/login", loginLimiter, async (req, res) => {
 
       if (!users || users.length === 0) {
         // No user found for provided email
-        return res
-          .status(401)
-          .json({ error: "Échec de la connexion, identifiant utilisateur invalide." });
+        return res.status(401).json({
+          error: "Échec de la connexion, identifiant utilisateur invalide.",
+        });
       }
 
       const userRow = users[0];
@@ -68,7 +68,9 @@ router.post("/login", loginLimiter, async (req, res) => {
 
       if (!isPasswordValid) {
         // Invalid password for existing user
-        return res.status(401).json({ error: "Connexion pour l'utilisateur fail : mot de passe invalide." });
+        return res.status(401).json({
+          error: "Connexion pour l'utilisateur fail : mot de passe invalide.",
+        });
       }
 
       const token = jwt.sign(
@@ -116,17 +118,18 @@ router.get("/:id", authMiddleware, generalLimiter, async (req, res) => {
   try {
     const rows = await callProcedure("CALL get_user_info(?)", [id]);
 
-    if (rows && rows.length > 0) {
-      const user = rows[0];
+    if (rows && rows.length > 0 && rows[0].length > 0) {
+      const user = rows[0][0];
       if (user.birthdate) {
         user.birthdate = new Date(user.birthdate).toISOString();
       }
       if (user.created_at) {
         user.created_at = new Date(user.created_at).toISOString();
       }
+      res.json(user);
+    } else {
+      res.json(null);
     }
-
-    res.json(rows[0] || null);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "db error" });
@@ -149,7 +152,9 @@ router.get("/check-pseudo/:pseudo", generalLimiter, async (req, res) => {
     const rows = await callProcedure("CALL check_pseudo_available(?)", [
       pseudo,
     ]);
-    res.json({ available: rows.length === 0 });
+    // Les procédures stockées retournent un tableau de tableaux
+    const available = !rows || !rows[0] || rows[0].length === 0;
+    res.json({ available });
   } catch (err) {
     console.error("Error checking pseudo:", err);
     res.status(500).json({ error: "Erreur serveur" });
@@ -265,6 +270,11 @@ router.put("/profile", authMiddleware, updateLimiter, async (req, res) => {
     pseudo,
     profile_picture,
   } = req.body;
+
+  // Check if user is authenticated
+  if (!req.user || !req.user.userId) {
+    return res.status(401).json({ error: "Non authentifié" });
+  }
 
   // Validation de l'ID
   if (!validator.validateId(user_id)) {

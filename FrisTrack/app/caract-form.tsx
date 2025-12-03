@@ -182,7 +182,7 @@ export default function CaractForm() {
 
   const handleCancel = () => {
     router.replace({
-      pathname: "./nom-prenom-pseudo",
+      pathname: "./index",
     });
   };
 
