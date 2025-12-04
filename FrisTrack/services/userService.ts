@@ -45,9 +45,13 @@ export interface UpdateBasicInfoResponse {
 export const userService = {
   getUserById: async (userId: number): Promise<User> => {
     try {
-      const response = await apiClient.get<User>(`/users/${userId}`);
-
-      return response.data;
+      const response = await apiClient.get(`/users/${userId}`);
+      const data = response.data as any;
+      // supporte { user }, objet direct, ou tableau [objet]
+      const resolved =
+        data?.user ??
+        (Array.isArray(data) ? data[0] : data);
+      return resolved as User;
     } catch (error: any) {
       console.error("Error fetching user data by ID:", {
         message: error.message,
