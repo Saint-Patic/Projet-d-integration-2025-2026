@@ -676,11 +676,13 @@ export default function MatchDetailsScreen() {
                               <TouchableOpacity onPress={() => {
                                 Alert.alert("Supprimer le terrain", "Voulez-vous supprimer ce terrain du serveur ?", [
                                   { text: "Annuler", style: "cancel" },
-                                  { text: "Supprimer", style: "destructive", onPress: async () => {
+                                      { text: "Supprimer", style: "destructive", onPress: async () => {
                                     try {
-                                      await deleteField(t.id);
-                                      setServerTerrains((prev) => prev.filter((s) => s.id !== t.id));
-                                      if (selectedTerrainId === t.id.toString()) setSelectedTerrainId(null);
+                                      const name = t.name ?? t.field_name ?? null;
+                                      if (!name) throw new Error('Missing name for server terrain');
+                                      await deleteField(name);
+                                      setServerTerrains((prev) => prev.filter((s) => (s.name ?? s.field_name) !== name));
+                                      if (selectedTerrainId === String(t.id ?? t.id_field ?? "")) setSelectedTerrainId(null);
                                     } catch (err) {
                                       console.error("Failed to delete server terrain:", err);
                                       Alert.alert("Erreur", "Impossible de supprimer le terrain sur le serveur.");

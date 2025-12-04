@@ -31,7 +31,8 @@ router.post("/", async (req, res) => {
     const br = corners.br.coords || corners.br;
 
     // MySQL/MariaDB POINT expects POINT(lon, lat)
-    const sql = `INSERT INTO field (field_name, corner_tl, corner_tr, corner_bl, corner_br) VALUES (?, POINT(?, ?), POINT(?, ?), POINT(?, ?), POINT(?, ?))`;
+    // Call stored procedure `add_field` with 9 params: name, tl_lon, tl_lat, tr_lon, tr_lat, bl_lon, bl_lat, br_lon, br_lat
+    const sql = `CALL add_field(?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     const params = [
       name,
@@ -47,7 +48,11 @@ router.post("/", async (req, res) => {
 
     const result = await runQuery(sql, params);
 
-    res.status(201).json({ id: result.insertId, field_name: name });
+    // result may be OkPacket or [rows, fields] or an array of result sets from CALL
+    // Try several fallbacks to get an inserted id or return success
+    const insertId = result?.insertId ?? (Array.isArray(result) && result[0]?.insertId) ?? null;
+
+    res.status(201).json({ id: insertId, field_name: name });
   } catch (err) {
     console.error("Error creating field:", err);
     res.status(500).json({ error: "db error" });
@@ -59,12 +64,7 @@ router.post("/", async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     // Use ST_X/ ST_Y to extract lon/lat from POINT columns (X=lon, Y=lat)
-    const sql = `SELECT id, field_name,
-      ST_X(corner_tl) AS tl_lon, ST_Y(corner_tl) AS tl_lat,
-      ST_X(corner_tr) AS tr_lon, ST_Y(corner_tr) AS tr_lat,
-      ST_X(corner_bl) AS bl_lon, ST_Y(corner_bl) AS bl_lat,
-      ST_X(corner_br) AS br_lon, ST_Y(corner_br) AS br_lat
-      FROM field`;
+    const sql = `CALL get_field()`;
 
     const rows = await runQuery(sql);
 
@@ -90,26 +90,46 @@ router.get("/", async (req, res) => {
   }
 });
 
-// DELETE /api/fields/:id
-router.delete("/:id", async (req, res) => {
+// Handler used for both DELETE /api/fields/:name and /api/fields/name/:name
+async function deleteFieldHandler(req, res) {
   try {
-    const { id } = req.params;
-    console.log(`DELETE /api/fields/${id} called`);
-    if (!id) return res.status(400).json({ error: "Missing id" });
+    const field_name = req.params.name;
+    if (!field_name) {
+      return res.status(400).json({ error: "Missing field name" });
+    }
 
-    const sql = `DELETE FROM field WHERE id = ?`;
-    const result = await runQuery(sql, [id]);
+    const sql = `CALL delete_field(?)`;
+    const result = await runQuery(sql, [field_name]);
 
-    // result may be OkPacket or [rows, fields]
-    const ok = result?.affectedRows ?? (Array.isArray(result) && result[0]?.affectedRows) ?? 0;
+    // Try to infer affected rows from different result shapes
+    let affectedRows = null;
+    if (result && typeof result.affectedRows === "number") {
+      affectedRows = result.affectedRows;
+    } else if (Array.isArray(result)) {
+      // Some drivers return an array of result sets/packets from CALL
+      for (const r of result) {
+        if (r && typeof r.affectedRows === "number") {
+          affectedRows = r.affectedRows;
+          break;
+        }
+      }
+    }
 
-    if (ok === 0) return res.status(404).json({ error: "Field not found" });
+    if (affectedRows === 0) {
+      return res.status(404).json({ error: `Field ${field_name} not found` });
+    }
 
-    res.json({ success: true, affectedRows: ok });
+    res.json({ message: `Field ${field_name} deleted` });
   } catch (err) {
     console.error("Error deleting field:", err);
     res.status(500).json({ error: "db error" });
   }
-});
+}
+
+// DELETE /api/fields/:name
+router.delete("/:name", deleteFieldHandler);
+
+// Compatibility route: DELETE /api/fields/name/:name (used by older clients)
+router.delete("/name/:name", deleteFieldHandler);
 
 module.exports = router;
