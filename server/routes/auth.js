@@ -23,7 +23,7 @@ async function callProcedure(sql, params = []) {
 router.post("/check-email", generalLimiter, async (req, res) => {
   const { email } = req.body;
 
-  if (!email || !validator.validateEmail(email)) {
+  if (!(email && validator.validateEmail(email))) {
     return res.status(400).json({ error: "Email invalide" });
   }
 
@@ -74,7 +74,7 @@ router.post("/register", registerLimiter, async (req, res) => {
   });
 
   // Validation des champs obligatoires
-  if (!email || !password || !firstname || !lastname || !birthdate) {
+  if (!(email && password && firstname && lastname && birthdate)) {
     console.log("Missing required fields");
     return res
       .status(400)
@@ -97,7 +97,9 @@ router.post("/register", registerLimiter, async (req, res) => {
   }
 
   // Validation nom et prénom
-  if (!validator.validateName(firstname) || !validator.validateName(lastname)) {
+  if (
+    !(validator.validateName(firstname) && validator.validateName(lastname))
+  ) {
     console.log("Invalid firstname or lastname:", firstname, lastname);
     return res
       .status(400)
