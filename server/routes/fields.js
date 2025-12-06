@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../index");
-
+const pool = require("../pool");
+const authMiddleware = require("../middleware/auth");
 // Helper to run queries
 async function runQuery(sql, params = []) {
   const conn = await pool.getConnection();
@@ -20,7 +20,14 @@ async function runQuery(sql, params = []) {
 router.post("/", async (req, res) => {
   try {
     const { name, corners } = req.body || {};
-    if (!name || !corners || !corners.tl || !corners.tr || !corners.bl || !corners.br) {
+    if (
+      !name ||
+      !corners ||
+      !corners.tl ||
+      !corners.tr ||
+      !corners.bl ||
+      !corners.br
+    ) {
       return res.status(400).json({ error: "Missing name or corners" });
     }
 
@@ -76,10 +83,18 @@ router.get("/", async (req, res) => {
       name: r.field_name,
       created_at: r.created_at,
       corners: {
-        tl: { coords: { latitude: Number(r.tl_lat), longitude: Number(r.tl_lon) } },
-        tr: { coords: { latitude: Number(r.tr_lat), longitude: Number(r.tr_lon) } },
-        bl: { coords: { latitude: Number(r.bl_lat), longitude: Number(r.bl_lon) } },
-        br: { coords: { latitude: Number(r.br_lat), longitude: Number(r.br_lon) } },
+        tl: {
+          coords: { latitude: Number(r.tl_lat), longitude: Number(r.tl_lon) },
+        },
+        tr: {
+          coords: { latitude: Number(r.tr_lat), longitude: Number(r.tr_lon) },
+        },
+        bl: {
+          coords: { latitude: Number(r.bl_lat), longitude: Number(r.bl_lon) },
+        },
+        br: {
+          coords: { latitude: Number(r.br_lat), longitude: Number(r.br_lon) },
+        },
       },
     }));
 
@@ -101,7 +116,10 @@ router.delete("/:id", async (req, res) => {
     const result = await runQuery(sql, [id]);
 
     // result may be OkPacket or [rows, fields]
-    const ok = result?.affectedRows ?? (Array.isArray(result) && result[0]?.affectedRows) ?? 0;
+    const ok =
+      result?.affectedRows ??
+      (Array.isArray(result) && result[0]?.affectedRows) ??
+      0;
 
     if (ok === 0) return res.status(404).json({ error: "Field not found" });
 

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../index");
+const pool = require("../pool");
 const authMiddleware = require("../middleware/auth");
 
 // Helper to call procedures

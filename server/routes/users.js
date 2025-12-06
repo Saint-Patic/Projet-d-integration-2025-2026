@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../index");
+const pool = require("../pool");
 const argon2 = require("argon2");
 const jwt = require("jsonwebtoken");
 const authMiddleware = require("../middleware/auth");
@@ -11,7 +11,6 @@ const {
   generalLimiter,
   updateLimiter,
 } = require("../middleware/rateLimiter");
-
 // Helper to call procedures
 async function callProcedure(sql, params = []) {
   const conn = await pool.getConnection();
@@ -54,9 +53,9 @@ router.post("/login", loginLimiter, async (req, res) => {
 
       if (!users || users.length === 0) {
         // No user found for provided email
-        return res
-          .status(401)
-          .json({ error: "Échec de la connexion, identifiant utilisateur invalide." });
+        return res.status(401).json({
+          error: "Échec de la connexion, identifiant utilisateur invalide.",
+        });
       }
 
       const userRow = users[0];
@@ -68,7 +67,9 @@ router.post("/login", loginLimiter, async (req, res) => {
 
       if (!isPasswordValid) {
         // Invalid password for existing user
-        return res.status(401).json({ error: "Connexion pour l'utilisateur fail : mot de passe invalide." });
+        return res.status(401).json({
+          error: "Connexion pour l'utilisateur fail : mot de passe invalide.",
+        });
       }
 
       const token = jwt.sign(
