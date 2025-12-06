@@ -1,13 +1,16 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../index");
+const pool = require("../pool");
 const argon2 = require("argon2");
 const jwt = require("jsonwebtoken");
 const authMiddleware = require("../middleware/auth");
 const { JWT_SECRET } = require("../config/jwt");
 const validator = require("../middleware/validator");
-const { loginLimiter, generalLimiter, updateLimiter } = require("../middleware/rateLimiter");
-
+const {
+  loginLimiter,
+  generalLimiter,
+  updateLimiter,
+} = require("../middleware/rateLimiter");
 // Helper to call procedures
 async function callProcedure(sql, params = []) {
 	const conn = await pool.getConnection();
@@ -45,52 +48,61 @@ router.post("/login", loginLimiter, async (req, res) => {
                 profile_picture, created_at, color_mode, color_id
          FROM users 
          WHERE email = ?`,
-				[email]
-			);
+        [email]
+      );
 
-			if (!users || users.length === 0) {
-				// No user found for provided email
-				return res.status(401).json({
-					error: "Échec de la connexion, identifiant utilisateur invalide.",
-				});
-			}
+      if (!users || users.length === 0) {
+        // No user found for provided email
+        return res.status(401).json({
+          error: "Échec de la connexion, identifiant utilisateur invalide.",
+        });
+      }
 
-			const userRow = users[0];
+      const userRow = users[0];
 
-			const isPasswordValid = await argon2.verify(userRow.password_hash, password);
+      const isPasswordValid = await argon2.verify(
+        userRow.password_hash,
+        password
+      );
 
-			if (!isPasswordValid) {
-				// Invalid password for existing user
-				return res.status(401).json({
-					error: "Connexion pour l'utilisateur fail : mot de passe invalide.",
-				});
-			}
+      if (!isPasswordValid) {
+        // Invalid password for existing user
+        return res.status(401).json({
+          error: "Connexion pour l'utilisateur fail : mot de passe invalide.",
+        });
+      }
 
-			const token = jwt.sign({ userId: userRow.user_id, email: userRow.email }, JWT_SECRET, {
-				expiresIn: "7d",
-			});
+      const token = jwt.sign(
+        { userId: userRow.user_id, email: userRow.email },
+        JWT_SECRET,
+        { expiresIn: "7d" }
+      );
 
-			const { password_hash, ...userWithoutPassword } = userRow;
+      const { password_hash, ...userWithoutPassword } = userRow;
 
-			if (userWithoutPassword.birthdate) {
-				userWithoutPassword.birthdate = new Date(userWithoutPassword.birthdate).toISOString();
-			}
-			if (userWithoutPassword.created_at) {
-				userWithoutPassword.created_at = new Date(userWithoutPassword.created_at).toISOString();
-			}
+      if (userWithoutPassword.birthdate) {
+        userWithoutPassword.birthdate = new Date(
+          userWithoutPassword.birthdate
+        ).toISOString();
+      }
+      if (userWithoutPassword.created_at) {
+        userWithoutPassword.created_at = new Date(
+          userWithoutPassword.created_at
+        ).toISOString();
+      }
 
-			res.json({
-				success: true,
-				token,
-				user: userWithoutPassword,
-			});
-		} finally {
-			conn.release();
-		}
-	} catch (err) {
-		console.error("Login error:", err);
-		res.status(500).json({ error: "Erreur serveur lors de la connexion" });
-	}
+      res.json({
+        success: true,
+        token,
+        user: userWithoutPassword,
+      });
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Erreur serveur lors de la connexion" });
+  }
 });
 
 // GET /api/users/:id

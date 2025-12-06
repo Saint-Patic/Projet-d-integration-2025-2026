@@ -1,12 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../index");
+const pool = require("../pool");
 const argon2 = require("argon2");
 const validator = require("../middleware/validator");
 const {
   registerLimiter,
   generalLimiter,
 } = require("../middleware/rateLimiter");
+const authMiddleware = require("../middleware/auth");
 
 // Helper to call procedures
 async function callProcedure(sql, params = []) {
@@ -20,30 +21,36 @@ async function callProcedure(sql, params = []) {
 }
 
 // POST /api/auth/check-email
-router.post("/check-email", generalLimiter, async (req, res) => {
-  const { email } = req.body;
+router.post(
+  "/check-email",
+  generalLimiter,
+  authMiddleware,
+  async (req, res) => {
+    const { email } = req.body;
 
-  if (!(email && validator.validateEmail(email))) {
-    return res.status(400).json({ error: "Email invalide" });
+    if (!email || !validator.validateEmail(email)) {
+      return res.status(400).json({ error: "Email invalide" });
+    }
+
+    try {
+      const result = await callProcedure(
+        "CALL check_email_for_registration(?)",
+        [email]
+      );
+      const exists = result[0] && result[0].length > 0;
+
+      res.status(200).json({
+        exists,
+        message: exists ? "Email déjà utilisé" : "Email disponible",
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        error: "Erreur serveur lors de la vérification de l'email",
+      });
+    }
   }
-
-  try {
-    const result = await callProcedure("CALL check_email_for_registration(?)", [
-      email,
-    ]);
-    const exists = result && result[0] && result[0].length > 0;
-
-    res.status(200).json({
-      exists,
-      message: exists ? "Email déjà utilisé" : "Email disponible",
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Erreur serveur lors de la vérification de l'email",
-    });
-  }
-});
+);
 
 // POST /api/auth/register
 router.post("/register", registerLimiter, async (req, res) => {
