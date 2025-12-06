@@ -1,4 +1,4 @@
-import api from "./api";
+import apiClient from "./apiClient";
 
 export interface Match {
   id: number;
@@ -18,7 +18,7 @@ export interface Match {
 }
 export const getMatches = async (): Promise<Match[]> => {
   try {
-    const response = await api.get<Match[]>("/matches");
+    const response = await apiClient.get<Match[]>("/matches");
     return response.data;
   } catch (error) {
     console.error("Error fetching matches:", error);
@@ -28,7 +28,7 @@ export const getMatches = async (): Promise<Match[]> => {
 
 export const getMatchById = async (id: number): Promise<Match | null> => {
   try {
-    const response = await api.get<Match>(`/matches/${id}`);
+    const response = await apiClient.get<Match>(`/matches/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching match ${id}:`, error);
@@ -38,7 +38,7 @@ export const getMatchById = async (id: number): Promise<Match | null> => {
 
 export const createMatch = async (match: Partial<Match>): Promise<Match> => {
   try {
-    const response = await api.post<Match>("/matches", match);
+    const response = await apiClient.post<Match>("/matches", match);
     return response.data;
   } catch (error) {
     console.error("Error creating match:", error);
@@ -51,7 +51,7 @@ export const updateMatch = async (
   updates: Partial<Match>
 ): Promise<Match | null> => {
   try {
-    const response = await api.put<Match>(`/matches/${id}`, updates);
+    const response = await apiClient.put<Match>(`/matches/${id}`, updates);
     return response.data;
   } catch (error) {
     console.error(`Error updating match ${id}:`, error);
@@ -61,7 +61,7 @@ export const updateMatch = async (
 
 export const deleteMatch = async (id: number): Promise<Match | null> => {
   try {
-    const response = await api.delete<Match>(`/matches/${id}`);
+    const response = await apiClient.delete<Match>(`/matches/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error deleting match ${id}:`, error);
@@ -80,4 +80,14 @@ export const finishMatch = async (
     team_score_2: score2,
     color: score1 > score2 ? "#27ae60" : "#e74c3c",
   });
+};
+
+export const getMatchesByUser = async (userId: number): Promise<Match[]> => {
+  try {
+    const response = await apiClient.get<Match[]>(`/matches/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching matches for user ${userId}:`, error);
+    throw error;
+  }
 };

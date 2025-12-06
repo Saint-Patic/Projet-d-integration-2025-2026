@@ -268,3 +268,15 @@ INSERT INTO color_user (color_id, color_name) VALUES
 ('#2196F3', 'Bleu'),
 ('#FF5722', 'Orange foncé'),
 ('#795548', 'Marron');
+
+
+-- Table des terrains (field)
+CREATE TABLE IF NOT EXISTS field (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    field_name VARCHAR(100) NOT NULL,
+    corner_tl POINT NOT NULL,
+    corner_tr POINT NOT NULL,
+    corner_bl POINT NOT NULL,
+    corner_br POINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
