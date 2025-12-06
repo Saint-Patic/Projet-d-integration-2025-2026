@@ -97,5 +97,18 @@ server.on("error", (err) => {
   console.error("Erreur serveur non gérée :", err);
   process.exit(1);
 });
+// Ajoutez après les autres middleware
+if (process.env.NODE_ENV === "production") {
+  const morgan = require("morgan");
+  const rfs = require("rotating-file-stream");
+  const path = require("path");
 
+  // Créez un stream pour les logs
+  const accessLogStream = rfs.createStream("access.log", {
+    interval: "1d",
+    path: path.join(__dirname, "logs"),
+  });
+
+  app.use(morgan("combined", { stream: accessLogStream }));
+}
 module.exports = app;

@@ -1,7 +1,8 @@
 import axios from "axios";
 import { RegisterUserData } from "@/types/user";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+// Utilisez apiClient au lieu d'axios directement
+import apiClient from "./apiClient";
 
 export { RegisterUserData };
 
@@ -12,7 +13,10 @@ export const registerService = {
         "Sending registration data:",
         JSON.stringify(userData, null, 2)
       );
-      const response = await axios.post(`${API_URL}/auth/register`, userData);
+
+      // Utilisez apiClient qui gère déjà l'URL de base
+      const response = await apiClient.post("/auth/register", userData);
+
       return response.data;
     } catch (error: any) {
       if (error.response) {
