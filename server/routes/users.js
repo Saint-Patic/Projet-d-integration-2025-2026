@@ -13,37 +13,37 @@ const {
 } = require("../middleware/rateLimiter");
 // Helper to call procedures
 async function callProcedure(sql, params = []) {
-  const conn = await pool.getConnection();
-  try {
-    const [rows] = await conn.query(sql, params);
-    return rows;
-  } finally {
-    conn.release();
-  }
+	const conn = await pool.getConnection();
+	try {
+		const rows = await conn.query(sql, params);
+		return rows;
+	} finally {
+		conn.release();
+	}
 }
 
 // POST /api/users/login
 router.post("/login", loginLimiter, async (req, res) => {
-  const { email, password } = req.body;
+	const { email, password } = req.body;
 
-  // Validation des entrées
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email et mot de passe requis" });
-  }
+	// Validation des entrées
+	if (!(email && password)) {
+		return res.status(400).json({ error: "Email et mot de passe requis" });
+	}
 
-  if (!validator.validateEmail(email)) {
-    return res.status(400).json({ error: "Format d'email invalide" });
-  }
+	if (!validator.validateEmail(email)) {
+		return res.status(400).json({ error: "Format d'email invalide" });
+	}
 
-  if (typeof password !== "string" || password.length === 0) {
-    return res.status(400).json({ error: "Mot de passe invalide" });
-  }
+	if (typeof password !== "string" || password.length === 0) {
+		return res.status(400).json({ error: "Mot de passe invalide" });
+	}
 
-  try {
-    const conn = await pool.getConnection();
-    try {
-      const users = await conn.query(
-        `SELECT user_id, firstname, lastname, pseudo, birthdate, email, password_hash, 
+	try {
+		const conn = await pool.getConnection();
+		try {
+			const users = await conn.query(
+				`SELECT user_id, firstname, lastname, pseudo, birthdate, email, password_hash, 
                 user_type, user_weight, user_height, foot_size, dominant_hand, 
                 profile_picture, created_at, color_mode, color_id
          FROM users 
@@ -107,324 +107,293 @@ router.post("/login", loginLimiter, async (req, res) => {
 
 // GET /api/users/:id
 router.get("/:id", authMiddleware, generalLimiter, async (req, res) => {
-  const { id } = req.params;
+	const { id } = req.params;
 
-  // Validation de l'ID
-  if (!validator.validateId(id)) {
-    return res.status(400).json({ error: "ID invalide" });
-  }
+	// Validation de l'ID
+	if (!validator.validateId(id)) {
+		return res.status(400).json({ error: "ID invalide" });
+	}
 
-  try {
-    const rows = await callProcedure("CALL get_user_info(?)", [id]);
+	try {
+		const rows = await callProcedure("CALL get_user_info(?)", [id]);
 
-    if (rows && rows.length > 0) {
-      const user = rows[0];
-      if (user.birthdate) {
-        user.birthdate = new Date(user.birthdate).toISOString();
-      }
-      if (user.created_at) {
-        user.created_at = new Date(user.created_at).toISOString();
-      }
-    }
-
-    res.json(rows[0] || null);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "db error" });
-  }
+		if (rows && rows.length > 0 && rows[0].length > 0) {
+			const user = rows[0][0];
+			if (user.birthdate) {
+				user.birthdate = new Date(user.birthdate).toISOString();
+			}
+			if (user.created_at) {
+				user.created_at = new Date(user.created_at).toISOString();
+			}
+			res.json(user);
+		} else {
+			res.json(null);
+		}
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({ error: "db error" });
+	}
 });
 
 // GET /api/users/check-pseudo/:pseudo
 router.get("/check-pseudo/:pseudo", generalLimiter, async (req, res) => {
-  const { pseudo } = req.params;
+	const { pseudo } = req.params;
 
-  // Validation du format du pseudo
-  if (!validator.validatePseudo(pseudo)) {
-    return res.status(400).json({
-      error: "Format de pseudo invalide",
-      available: false,
-    });
-  }
+	// Validation du format du pseudo
+	if (!validator.validatePseudo(pseudo)) {
+		return res.status(400).json({
+			error: "Format de pseudo invalide",
+			available: false,
+		});
+	}
 
-  try {
-    const rows = await callProcedure("CALL check_pseudo_available(?)", [
-      pseudo,
-    ]);
-    res.json({ available: rows.length === 0 });
-  } catch (err) {
-    console.error("Error checking pseudo:", err);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
+	try {
+		const rows = await callProcedure("CALL check_pseudo_available(?)", [pseudo]);
+		// Les procédures stockées retournent un tableau de tableaux
+		const available = !(rows && rows[0]) || rows[0].length === 0;
+		res.json({ available });
+	} catch (err) {
+		console.error("Error checking pseudo:", err);
+		res.status(500).json({ error: "Erreur serveur" });
+	}
 });
 
 // PUT /api/users/basic
 router.put("/basic", authMiddleware, updateLimiter, async (req, res) => {
-  const { user_id, firstname, lastname, pseudo, birthdate, email } = req.body;
+	const { user_id, firstname, lastname, pseudo, birthdate, email } = req.body;
 
-  // Validation de l'ID
-  if (!validator.validateId(user_id)) {
-    return res.status(400).json({ error: "user_id invalide" });
-  }
+	// Validation de l'ID
+	if (!validator.validateId(user_id)) {
+		return res.status(400).json({ error: "user_id invalide" });
+	}
 
-  // Vérifier que l'utilisateur ne peut modifier que ses propres données
-  if (req.user.userId !== parseInt(user_id, 10)) {
-    return res
-      .status(403)
-      .json({ error: "Non autorisé à modifier cet utilisateur" });
-  }
+	// Vérifier que l'utilisateur ne peut modifier que ses propres données
+	if (req.user.userId !== parseInt(user_id, 10)) {
+		return res.status(403).json({ error: "Non autorisé à modifier cet utilisateur" });
+	}
 
-  // Validation des champs optionnels
-  if (firstname && !validator.validateName(firstname)) {
-    return res.status(400).json({ error: "Prénom invalide" });
-  }
+	// Validation des champs optionnels
+	if (firstname && !validator.validateName(firstname)) {
+		return res.status(400).json({ error: "Prénom invalide" });
+	}
 
-  if (lastname && !validator.validateName(lastname)) {
-    return res.status(400).json({ error: "Nom invalide" });
-  }
+	if (lastname && !validator.validateName(lastname)) {
+		return res.status(400).json({ error: "Nom invalide" });
+	}
 
-  if (pseudo && !validator.validatePseudo(pseudo)) {
-    return res.status(400).json({ error: "Pseudo invalide" });
-  }
+	if (pseudo && !validator.validatePseudo(pseudo)) {
+		return res.status(400).json({ error: "Pseudo invalide" });
+	}
 
-  if (birthdate && !validator.validateBirthdate(birthdate)) {
-    return res.status(400).json({ error: "Date de naissance invalide" });
-  }
+	if (birthdate && !validator.validateBirthdate(birthdate)) {
+		return res.status(400).json({ error: "Date de naissance invalide" });
+	}
 
-  if (email && !validator.validateEmail(email)) {
-    return res.status(400).json({ error: "Email invalide" });
-  }
+	if (email && !validator.validateEmail(email)) {
+		return res.status(400).json({ error: "Email invalide" });
+	}
 
-  try {
-    let formattedBirthdate = null;
-    if (birthdate) {
-      const date = new Date(birthdate);
-      formattedBirthdate = date.toISOString().split("T")[0];
-    }
+	try {
+		let formattedBirthdate = null;
+		if (birthdate) {
+			const date = new Date(birthdate);
+			formattedBirthdate = date.toISOString().split("T")[0];
+		}
 
-    await callProcedure("CALL update_user_basic(?, ?, ?, ?, ?, ?)", [
-      user_id,
-      firstname || null,
-      lastname || null,
-      pseudo || null,
-      formattedBirthdate,
-      email || null,
-    ]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    if (err.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ error: "Email ou pseudo déjà utilisé" });
-    }
-    res.status(500).json({ error: err.message || "db error" });
-  }
+		await callProcedure("CALL update_user_basic(?, ?, ?, ?, ?, ?)", [
+			user_id,
+			firstname || null,
+			lastname || null,
+			pseudo || null,
+			formattedBirthdate,
+			email || null,
+		]);
+		res.json({ success: true });
+	} catch (err) {
+		console.error(err);
+		if (err.code === "ER_DUP_ENTRY") {
+			return res.status(409).json({ error: "Email ou pseudo déjà utilisé" });
+		}
+		res.status(500).json({ error: err.message || "db error" });
+	}
 });
 
 // PUT /api/users/password
 router.put("/password", authMiddleware, updateLimiter, async (req, res) => {
-  const { user_id, password } = req.body;
+	const { user_id, password } = req.body;
 
-  // Validation de l'ID
-  if (!validator.validateId(user_id)) {
-    return res.status(400).json({ error: "user_id invalide" });
-  }
+	// Validation de l'ID
+	if (!validator.validateId(user_id)) {
+		return res.status(400).json({ error: "user_id invalide" });
+	}
 
-  // Vérifier les permissions
-  if (req.user.userId !== parseInt(user_id, 10)) {
-    return res.status(403).json({ error: "Non autorisé" });
-  }
+	// Vérifier les permissions
+	if (req.user.userId !== parseInt(user_id, 10)) {
+		return res.status(403).json({ error: "Non autorisé" });
+	}
 
-  // Validation du mot de passe
-  if (!validator.validatePassword(password)) {
-    return res.status(400).json({
-      error:
-        "Le mot de passe doit contenir au moins 10 caractères, 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial",
-    });
-  }
+	// Validation du mot de passe
+	if (!validator.validatePassword(password)) {
+		return res.status(400).json({
+			error:
+				"Le mot de passe doit contenir au moins 10 caractères, 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial",
+		});
+	}
 
-  try {
-    const password_hash = await argon2.hash(password);
+	try {
+		const password_hash = await argon2.hash(password);
 
-    await callProcedure("CALL update_user_password(?, ?)", [
-      user_id,
-      password_hash,
-    ]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message || "db error" });
-  }
+		await callProcedure("CALL update_user_password(?, ?)", [user_id, password_hash]);
+		res.json({ success: true });
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({ error: err.message || "db error" });
+	}
 });
 
 // PUT /api/users/profile
 router.put("/profile", authMiddleware, updateLimiter, async (req, res) => {
-  const {
-    user_id,
-    user_weight,
-    user_height,
-    foot_size,
-    dominant_hand,
-    pseudo,
-    profile_picture,
-  } = req.body;
+	const { user_id, user_weight, user_height, foot_size, dominant_hand, pseudo, profile_picture } =
+		req.body;
 
-  // Validation de l'ID
-  if (!validator.validateId(user_id)) {
-    return res.status(400).json({ error: "user_id invalide" });
-  }
+	// Check if user is authenticated
+	if (!(req.user && req.user.userId)) {
+		return res.status(401).json({ error: "Non authentifié" });
+	}
 
-  // Vérifier les permissions
-  if (req.user.userId !== parseInt(user_id, 10)) {
-    return res.status(403).json({ error: "Non autorisé" });
-  }
+	// Validation de l'ID
+	if (!validator.validateId(user_id)) {
+		return res.status(400).json({ error: "user_id invalide" });
+	}
 
-  // Validation des champs optionnels
-  if (
-    user_weight !== null &&
-    user_weight !== undefined &&
-    !validator.validateWeight(user_weight)
-  ) {
-    return res.status(400).json({ error: "Poids invalide (10-300 kg)" });
-  }
+	// Vérifier les permissions
+	if (req.user.userId !== parseInt(user_id, 10)) {
+		return res.status(403).json({ error: "Non autorisé" });
+	}
 
-  if (
-    user_height !== null &&
-    user_height !== undefined &&
-    !validator.validateHeight(user_height)
-  ) {
-    return res.status(400).json({ error: "Taille invalide (50-250 cm)" });
-  }
+	// Validation des champs optionnels
+	if (user_weight !== null && user_weight !== undefined && !validator.validateWeight(user_weight)) {
+		return res.status(400).json({ error: "Poids invalide (10-300 kg)" });
+	}
 
-  if (
-    foot_size !== null &&
-    foot_size !== undefined &&
-    !validator.validateFootSize(foot_size)
-  ) {
-    return res.status(400).json({ error: "Pointure invalide (15-65)" });
-  }
+	if (user_height !== null && user_height !== undefined && !validator.validateHeight(user_height)) {
+		return res.status(400).json({ error: "Taille invalide (50-250 cm)" });
+	}
 
-  if (dominant_hand && !validator.validateDominantHand(dominant_hand)) {
-    return res.status(400).json({ error: "Main dominante invalide" });
-  }
+	if (foot_size !== null && foot_size !== undefined && !validator.validateFootSize(foot_size)) {
+		return res.status(400).json({ error: "Pointure invalide (15-65)" });
+	}
 
-  if (pseudo && !validator.validatePseudo(pseudo)) {
-    return res.status(400).json({ error: "Pseudo invalide" });
-  }
+	if (dominant_hand && !validator.validateDominantHand(dominant_hand)) {
+		return res.status(400).json({ error: "Main dominante invalide" });
+	}
 
-  if (
-    profile_picture &&
-    (typeof profile_picture !== "string" || profile_picture.length > 100)
-  ) {
-    return res.status(400).json({ error: "Nom de fichier invalide" });
-  }
+	if (pseudo && !validator.validatePseudo(pseudo)) {
+		return res.status(400).json({ error: "Pseudo invalide" });
+	}
 
-  try {
-    await callProcedure("CALL update_user_profile(?, ?, ?, ?, ?, ?, ?)", [
-      user_id,
-      user_weight || null,
-      user_height || null,
-      foot_size || null,
-      dominant_hand || null,
-      pseudo || null,
-      profile_picture || null,
-    ]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    if (err.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ error: "Pseudo déjà utilisé" });
-    }
-    res.status(500).json({ error: err.message || "db error" });
-  }
+	if (profile_picture && (typeof profile_picture !== "string" || profile_picture.length > 100)) {
+		return res.status(400).json({ error: "Nom de fichier invalide" });
+	}
+
+	try {
+		await callProcedure("CALL update_user_profile(?, ?, ?, ?, ?, ?, ?)", [
+			user_id,
+			user_weight || null,
+			user_height || null,
+			foot_size || null,
+			dominant_hand || null,
+			pseudo || null,
+			profile_picture || null,
+		]);
+		res.json({ success: true });
+	} catch (err) {
+		console.error(err);
+		if (err.code === "ER_DUP_ENTRY") {
+			return res.status(409).json({ error: "Pseudo déjà utilisé" });
+		}
+		res.status(500).json({ error: err.message || "db error" });
+	}
 });
 
 // PUT /api/users/type
 router.put("/type", authMiddleware, updateLimiter, async (req, res) => {
-  const { user_id, user_type } = req.body;
+	const { user_id, user_type } = req.body;
 
-  // Validation
-  if (!validator.validateId(user_id)) {
-    return res.status(400).json({ error: "user_id invalide" });
-  }
+	// Validation
+	if (!validator.validateId(user_id)) {
+		return res.status(400).json({ error: "user_id invalide" });
+	}
 
-  if (!validator.validateUserType(user_type)) {
-    return res.status(400).json({ error: "user_type invalide" });
-  }
+	if (!validator.validateUserType(user_type)) {
+		return res.status(400).json({ error: "user_type invalide" });
+	}
 
-  // Vérifier les permissions
-  if (req.user.userId !== parseInt(user_id, 10)) {
-    return res.status(403).json({ error: "Non autorisé" });
-  }
+	// Vérifier les permissions
+	if (req.user.userId !== parseInt(user_id, 10)) {
+		return res.status(403).json({ error: "Non autorisé" });
+	}
 
-  try {
-    await callProcedure("CALL update_user_type(?, ?)", [user_id, user_type]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message || "db error" });
-  }
+	try {
+		await callProcedure("CALL update_user_type(?, ?)", [user_id, user_type]);
+		res.json({ success: true });
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({ error: err.message || "db error" });
+	}
 });
 
 // PUT /api/users/team-role-attack
-router.put(
-  "/team-role-attack",
-  authMiddleware,
-  updateLimiter,
-  async (req, res) => {
-    const { user_id, team_id, role_attack } = req.body;
+router.put("/team-role-attack", authMiddleware, updateLimiter, async (req, res) => {
+	const { user_id, team_id, role_attack } = req.body;
 
-    // Validation
-    if (!validator.validateId(user_id) || !validator.validateId(team_id)) {
-      return res.status(400).json({ error: "IDs invalides" });
-    }
+	// Validation
+	if (!(validator.validateId(user_id) && validator.validateId(team_id))) {
+		return res.status(400).json({ error: "IDs invalides" });
+	}
 
-    if (!validator.validateRoleAttack(role_attack)) {
-      return res
-        .status(400)
-        .json({ error: "role_attack doit être 'handler' ou 'stack'" });
-    }
+	if (!validator.validateRoleAttack(role_attack)) {
+		return res.status(400).json({ error: "role_attack doit être 'handler' ou 'stack'" });
+	}
 
-    const conn = await pool.getConnection();
-    try {
-      // Vérifier que l'utilisateur connecté est bien membre de l'équipe ou est coach
-      const [membership] = await conn.query(
-        `SELECT ut.user_id, u.user_type 
+	const conn = await pool.getConnection();
+	try {
+		// Vérifier que l'utilisateur connecté est bien membre de l'équipe ou est coach
+		const [membership] = await conn.query(
+			`SELECT ut.user_id, u.user_type 
        FROM user_team ut
        JOIN users u ON ut.user_id = u.user_id
        WHERE ut.team_id = ? AND ut.user_id = ?`,
-        [team_id, req.user.userId]
-      );
+			[team_id, req.user.userId]
+		);
 
-      if (!membership || membership.length === 0) {
-        return res
-          .status(403)
-          .json({ error: "Non autorisé à modifier cette équipe" });
-      }
+		if (!membership || membership.length === 0) {
+			return res.status(403).json({ error: "Non autorisé à modifier cette équipe" });
+		}
 
-      const result = await conn.query(
-        `UPDATE user_team 
+		const result = await conn.query(
+			`UPDATE user_team 
        SET role_attack = ? 
        WHERE team_id = ? AND user_id = ?`,
-        [role_attack, team_id, user_id]
-      );
+			[role_attack, team_id, user_id]
+		);
 
-      if (result.affectedRows === 0) {
-        return res.status(404).json({
-          error:
-            "Aucune association trouvée pour cet utilisateur et cette équipe",
-        });
-      }
+		if (result.affectedRows === 0) {
+			return res.status(404).json({
+				error: "Aucune association trouvée pour cet utilisateur et cette équipe",
+			});
+		}
 
-      res.json({
-        success: true,
-        message: "Rôle d'attaque mis à jour avec succès",
-      });
-    } catch (err) {
-      console.error("Erreur lors de la mise à jour du role_attack:", err);
-      res.status(500).json({ error: "Erreur serveur lors de la mise à jour" });
-    } finally {
-      conn.release();
-    }
-  }
-);
+		res.json({
+			success: true,
+			message: "Rôle d'attaque mis à jour avec succès",
+		});
+	} catch (err) {
+		console.error("Erreur lors de la mise à jour du role_attack:", err);
+		res.status(500).json({ error: "Erreur serveur lors de la mise à jour" });
+	} finally {
+		conn.release();
+	}
+});
 
 module.exports = router;

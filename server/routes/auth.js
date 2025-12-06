@@ -13,7 +13,7 @@ const authMiddleware = require("../middleware/auth");
 async function callProcedure(sql, params = []) {
   const conn = await pool.getConnection();
   try {
-    const [rows] = await conn.query(sql, params);
+    const rows = await conn.query(sql, params);
     return rows;
   } finally {
     conn.release();
@@ -81,7 +81,7 @@ router.post("/register", registerLimiter, async (req, res) => {
   });
 
   // Validation des champs obligatoires
-  if (!email || !password || !firstname || !lastname || !birthdate) {
+  if (!(email && password && firstname && lastname && birthdate)) {
     console.log("Missing required fields");
     return res
       .status(400)
@@ -104,7 +104,9 @@ router.post("/register", registerLimiter, async (req, res) => {
   }
 
   // Validation nom et prénom
-  if (!validator.validateName(firstname) || !validator.validateName(lastname)) {
+  if (
+    !(validator.validateName(firstname) && validator.validateName(lastname))
+  ) {
     console.log("Invalid firstname or lastname:", firstname, lastname);
     return res
       .status(400)
@@ -173,7 +175,7 @@ router.post("/register", registerLimiter, async (req, res) => {
       "CALL check_email_for_registration(?)",
       [email]
     );
-    if (existingEmail[0] && existingEmail[0].length > 0) {
+    if (existingEmail && existingEmail[0] && existingEmail[0].length > 0) {
       return res.status(409).json({ error: "Cet email est déjà utilisé" });
     }
 
@@ -183,7 +185,7 @@ router.post("/register", registerLimiter, async (req, res) => {
         "CALL check_pseudo_available(?)",
         [pseudo]
       );
-      if (existingPseudo[0] && existingPseudo[0].length > 0) {
+      if (existingPseudo && existingPseudo[0] && existingPseudo[0].length > 0) {
         return res.status(409).json({ error: "Ce pseudo est déjà utilisé" });
       }
     }
