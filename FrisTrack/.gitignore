@@ -45,3 +45,8 @@ app-example
 # env
 *.env
 server.env
+
+# Android
+android/local.properties
+android/.gradle
+android/app/build
