@@ -16,6 +16,8 @@ interface BackButtonProps {
     textSecondary: string;
     border: string;
   };
+  testID?: string;
+  id?: string;
 }
 
 export const BackButton: React.FC<BackButtonProps> = ({
@@ -24,6 +26,8 @@ export const BackButton: React.FC<BackButtonProps> = ({
   style = {},
   onPress,
   theme,
+  testID,
+  id,
 }) => {
   const handlePress = () => {
     if (onPress) {
@@ -39,6 +43,8 @@ export const BackButton: React.FC<BackButtonProps> = ({
     <TouchableOpacity
       onPress={handlePress}
       style={[styles.defaultStyle, style]}
+      testID={testID}
+      {...(id ? { id } : {})}
     >
       <Ionicons name="arrow-back" size={size} color={buttonColor} />
     </TouchableOpacity>

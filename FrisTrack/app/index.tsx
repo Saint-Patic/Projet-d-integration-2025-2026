@@ -223,7 +223,9 @@ export default function AuthPage() {
           style={styles.input}
           keyboardType="email-address"
           autoCapitalize="none"
-          editable={!isLoading}
+          editable={true} // ← s'assure que le champ est éditable
+          testID="login-email"
+          accessibilityLabel="Email"
         />
 
         <TextInput
@@ -236,9 +238,11 @@ export default function AuthPage() {
           }}
           style={styles.input}
           secureTextEntry
-          editable={!isLoading}
+          editable={true} // ← idem
           // refuser le copier coller du mdp
           contextMenuHidden={true}
+          testID="login-password"
+          accessibilityLabel="Mot de passe"
         />
 
         {!isLogin && (
@@ -283,7 +287,9 @@ export default function AuthPage() {
         )}
 
         <TouchableOpacity
+          testID="login-submit"
           onPress={handleSubmit}
+          accessibilityRole="button"
           style={[styles.button, isLoading && styles.buttonDisabled]}
           disabled={isLoading}
         >

@@ -34,13 +34,15 @@ export default function ProfileView(props: Props) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.profileImageContainer}>
         <TouchableOpacity
-          onPress={() => {
-            if (onImagePress) onImagePress();
-          }}
+          onPress={onImagePress}
+          testID="profile-image"
+          accessibilityRole="imagebutton"
+          accessibilityLabel="Photo de profil"
         >
           <Image
             source={getImageSource(user.profile_picture)}
-            style={[styles.profileImage, { borderColor: theme.primary }]}
+            style={styles.profileImage}
+            alt="Photo de profil"
           />
         </TouchableOpacity>
         <View

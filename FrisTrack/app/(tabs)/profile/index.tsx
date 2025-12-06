@@ -368,31 +368,40 @@ export default function ProfilScreen() {
 
   // Affichage de l'image en grand (overlay modal)
   if (showFullImage && user) {
-    const { width } = Dimensions.get("window");
+    const { width, height } = Dimensions.get("window");
+    const smallerDimension = Math.min(width, height);
+    const imageSize = smallerDimension * 0.8;
+    
     return (
       <Pressable
         style={styles.fullImageOverlay}
         onPress={() => setShowFullImage(false)}
+        testID="overlay"
+        accessibilityViewIsModal={true}
       >
         <BackButton
           onPress={() => setShowFullImage(false)}
           style={styles.fullImageBack}
-          color="#fff"
+          testID="overlay-close"
+          id="overlay-close"
         />
-        <TouchableOpacity
-          activeOpacity={1}
+        <TouchableOpacity 
+          activeOpacity={1} 
           onPress={() => setShowFullImage(false)}
+          testID="overlay-image"
         >
           <Image
             source={getProfileImage(user.profile_picture)}
             style={{
-              width: width * 0.8,
-              height: width * 0.8,
-              borderRadius: width * 0.4,
+              width: imageSize,
+              height: imageSize,
+              borderRadius: imageSize / 2,
               borderWidth: 4,
               borderColor: theme.primary,
               backgroundColor: "#222",
             }}
+            alt="Photo de profil agrandie"
+            accessibilityLabel="Photo de profil agrandie"
           />
         </TouchableOpacity>
       </Pressable>
