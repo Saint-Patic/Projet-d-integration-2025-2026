@@ -77,34 +77,19 @@ export default function AuthPage() {
     return true;
   }
 
-/*  function validateMdpLowercaseRule(mdp: string): boolean {
-    // check de minuscule
-    if (/[a-z]/.test(mdp)) return true; //normalement se ne sera jamais le cas puisque le code demande
-
-    // refuser les maj et symbole spéciaux au début et fin du mdp, si y'en a ça compte comme min
+  function validateMdpLowercaseRule(mdp: string): boolean {
     if (!mdp || mdp.length === 0) return false;
+    
     const first = mdp.charAt(0);
     const last = mdp.charAt(mdp.length - 1);
-    const isUpperOrSpecial = (ch: string) => /[A-Z@$!%*?&]/.test(ch);
-    return !isUpperOrSpecial(first) && !isUpperOrSpecial(last);
-  }*/
-   function validateMdpLowercaseRule(mdp: string): boolean {
-    if (!mdp) return false;
-    const pw = mdp.trim();
-
-    // 1) si il y a au moins une minuscule quelque part -> OK
-    if (/[a-z]/.test(pw)) return true;
-
-    // 2) sinon, refuser si le 1er ou le dernier caractère est une majuscule ou un des caractères spéciaux attendus
-    const first = pw.charAt(0);
-    const last = pw.charAt(pw.length - 1);
-    const isUpperOrSpecial = (ch: string) => /[A-Z@$!%*?&]/.test(ch);
-
-    // si l'un des deux est une majuscule ou un caractère spécial -> échoue
-    if (isUpperOrSpecial(first) || isUpperOrSpecial(last)) return false;
-
-    // sinon on considère la règle satisfaite (par ex. chiffres ou autres caractères non spéciaux en bordure)
-    return true;
+    
+    // Vérifier que le premier caractère est une minuscule
+    const firstIsLower = /[a-z]/.test(first);
+    // Vérifier que le dernier caractère est une minuscule
+    const lastIsLower = /[a-z]/.test(last);
+    
+    // Les deux doivent être des minuscules
+    return firstIsLower && lastIsLower;
   }
 
   async function handleLogin() {
