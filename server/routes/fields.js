@@ -1,18 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../index");
-
+const pool = require("../pool");
+const authMiddleware = require("../middleware/auth");
 // Helper to run queries
 async function runQuery(sql, params = []) {
-  const conn = await pool.getConnection();
-  try {
-    // For SELECT queries mariadb returns [rows, fields], for INSERT/UPDATE it returns an object.
-    // Avoid destructuring to support both shapes.
-    const result = await conn.query(sql, params);
-    return result;
-  } finally {
-    conn.release();
-  }
+	const conn = await pool.getConnection();
+	try {
+		// For SELECT queries mariadb returns [rows, fields], for INSERT/UPDATE it returns an object.
+		// Avoid destructuring to support both shapes.
+		const result = await conn.query(sql, params);
+		return result;
+	} finally {
+		conn.release();
+	}
 }
 
 // POST /api/fields
@@ -20,7 +20,14 @@ async function runQuery(sql, params = []) {
 router.post("/", async (req, res) => {
   try {
     const { name, corners } = req.body || {};
-    if (!name || !corners || !corners.tl || !corners.tr || !corners.bl || !corners.br) {
+    if (
+      !name ||
+      !corners ||
+      !corners.tl ||
+      !corners.tr ||
+      !corners.bl ||
+      !corners.br
+    ) {
       return res.status(400).json({ error: "Missing name or corners" });
     }
 
@@ -57,9 +64,9 @@ router.post("/", async (req, res) => {
 // GET /api/fields
 // Returns list of fields with corners normalized to { tl: { coords: { latitude, longitude } }, ... }
 router.get("/", async (req, res) => {
-  try {
-    // Use ST_X/ ST_Y to extract lon/lat from POINT columns (X=lon, Y=lat)
-    const sql = `SELECT id, field_name,
+	try {
+		// Use ST_X/ ST_Y to extract lon/lat from POINT columns (X=lon, Y=lat)
+		const sql = `SELECT id, field_name,
       ST_X(corner_tl) AS tl_lon, ST_Y(corner_tl) AS tl_lat,
       ST_X(corner_tr) AS tr_lon, ST_Y(corner_tr) AS tr_lat,
       ST_X(corner_bl) AS bl_lon, ST_Y(corner_bl) AS bl_lat,
@@ -76,10 +83,18 @@ router.get("/", async (req, res) => {
       name: r.field_name,
       created_at: r.created_at,
       corners: {
-        tl: { coords: { latitude: Number(r.tl_lat), longitude: Number(r.tl_lon) } },
-        tr: { coords: { latitude: Number(r.tr_lat), longitude: Number(r.tr_lon) } },
-        bl: { coords: { latitude: Number(r.bl_lat), longitude: Number(r.bl_lon) } },
-        br: { coords: { latitude: Number(r.br_lat), longitude: Number(r.br_lon) } },
+        tl: {
+          coords: { latitude: Number(r.tl_lat), longitude: Number(r.tl_lon) },
+        },
+        tr: {
+          coords: { latitude: Number(r.tr_lat), longitude: Number(r.tr_lon) },
+        },
+        bl: {
+          coords: { latitude: Number(r.bl_lat), longitude: Number(r.bl_lon) },
+        },
+        br: {
+          coords: { latitude: Number(r.br_lat), longitude: Number(r.br_lon) },
+        },
       },
     }));
 
@@ -92,24 +107,27 @@ router.get("/", async (req, res) => {
 
 // DELETE /api/fields/:id
 router.delete("/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log(`DELETE /api/fields/${id} called`);
-    if (!id) return res.status(400).json({ error: "Missing id" });
+	try {
+		const { id } = req.params;
+		console.log(`DELETE /api/fields/${id} called`);
+		if (!id) return res.status(400).json({ error: "Missing id" });
 
-    const sql = `DELETE FROM field WHERE id = ?`;
-    const result = await runQuery(sql, [id]);
+		const sql = `DELETE FROM field WHERE id = ?`;
+		const result = await runQuery(sql, [id]);
 
     // result may be OkPacket or [rows, fields]
-    const ok = result?.affectedRows ?? (Array.isArray(result) && result[0]?.affectedRows) ?? 0;
+    const ok =
+      result?.affectedRows ??
+      (Array.isArray(result) && result[0]?.affectedRows) ??
+      0;
 
-    if (ok === 0) return res.status(404).json({ error: "Field not found" });
+		if (ok === 0) return res.status(404).json({ error: "Field not found" });
 
-    res.json({ success: true, affectedRows: ok });
-  } catch (err) {
-    console.error("Error deleting field:", err);
-    res.status(500).json({ error: "db error" });
-  }
+		res.json({ success: true, affectedRows: ok });
+	} catch (err) {
+		console.error("Error deleting field:", err);
+		res.status(500).json({ error: "db error" });
+	}
 });
 
 module.exports = router;

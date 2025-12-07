@@ -77,4 +77,12 @@ BEGIN
     WHERE user_id = p_user_id;
 END $$    
 
+-- récupérer la couleur lié au user
+CREATE DEFINER=`immigré`@`%` PROCEDURE `get_user_color`(IN p_user INT)
+BEGIN
+    SELECT user_id Id, color_id Color 
+    FROM users 
+    WHERE user_id = p_user;
+END$$
+
 DELIMITER ;

@@ -57,4 +57,12 @@ BEGIN
     WHERE ut.user_id = p_user;
 END$$
 
+-- récupére la couleur d'une équipe
+CREATE PROCEDURE `get_team_color`(IN p_team INT)
+BEGIN
+    SELECT team_id Id, team_name Name, color_1 Color 
+    FROM team 
+    WHERE team_id = p_team;
+END$$
+
 DELIMITER ;
