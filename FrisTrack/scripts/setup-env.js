@@ -30,13 +30,50 @@ function getLocalIP() {
   return wifiIP || fallbackIP || "localhost";
 }
 
+const envPath = path.join(process.cwd(), ".env");
+
+// Vérifier si on est en mode production
+const isProduction =
+  process.env.NODE_ENV === "production" ||
+  process.argv.includes("--production");
+
+// Si le fichier .env existe déjà et contient une URL de production, ne pas la modifier
+if (fs.existsSync(envPath)) {
+  const existingEnv = fs.readFileSync(envPath, "utf8");
+
+  // Détecter si l'URL actuelle est une URL de production (https ou domaine)
+  if (
+    existingEnv.includes("https://") ||
+    existingEnv.includes("fristrack.duckdns.org")
+  ) {
+    console.log(
+      "⚠️  Production URL detected in .env file - skipping auto-configuration"
+    );
+    console.log("Current configuration preserved:");
+    console.log(existingEnv);
+    process.exit(0);
+  }
+
+  // Si le flag --production est passé, ne pas modifier
+  if (isProduction) {
+    console.log("⚠️  Production mode detected - skipping auto-configuration");
+    console.log("Please configure .env manually with production URL");
+    process.exit(0);
+  }
+}
+
+// Mode développement : configurer avec l'IP locale
 const ip = getLocalIP();
 const envContent = `EXPO_PUBLIC_API_URL=http://${ip}:3300/api`;
-const envPath = path.join(process.cwd(), "", ".env");
 
 const envDir = path.dirname(envPath);
 if (!fs.existsSync(envDir)) {
   fs.mkdirSync(envDir, { recursive: true });
 }
+
 fs.writeFileSync(envPath, envContent);
-console.log(`.env file created with IP: ${ip}`);
+console.log("✅ .env file created for development with local IP");
+console.log(`📍 API URL: http://${ip}:3300/api`);
+console.log("");
+console.log("💡 For production, manually set:");
+console.log("   EXPO_PUBLIC_API_URL=https://fristrack.duckdns.org/api");

@@ -2,18 +2,13 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 
-const getBaseURL = () => {
-  if (__DEV__) {
-    // console.log(`EXPO_PUBLIC_API_URL = ${process.env.EXPO_PUBLIC_API_URL}`);
-    return process.env.EXPO_PUBLIC_API_URL || "http://localhost:3300/api";
-  }
-
-  return "https://votre-api-production.com/api";
-};
+const API_BASE_URL = __DEV__
+  ? "http://localhost:3000" // En développement
+  : "https://fristrack.duckdns.org"; // En production
 
 const apiClient = axios.create({
-  baseURL: getBaseURL(),
-  timeout: 10000,
+  baseURL: API_BASE_URL,
+  timeout: 10000, // 10 secondes
   headers: {
     "Content-Type": "application/json",
   },
