@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet, GestureResponderEvent, TextInput, ScrollView, Modal, KeyboardAvoidingView, Platform } from "react-native";
+import * as Location from "expo-location";
 import { ThemedText } from "@/components/themed-text";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
-import { useLocalSearchParams, useNavigation, router } from "expo-router";
+import { useLocalSearchParams, useNavigation, router, useFocusEffect } from "expo-router";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BackButton } from "@/components/perso_components/BackButton";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getMatchById, updateMatch, Match } from "@/services/getMatches";
@@ -14,6 +16,83 @@ export default function MatchDetailsScreen() {
     : null;
   const navigation = useNavigation();
   const { theme } = useTheme();
+
+  const [, setLocation] = useState<any | null>(null);
+  const [, setLocLoading] = useState(false);
+  const [, setLocError] = useState<string | null>(null);
+
+  // Field corners state (store as normalized coords 0..1 relative to field)
+  // We only read corners for now; keep as read-only state to avoid unused setter lint.
+  const [corners] = useState({
+    tl: { x: 0, y: 0 },
+    tr: { x: 1, y: 0 },
+    bl: { x: 0, y: 1 },
+    br: { x: 1, y: 1 },
+  });
+  const [activeCorner, setActiveCorner] = useState<null | keyof typeof corners>(null);
+  // Saved precise positions per corner
+  const [savedCorners, setSavedCorners] = useState<Partial<Record<keyof typeof corners, any>>>({});
+  const [saving, setSaving] = useState(false);
+  const [terrainValidated, setTerrainValidated] = useState(false);
+
+  // Local persistence for saved terrains (stored as array under STORAGE_KEY)
+  const [savedTerrains, setSavedTerrains] = useState<any[]>([]);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [newTerrainName, setNewTerrainName] = useState("");
+  const [selectedTerrainId, setSelectedTerrainId] = useState<string | null>(null);
+  const [showSavedTerrains, setShowSavedTerrains] = useState(false);
+  const [showInitialChoice, setShowInitialChoice] = useState(true);
+  const STORAGE_KEY = "fristrack_saved_terrains";
+
+  const loadSavedTerrains = async () => {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      if (raw) setSavedTerrains(JSON.parse(raw));
+    } catch (e) {
+      console.error("Failed to load saved terrains", e);
+    }
+  };
+
+  useEffect(() => {
+    loadSavedTerrains();
+  }, []);
+
+  const persistTerrains = async (next: any[]) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.error("Failed to persist terrains", e);
+    }
+  };
+
+  const saveCurrentTerrain = async (name?: string) => {
+    if (!allCornersSaved) return;
+    const id = Date.now().toString();
+    const tname = name || newTerrainName || `Terrain ${new Date().toLocaleString()}`;
+    const terrain = { id, name: tname, corners: savedCorners };
+    const next = [...savedTerrains, terrain];
+    setSavedTerrains(next);
+    setShowNameModal(false);
+    setNewTerrainName("");
+    await persistTerrains(next);
+  };
+
+  const loadTerrain = (terrain: any) => {
+    if (!terrain || !terrain.corners) return;
+    setSavedCorners(terrain.corners);
+    setTerrainValidated(true);
+    setActiveCorner(null);
+    if (terrain.id) setSelectedTerrainId(terrain.id.toString());
+    setShowSavedTerrains(false);
+  };
+
+  const deleteTerrain = async (id: string) => {
+    const next = savedTerrains.filter((t) => t.id !== id);
+    setSavedTerrains(next);
+    // if the deleted terrain was selected, clear selection
+    if (selectedTerrainId === id) setSelectedTerrainId(null);
+    await persistTerrains(next);
+  };
 
   // undefined = loading, null = not found, object = loaded
   const [match, setMatch] = useState<Match | null | undefined>(undefined);
@@ -36,6 +115,57 @@ export default function MatchDetailsScreen() {
       setMatch(null);
     }
   }, [matchId]);
+
+  // Start a location watcher when the screen is focused, stop when unfocused
+  useFocusEffect(
+    React.useCallback(() => {
+      let subscription: Location.LocationSubscription | null = null;
+      let mounted = true;
+
+      const startWatching = async () => {
+        try {
+          setLocLoading(true);
+          setLocError(null);
+
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (!mounted) return;
+
+          if (status !== "granted") {
+            setLocError("Permission refusée");
+            setLocLoading(false);
+            return;
+          }
+
+          // Start watching position. Adjust accuracy and distanceInterval as needed.
+          subscription = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.Balanced,
+              timeInterval: 3000, // minimum time between updates in ms
+              distanceInterval: 5, // minimum change in meters to receive update
+            },
+            (pos) => {
+              if (!mounted) return;
+              setLocation(pos);
+            }
+          );
+        } catch (e: any) {
+          setLocError(e?.message ?? "Erreur lors de la récupération de la position");
+        } finally {
+          if (mounted) setLocLoading(false);
+        }
+      };
+
+      startWatching();
+
+      return () => {
+        mounted = false;
+        if (subscription) {
+          subscription.remove();
+          subscription = null;
+        }
+      };
+    }, [])
+  );
 
   const handleBack = () => {
     router.back();
@@ -110,6 +240,48 @@ export default function MatchDetailsScreen() {
       ? team1Score > team2Score
       : team2Score > team1Score;
     return isWinner ? "#00e6cc" : "#ff8080";
+    
+  // Corner click handler — receives which corner and optional event
+  const onCornerPress = (key: keyof typeof corners) => (e?: GestureResponderEvent) => {
+    // Toggle selection: if same corner is already active, deselect it
+    setActiveCorner((prev) => (prev === key ? null : key));
+
+    // For now just log the click; could open a modal or allow dragging to reposition
+    console.log(`Corner ${key} clicked`, corners[key]);
+  };
+
+  const allCornersSaved = ["tl", "tr", "bl", "br"].every((k) => Boolean(savedCorners[k as keyof typeof corners]));
+
+  // Handle confirm button: save a corner if selected, otherwise validate terrain when all corners saved
+  const handleConfirmPress = async () => {
+    if (terrainValidated) return;
+
+    if (activeCorner) {
+      // Save current corner position (same logic as before)
+      try {
+        setSaving(true);
+
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setLocError("Permission refusée");
+          setSaving(false);
+          return;
+        }
+
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+
+        setSavedCorners((prev) => ({ ...prev, [activeCorner]: pos }));
+        console.log(`Saved precise position for ${activeCorner}:`, pos);
+      } catch (e: any) {
+        setLocError(e?.message ?? "Erreur lors de la sauvegarde de la position");
+      } finally {
+        setSaving(false);
+      }
+    } else if (allCornersSaved && !activeCorner) {
+      // Finalize/validate the terrain: hide the corner handles
+      setTerrainValidated(true);
+      console.log("Terrain validé", savedCorners);
+    }
   };
 
   if (match === undefined) {
@@ -151,12 +323,9 @@ export default function MatchDetailsScreen() {
   }
 
   return (
-    <ScreenLayout
-      title="Détails match"
-      headerLeft={<BackButton theme={theme} />}
-      theme={theme}
-    >
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <ScreenLayout title="Détails du match" headerLeft={<BackButton theme={theme} />} theme={theme}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}> 
+        {/* Initial choice removed from top; will be shown above the field area instead */}
         <View style={styles.headerRow}>
           <ThemedText style={[styles.dateText, { color: theme.text }]}>
             Date: {new Date(match.date).toLocaleDateString("fr-FR")}
@@ -281,6 +450,265 @@ export default function MatchDetailsScreen() {
             <ThemedText style={styles.reviewButtonText}>Review</ThemedText>
           </TouchableOpacity>
         )}
+        {/* Field rectangle (black) with 4 clickable corners */}
+        {/* Field rectangle (black) with 4 clickable corners */}
+        {!showSavedTerrains && !showInitialChoice && (
+          <View style={styles.fieldWrapper}>
+            <View style={styles.fieldContainer}>
+                {!terrainValidated && (
+                <>
+                {/* Corner: top-left */}
+                <TouchableOpacity
+                  accessibilityLabel="corner-top-left"
+                  onPress={onCornerPress("tl")}
+                  style={[
+                    styles.cornerHandle,
+                    styles.cornerTL,
+                    activeCorner === "tl" && styles.cornerActive,
+                  ]}
+                >
+                  <ThemedText style={[styles.cornerLabel, { color: activeCorner === "tl" ? "#003b22" : "#000" }]}>TL</ThemedText>
+                </TouchableOpacity>
+
+                {/* Corner: top-right */}
+                <TouchableOpacity
+                  accessibilityLabel="corner-top-right"
+                  onPress={onCornerPress("tr")}
+                  style={[
+                    styles.cornerHandle,
+                    styles.cornerTR,
+                    activeCorner === "tr" && styles.cornerActive,
+                  ]}
+                >
+                  <ThemedText style={[styles.cornerLabel, { color: activeCorner === "tr" ? "#003b22" : "#000" }]}>TR</ThemedText>
+                </TouchableOpacity>
+
+                {/* Corner: bottom-left */}
+                <TouchableOpacity
+                  accessibilityLabel="corner-bottom-left"
+                  onPress={onCornerPress("bl")}
+                  style={[
+                    styles.cornerHandle,
+                    styles.cornerBL,
+                    activeCorner === "bl" && styles.cornerActive,
+                  ]}
+                >
+                  <ThemedText style={[styles.cornerLabel, { color: activeCorner === "bl" ? "#003b22" : "#000" }]}>BL</ThemedText>
+                </TouchableOpacity>
+
+                {/* Corner: bottom-right */}
+                <TouchableOpacity
+                  accessibilityLabel="corner-bottom-right"
+                  onPress={onCornerPress("br")}
+                  style={[
+                    styles.cornerHandle,
+                    styles.cornerBR,
+                    activeCorner === "br" && styles.cornerActive,
+                  ]}
+                >
+                  <ThemedText style={[styles.cornerLabel, { color: activeCorner === "br" ? "#003b22" : "#000" }]}>BR</ThemedText>
+                </TouchableOpacity>
+              </>
+            )}
+
+              {/* Coordinates shown near each corner */}
+              {savedCorners.tl && (
+                <ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsTL]}>TL: {savedCorners.tl.coords.latitude.toFixed(6)}, {savedCorners.tl.coords.longitude.toFixed(6)}</ThemedText>
+              )}
+              {savedCorners.tr && (
+                <ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsTR]}>TR: {savedCorners.tr.coords.latitude.toFixed(6)}, {savedCorners.tr.coords.longitude.toFixed(6)}</ThemedText>
+              )}
+              {savedCorners.bl && (
+                <ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsBL]}>BL: {savedCorners.bl.coords.latitude.toFixed(6)}, {savedCorners.bl.coords.longitude.toFixed(6)}</ThemedText>
+              )}
+              {savedCorners.br && (
+                <ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsBR]}>BR: {savedCorners.br.coords.latitude.toFixed(6)}, {savedCorners.br.coords.longitude.toFixed(6)}</ThemedText>
+              )}
+          </View>
+  </View>
+  )}
+
+        {!showInitialChoice && !showSavedTerrains && (
+          <>
+            {/* Confirm button — enabled only after a corner is selected */}
+            <View style={styles.confirmWrapper}>
+              <TouchableOpacity
+                accessible
+                accessibilityLabel="confirm-field-button"
+                onPress={handleConfirmPress}
+                disabled={saving || (terrainValidated ? true : !activeCorner && !allCornersSaved)}
+                style={[
+                  styles.confirmButton,
+                  { backgroundColor: !terrainValidated && (activeCorner || allCornersSaved) ? theme.primary : "#888" },
+                ]}
+              >
+                <ThemedText style={styles.confirmButtonText}>
+                  {saving
+                    ? "Enregistrement..."
+                    : terrainValidated
+                    ? "Terrain validé"
+                    : activeCorner
+                    ? `Valider coin ${activeCorner.toUpperCase()}`
+                    : allCornersSaved
+                    ? "Valider le terrain"
+                    : "Sélectionnez un coin"}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {/* saved position feedback removed; coordinates are shown inside the field rectangle */}
+          </>
+        )}
+
+        {/* Initial choice when arriving on the page: create new or choose existing (placed above field) */}
+        {showInitialChoice && (
+          <View style={styles.initialChoiceBox}>
+            <ThemedText style={[styles.metaText, { color: theme.text, marginBottom: 8 }]}>Que voulez-vous faire ?</ThemedText>
+            <View style={{ flexDirection: "column", rowGap: 12 }}>
+              <TouchableOpacity
+                accessibilityLabel="create-new-terrain"
+                onPress={() => {
+                  // Start creating a new terrain
+                  setShowInitialChoice(false);
+                  setTerrainValidated(false);
+                  setSavedCorners({});
+                  setActiveCorner(null);
+                  setShowSavedTerrains(false);
+                }}
+                style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+              >
+                <ThemedText style={styles.confirmButtonText}>Créer un nouveau terrain</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                accessibilityLabel="choose-existing-terrain"
+                onPress={() => {
+                  // Open saved terrains picker
+                  setShowInitialChoice(false);
+                  setShowSavedTerrains(true);
+                }}
+                style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+              >
+                <ThemedText style={styles.confirmButtonText}>Choisir un terrain existant</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Picker: allow choosing an existing saved terrain at any time (toggleable) */}
+        {showSavedTerrains && (
+          <View style={styles.terrainsPicker}>
+          <ThemedText style={[styles.metaText, { color: theme.text }]}>Terrains sauvegardés</ThemedText>
+          {savedTerrains.length === 0 ? (
+            <ThemedText style={[styles.metaText, { color: theme.text }]}>Pas de terrains sauvegardés</ThemedText>
+          ) : (
+            <ScrollView style={{ width: "100%", maxHeight: 160 }}>
+              {savedTerrains.map((t) => (
+                <View key={t.id} style={[styles.terrainItem, selectedTerrainId === t.id && styles.terrainSelected]}>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name}</ThemedText>
+                  </View>
+                  <View style={styles.actionGroup}>
+                    <TouchableOpacity onPress={() => loadTerrain(t)} style={styles.terrainLoadAction}>
+                      <ThemedText style={styles.terrainLoadActionText}>Charger</ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => deleteTerrain(t.id)} style={styles.terrainAction}>
+                      <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+          </View>
+        )}
+
+        {/* Button to toggle saved terrains view - only show after initial choice made */}
+        {!showInitialChoice && (
+          <View style={{ alignItems: "center", marginTop: 10 }}>
+            <TouchableOpacity
+              accessibilityLabel="toggle-saved-terrains"
+              onPress={() => setShowSavedTerrains((s) => !s)}
+              style={[styles.smallToggleButton, { backgroundColor: theme.primary }]}
+            >
+              <ThemedText style={styles.confirmButtonText}>{showSavedTerrains ? "Masquer terrains" : "Voir terrains"}</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Edit corners, save/load terrains when terrain is validated */}
+        {terrainValidated && (
+          <View style={styles.editWrapper}>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <TouchableOpacity
+                accessibilityLabel="edit-corners-button"
+                onPress={() => {
+                  setTerrainValidated(false);
+                  setActiveCorner(null);
+                }}
+                style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+              >
+                <ThemedText style={styles.confirmButtonText}>Modifier les coins</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                accessibilityLabel="save-terrain-toggle"
+                onPress={() => setShowNameModal(true)}
+                style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+              >
+                <ThemedText style={styles.confirmButtonText}>Enregistrer le terrain</ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {/* Name entry as a modal popup */}
+            <Modal
+              visible={showNameModal}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowNameModal(false)}
+            >
+              <View style={styles.modalOverlay}>
+                <KeyboardAvoidingView
+                  behavior={Platform.OS === "ios" ? "padding" : "height"}
+                  style={styles.modalWrapper}
+                >
+                  <View style={[styles.modalContent, { borderColor: theme.border, backgroundColor: theme.background }]}> 
+                    <ThemedText style={[styles.metaText, { color: theme.text, marginBottom: 8 }]}>Nom du terrain</ThemedText>
+                    <TextInput
+                      value={newTerrainName}
+                      onChangeText={setNewTerrainName}
+                      placeholder="Nom du terrain"
+                      placeholderTextColor="#999"
+                      style={[styles.nameInput, { color: theme.text, borderColor: theme.border }]}
+                    />
+                    <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
+                      <TouchableOpacity
+                        accessibilityLabel="save-terrain-button"
+                        onPress={() => saveCurrentTerrain(newTerrainName)}
+                        style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+                      >
+                        <ThemedText style={styles.confirmButtonText}>Sauvegarder</ThemedText>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        accessibilityLabel="cancel-save-terrain"
+                        onPress={() => {
+                          setShowNameModal(false);
+                          setNewTerrainName("");
+                        }}
+                        style={[styles.confirmButton, { backgroundColor: "#999" }]}
+                      >
+                        <ThemedText style={styles.confirmButtonText}>Annuler</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </KeyboardAvoidingView>
+              </View>
+            </Modal>
+
+            {/* Saved terrains are shown via the "Voir terrains" toggle to avoid automatic display after validation. */}
+          </View>
+        )}
       </View>
     </ScreenLayout>
   );
@@ -388,5 +816,214 @@ const styles = StyleSheet.create({
     color: "#f0f0f0",
     fontWeight: "700",
     fontSize: 16,
+  },
+  locationWrapper: {
+    marginTop: 12,
+    paddingHorizontal: 0,
+  },
+  locationContainer: {
+    backgroundColor: "#000",
+    padding: 12,
+    borderRadius: 8,
+  },
+  locationText: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  /* Field (black rectangle) and corner handles */
+  fieldWrapper: {
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  fieldContainer: {
+    width: "100%",
+    maxWidth: 520,
+    aspectRatio: 16 / 9,
+    backgroundColor: "#000",
+    borderRadius: 8,
+    position: "relative",
+    overflow: "hidden",
+  },
+  cornerHandle: {
+    position: "absolute",
+    width: 28,
+    height: 28,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderWidth: 2,
+    borderColor: "#000",
+  },
+  cornerTL: {
+    top: 8,
+    left: 8,
+  },
+  cornerTR: {
+    top: 8,
+    right: 8,
+  },
+  cornerBL: {
+    bottom: 8,
+    left: 8,
+  },
+  cornerBR: {
+    bottom: 8,
+    right: 8,
+  },
+  cornerActive: {
+    backgroundColor: "#00ff88",
+    borderColor: "#006644",
+  },
+  cornerLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    lineHeight: 28,
+    textAlign: "center",
+  },
+  confirmWrapper: {
+    marginTop: 12,
+    alignItems: "center",
+  },
+  confirmButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    borderRadius: 18,
+    elevation: 4,
+  },
+  confirmButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  savedFeedback: {
+    marginTop: 8,
+    alignItems: "center",
+  },
+  editWrapper: {
+    marginTop: 12,
+    alignItems: "center",
+  },
+  nameInput: {
+    width: "90%",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
+  },
+  terrainsList: {
+    width: "100%",
+    marginTop: 12,
+    alignItems: "center",
+  },
+  terrainItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderColor: "#222",
+  },
+  terrainName: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  terrainAction: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#c0392b",
+    borderRadius: 8,
+  },
+  terrainActionText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  actionGroup: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+  },
+  terrainLoadAction: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#2ecc71",
+    borderRadius: 8,
+  },
+  terrainLoadActionText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  terrainsPicker: {
+    width: "100%",
+    marginTop: 12,
+    alignItems: "center",
+  },
+  terrainSelected: {
+    backgroundColor: "rgba(0,128,0,0.12)",
+  },
+  smallToggleButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    elevation: 3,
+  },
+  initialChoiceBox: {
+    width: "100%",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#444",
+    marginBottom: 12,
+    alignItems: "center",
+  },
+  coordsText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 2,
+    position: "absolute",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  coordsTL: {
+    top: 8,
+    left: 8,
+    textAlign: "left",
+  },
+  coordsTR: {
+    top: 8,
+    right: 8,
+    textAlign: "right",
+  },
+  coordsBL: {
+    bottom: 8,
+    left: 8,
+    textAlign: "left",
+  },
+  coordsBR: {
+    bottom: 8,
+    right: 8,
+    textAlign: "right",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  modalWrapper: {
+    width: "100%",
+  },
+  modalContent: {
+    width: "100%",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    alignItems: "center",
   },
 });
