@@ -158,6 +158,40 @@ router.get("/check-pseudo/:pseudo", generalLimiter, async (req, res) => {
   }
 });
 
+// GET /api/users/health - Route de test de connexion DB (à placer avant /:id)
+router.get("/health", async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // Test simple : SELECT 1
+    const [result] = await conn.query("SELECT 1 as test");
+
+    // Test avec une vraie table
+    const [userCount] = await conn.query("SELECT COUNT(*) as count FROM users");
+
+    res.json({
+      status: "OK",
+      database: "Connected",
+      test_query: result[0],
+      users_count: userCount[0].count,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Health check failed:", err);
+    res.status(500).json({
+      status: "ERROR",
+      database: "Disconnected",
+      error: err.message,
+      code: err.code,
+      sqlState: err.sqlState,
+      timestamp: new Date().toISOString(),
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
 // GET /api/users/:id - parameterized route comes after specific routes
 router.get("/:id", authMiddleware, generalLimiter, async (req, res) => {
   const { id } = req.params;
