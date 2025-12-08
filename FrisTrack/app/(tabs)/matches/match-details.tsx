@@ -118,8 +118,17 @@ export default function MatchDetailsScreen() {
         // fallback: try id-based delete
         await deleteField(id);
       }
+      // Optimistically update UI
       setServerTerrains((prev) => (prev || []).filter((t) => String(t.id) !== String(id) && String(t.id_field) !== String(id)));
       if (selectedTerrainId === id) setSelectedTerrainId(null);
+
+      // Refresh authoritative list from server to ensure consistency
+      try {
+        await fetchServerTerrains();
+      } catch (e) {
+        // If refresh fails, we already removed the item optimistically; log for debugging
+        console.error("Failed to refresh server terrains after delete:", e);
+      }
     } catch (err) {
       console.error("Failed to delete server terrain:", err);
       Alert.alert("Erreur", "Impossible de supprimer le terrain sur le serveur.");
