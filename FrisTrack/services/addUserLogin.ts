@@ -1,17 +1,27 @@
 import axios from "axios";
 import { RegisterUserData } from "@/types/user";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+// Utilisez apiClient au lieu d'axios directement
+import apiClient from "./apiClient";
 
 export { RegisterUserData };
 
 export const registerService = {
   register: async (userData: RegisterUserData) => {
     try {
-      const response = await axios.post(`${API_URL}/users/register`, userData);
+      console.log(
+        "Sending registration data:",
+        JSON.stringify(userData, null, 2)
+      );
+
+      // Utilisez apiClient qui gère déjà l'URL de base
+      const response = await apiClient.post("/auth/register", userData);
+
       return response.data;
     } catch (error: any) {
       if (error.response) {
+        console.log("Server error response:", error.response.data);
+        console.log("Status:", error.response.status);
         throw error;
       }
       throw new Error("Erreur de connexion au serveur");

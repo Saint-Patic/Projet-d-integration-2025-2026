@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../index");
+const pool = require("../pool");
 const argon2 = require("argon2");
 const jwt = require("jsonwebtoken");
 const authMiddleware = require("../middleware/auth");
@@ -12,12 +12,23 @@ const {
   updateLimiter,
 } = require("../middleware/rateLimiter");
 
+// Helper to call procedures
+async function callProcedure(sql, params = []) {
+  const conn = await pool.getConnection();
+  try {
+    const rows = await conn.query(sql, params);
+    return rows;
+  } finally {
+    conn.release();
+  }
+}
+
 // POST /api/users/login
 router.post("/login", loginLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   // Validation des entrées
-  if (!email || !password) {
+  if (!(email && password)) {
     return res.status(400).json({ error: "Email et mot de passe requis" });
   }
 
@@ -43,9 +54,9 @@ router.post("/login", loginLimiter, async (req, res) => {
 
       if (!users || users.length === 0) {
         // No user found for provided email
-        return res
-          .status(401)
-          .json({ error: "Échec de la connexion, identifiant utilisateur invalide." });
+        return res.status(401).json({
+          error: "Échec de la connexion, identifiant utilisateur invalide.",
+        });
       }
 
       const userRow = users[0];
@@ -57,7 +68,9 @@ router.post("/login", loginLimiter, async (req, res) => {
 
       if (!isPasswordValid) {
         // Invalid password for existing user
-        return res.status(401).json({ error: "Connexion pour l'utilisateur fail : mot de passe invalide." });
+        return res.status(401).json({
+          error: "Connexion pour l'utilisateur fail : mot de passe invalide.",
+        });
       }
 
       const token = jwt.sign(
@@ -93,36 +106,34 @@ router.post("/login", loginLimiter, async (req, res) => {
   }
 });
 
-// GET /api/users/:id
-router.get("/:id", authMiddleware, generalLimiter, async (req, res) => {
-  const { id } = req.params;
+// GET /api/users/team-role-attack - MUST be before /:id route
+router.get(
+  "/team-role-attack",
+  authMiddleware,
+  generalLimiter,
+  async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+      const [rows] = await conn.query(
+        `SELECT u.user_id, u.firstname, u.lastname, u.pseudo, 
+              ut.team_id, t.team_name, ut.role_attack, ut.role_def
+       FROM users u
+       JOIN user_team ut ON u.user_id = ut.user_id
+       JOIN teams t ON ut.team_id = t.id
+       ORDER BY u.user_id`
+      );
 
-  // Validation de l'ID
-  if (!validator.validateId(id)) {
-    return res.status(400).json({ error: "ID invalide" });
-  }
-
-  try {
-    const rows = await callProcedure("CALL get_user_info(?)", [id]);
-
-    if (rows && rows.length > 0) {
-      const user = rows[0];
-      if (user.birthdate) {
-        user.birthdate = new Date(user.birthdate).toISOString();
-      }
-      if (user.created_at) {
-        user.created_at = new Date(user.created_at).toISOString();
-      }
+      res.json(rows || []);
+    } catch (err) {
+      console.error("Error fetching team role attack:", err);
+      res.status(500).json({ error: "db error" });
+    } finally {
+      conn.release();
     }
-
-    res.json(rows[0] || null);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "db error" });
   }
-});
+);
 
-// GET /api/users/check-pseudo/:pseudo
+// GET /api/users/check-pseudo/:pseudo - specific route before /:id
 router.get("/check-pseudo/:pseudo", generalLimiter, async (req, res) => {
   const { pseudo } = req.params;
 
@@ -138,10 +149,76 @@ router.get("/check-pseudo/:pseudo", generalLimiter, async (req, res) => {
     const rows = await callProcedure("CALL check_pseudo_available(?)", [
       pseudo,
     ]);
-    res.json({ available: rows.length === 0 });
+    // Les procédures stockées retournent un tableau de tableaux
+    const available = !(rows && rows[0]) || rows[0].length === 0;
+    res.json({ available });
   } catch (err) {
     console.error("Error checking pseudo:", err);
     res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// GET /api/users/health - Route de test de connexion DB (à placer avant /:id)
+router.get("/health", async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // Test simple : SELECT 1
+    const [result] = await conn.query("SELECT 1 as test");
+
+    // Test avec une vraie table
+    const [userCount] = await conn.query("SELECT COUNT(*) as count FROM users");
+
+    res.json({
+      status: "OK",
+      database: "Connected",
+      test_query: result[0],
+      users_count: userCount[0].count,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Health check failed:", err);
+    res.status(500).json({
+      status: "ERROR",
+      database: "Disconnected",
+      error: err.message,
+      code: err.code,
+      sqlState: err.sqlState,
+      timestamp: new Date().toISOString(),
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// GET /api/users/:id - parameterized route comes after specific routes
+router.get("/:id", authMiddleware, generalLimiter, async (req, res) => {
+  const { id } = req.params;
+
+  // Validation de l'ID
+  if (!validator.validateId(id)) {
+    return res.status(400).json({ error: "ID invalide" });
+  }
+
+  try {
+    const rows = await callProcedure("CALL get_user_info(?)", [id]);
+
+    if (rows && rows.length > 0 && rows[0].length > 0) {
+      const user = rows[0][0];
+      if (user.birthdate) {
+        user.birthdate = new Date(user.birthdate).toISOString();
+      }
+      if (user.created_at) {
+        user.created_at = new Date(user.created_at).toISOString();
+      }
+      res.json(user);
+    } else {
+      res.json(null);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "db error" });
   }
 });
 
@@ -255,6 +332,11 @@ router.put("/profile", authMiddleware, updateLimiter, async (req, res) => {
     profile_picture,
   } = req.body;
 
+  // Check if user is authenticated
+  if (!(req.user && req.user.userId)) {
+    return res.status(401).json({ error: "Non authentifié" });
+  }
+
   // Validation de l'ID
   if (!validator.validateId(user_id)) {
     return res.status(400).json({ error: "user_id invalide" });
@@ -361,7 +443,7 @@ router.put(
     const { user_id, team_id, role_attack } = req.body;
 
     // Validation
-    if (!validator.validateId(user_id) || !validator.validateId(team_id)) {
+    if (!(validator.validateId(user_id) && validator.validateId(team_id))) {
       return res.status(400).json({ error: "IDs invalides" });
     }
 
