@@ -83,8 +83,14 @@ const validateRoleAttack = (role) => {
   return validRoles.includes(role);
 };
 
-// Validation de l'ID
+// Validation de l'ID - stricte pour rejeter les décimales et caractères spéciaux
 const validateId = (id) => {
+  // Convertir en string pour vérifier le format
+  const idStr = String(id);
+
+  // Rejeter si contient des caractères non numériques (sauf signe moins au début)
+  if (!/^-?\d+$/.test(idStr)) return false;
+
   const num = parseInt(id, 10);
   return !isNaN(num) && num > 0 && num <= 2147483647;
 };
