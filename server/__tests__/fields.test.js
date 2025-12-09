@@ -39,11 +39,7 @@ describe("Fields Routes - Tests d'acceptation terrain", () => {
     jest.clearAllMocks();
   });
 
-  // ============================================================
   // TEST 1 – Création de terrain
-  // Définir 4 points GPS, donner un nom, sauvegarder.
-  // Vérifier que le terrain apparaît dans la liste.
-  // ============================================================
   describe("Test 1 – Création de terrain", () => {
     it("devrait créer un terrain avec 4 coins GPS et un nom", async () => {
       // Mock de l'insertion réussie
@@ -144,10 +140,7 @@ describe("Fields Routes - Tests d'acceptation terrain", () => {
     });
   });
 
-  // ============================================================
   // TEST 2 – Suppression de terrain
-  // Supprimer le terrain créé, vérifier qu'il disparaît de la liste.
-  // ============================================================
   describe("Test 2 – Suppression de terrain", () => {
     it("devrait supprimer un terrain existant par son nom", async () => {
       // Mock de la suppression réussie
@@ -199,11 +192,7 @@ describe("Fields Routes - Tests d'acceptation terrain", () => {
     });
   });
 
-  // ============================================================
   // TEST 3 – Affichage du terrain
-  // Charger un terrain et vérifier que les données sont correctes
-  // pour un affichage rectangle avec les bonnes proportions.
-  // ============================================================
   describe("Test 3 – Affichage du terrain (chargement et proportions)", () => {
     // Terrain de frisbee standard: 100m x 37m
     const fieldLength = 100; // mètres
@@ -381,9 +370,7 @@ describe("Fields Routes - Tests d'acceptation terrain", () => {
     });
   });
 
-  // ============================================================
   // Tests supplémentaires - Gestion des erreurs
-  // ============================================================
   describe("Gestion des erreurs", () => {
     it("devrait gérer les erreurs de base de données lors de la création", async () => {
       mockConnection.query.mockRejectedValue(new Error("DB connection failed"));

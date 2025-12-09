@@ -1,11 +1,3 @@
-/**
- * Tests d'intégration pour les routes Fields
- * Ces tests interagissent avec la vraie base de données
- * 
- * ⚠️ ATTENTION: Ces tests modifient la base de données !
- * Ils créent et suppriment des terrains de test.
- */
-
 const request = require("supertest");
 const express = require("express");
 const fieldsRouter = require("../routes/fields");
@@ -48,15 +40,14 @@ describe("Tests d'intégration Fields - Base de données réelle", () => {
 
   // Nettoyer après tous les tests (au cas où un test échoue)
   afterAll(async () => {
-    // COMMENTÉ: Ne pas supprimer pour pouvoir vérifier en DB
-    // try {
-    //   // Supprimer le terrain de test s'il existe encore
-    //   const conn = await pool.getConnection();
-    //   await conn.query("CALL delete_field(?)", [TEST_FIELD_NAME]);
-    //   conn.release();
-    // } catch (err) {
-    //   // Ignorer les erreurs de suppression (terrain peut ne pas exister)
-    // }
+    try {
+      // Supprimer le terrain de test s'il existe encore
+      const conn = await pool.getConnection();
+      await conn.query("CALL delete_field(?)", [TEST_FIELD_NAME]);
+      conn.release();
+    } catch (err) {
+      // Ignorer les erreurs de suppression (terrain peut ne pas exister)
+    }
     
     // Fermer le pool de connexions
     await pool.end();
