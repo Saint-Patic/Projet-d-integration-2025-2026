@@ -26,7 +26,7 @@ export default function MatchDetailsScreen() {
 	const navigation = useNavigation();
 	const { theme } = useTheme();
 
-	const [, setLocation] = useState<any | null>(null);
+	const [currentLocation, setLocation] = useState<Location.LocationObject | null>(null);
 	const [, setLocLoading] = useState(false);
 	const [, setLocError] = useState<string | null>(null);
 
@@ -186,12 +186,12 @@ export default function MatchDetailsScreen() {
 						return;
 					}
 
-					// Start watching position. Adjust accuracy and distanceInterval as needed.
+					// Start watching position with high accuracy for real-time tracking on terrain
 					subscription = await Location.watchPositionAsync(
 						{
-							accuracy: Location.Accuracy.Balanced,
-							timeInterval: 3000, // minimum time between updates in ms
-							distanceInterval: 5, // minimum change in meters to receive update
+							accuracy: Location.Accuracy.BestForNavigation,
+							timeInterval: 500, // update every 500ms for smooth tracking
+							distanceInterval: 1, // update for every 1 meter movement
 						},
 						(pos) => {
 							if (!mounted) return;
@@ -300,6 +300,37 @@ export default function MatchDetailsScreen() {
 	const allCornersSaved = ["tl", "tr", "bl", "br"].every((k) =>
 		Boolean(savedCorners[k as keyof typeof corners])
 	);
+
+	// Calculate user's relative position on the terrain (0-1 range for x and y)
+	// Uses bilinear interpolation based on the 4 GPS corners
+	const calculateRelativePosition = (): { x: number; y: number } | null => {
+		if (!currentLocation || !allCornersSaved) return null;
+		
+		const userLat = currentLocation.coords.latitude;
+		const userLon = currentLocation.coords.longitude;
+		
+		const tl = savedCorners.tl?.coords;
+		const tr = savedCorners.tr?.coords;
+		const bl = savedCorners.bl?.coords;
+		const br = savedCorners.br?.coords;
+		
+		if (!tl || !tr || !bl || !br) return null;
+		
+		// Calculate the terrain bounds
+		const minLat = Math.min(tl.latitude, tr.latitude, bl.latitude, br.latitude);
+		const maxLat = Math.max(tl.latitude, tr.latitude, bl.latitude, br.latitude);
+		const minLon = Math.min(tl.longitude, tr.longitude, bl.longitude, br.longitude);
+		const maxLon = Math.max(tl.longitude, tr.longitude, bl.longitude, br.longitude);
+		
+		// Normalize position to 0-1 range
+		// X: left to right (longitude), Y: top to bottom (latitude inverted)
+		const x = (userLon - minLon) / (maxLon - minLon || 1);
+		const y = (maxLat - userLat) / (maxLat - minLat || 1); // Inverted because screen Y goes down
+		
+		return { x, y };
+	};
+
+	const relativePosition = calculateRelativePosition();
 
 	// Handle confirm button: save a corner if selected, otherwise validate terrain when all corners saved
 	const handleConfirmPress = async () => {
@@ -599,17 +630,41 @@ export default function MatchDetailsScreen() {
 									{savedCorners.bl.coords.longitude.toFixed(6)}
 								</ThemedText>
 							)}
-							{savedCorners.br && (
-								<ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsBR]}>
-									BR: {savedCorners.br.coords.latitude.toFixed(6)},{" "}
-									{savedCorners.br.coords.longitude.toFixed(6)}
-								</ThemedText>
-							)}
-						</View>
-					</View>
-				)}
+						{savedCorners.br && (
+							<ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsBR]}>
+								BR: {savedCorners.br.coords.latitude.toFixed(6)},{" "}
+								{savedCorners.br.coords.longitude.toFixed(6)}
+							</ThemedText>
+						)}
 
-				{!(showInitialChoice || showSavedTerrains) && (
+						{/* Real-time position marker */}
+						{terrainValidated && relativePosition && (
+							<View
+								pointerEvents="none"
+								style={[
+									styles.positionMarker,
+									{
+										left: `${Math.min(100, Math.max(0, relativePosition.x * 100))}%`,
+										top: `${Math.min(100, Math.max(0, relativePosition.y * 100))}%`,
+									},
+								]}
+							>
+								<View style={styles.positionMarkerInner} />
+								<View style={styles.positionMarkerPulse} />
+							</View>
+						)}
+
+						{/* Show "hors terrain" indicator if outside bounds */}
+						{terrainValidated && relativePosition && 
+							(relativePosition.x < 0 || relativePosition.x > 1 || 
+							 relativePosition.y < 0 || relativePosition.y > 1) && (
+							<View style={styles.outsideIndicator}>
+								<ThemedText style={styles.outsideText}>Hors terrain</ThemedText>
+							</View>
+						)}
+					</View>
+				</View>
+			)}				{!(showInitialChoice || showSavedTerrains) && (
 					<>
 						{/* Confirm button — enabled only after a corner is selected */}
 						<View style={styles.confirmWrapper}>
@@ -1000,6 +1055,48 @@ const styles = StyleSheet.create({
 		fontWeight: "800",
 		lineHeight: 28,
 		textAlign: "center",
+	},
+	/* Position marker for real-time location */
+	positionMarker: {
+		position: "absolute",
+		width: 20,
+		height: 20,
+		marginLeft: -10,
+		marginTop: -10,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	positionMarkerInner: {
+		width: 14,
+		height: 14,
+		borderRadius: 7,
+		backgroundColor: "#00aaff",
+		borderWidth: 3,
+		borderColor: "#fff",
+		zIndex: 2,
+	},
+	positionMarkerPulse: {
+		position: "absolute",
+		width: 24,
+		height: 24,
+		borderRadius: 12,
+		backgroundColor: "rgba(0, 170, 255, 0.3)",
+		zIndex: 1,
+	},
+	outsideIndicator: {
+		position: "absolute",
+		top: "50%",
+		left: "50%",
+		transform: [{ translateX: -50 }, { translateY: -10 }],
+		backgroundColor: "rgba(255, 100, 100, 0.9)",
+		paddingHorizontal: 12,
+		paddingVertical: 4,
+		borderRadius: 8,
+	},
+	outsideText: {
+		color: "#fff",
+		fontSize: 12,
+		fontWeight: "700",
 	},
 	confirmWrapper: {
 		marginTop: 12,
