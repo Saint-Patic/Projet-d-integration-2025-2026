@@ -2,12 +2,14 @@ import apiClient from "./apiClient";
 
 export interface Match {
   id: number;
+  team_id_1?: number;  // Ajoutez ceci
+  team_id_2?: number;  // Ajoutez ceci
   team_name_1: string;
   team_name_2: string;
   team_score_1: number;
   team_score_2: number;
-  team1_status: string; // 'home' ou 'away'
-  team2_status: string; // 'home' ou 'away'
+  team1_status: string;
+  team2_status: string;
   date: string;
   status?: string;
   color?: string;
@@ -58,6 +60,18 @@ export const updateMatch = async (
     return null;
   }
 };
+
+export async function updateMatchScore(matchId: string | number, score: string | number, teamId: number | undefined) {
+  console.log(`matchId: ${matchId}, score: ${score}, team id: ${teamId}`)
+  try {
+    if (teamId === undefined) return console.error(`Team id undefined`);
+    const response = await apiClient.put(`/matches/${matchId}/${teamId}/score`, { score });
+    return response.data;
+  } catch(error) {
+    console.error(`Error updating score match ${matchId}:`, error);
+  }
+}
+
 
 export const deleteMatch = async (id: number): Promise<Match | null> => {
   try {

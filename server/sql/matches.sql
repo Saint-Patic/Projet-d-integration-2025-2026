@@ -5,6 +5,8 @@ CREATE PROCEDURE get_all_matches()
 BEGIN
     SELECT 
         m.match_id AS id,
+        tm1.team_id AS team_id_1,
+        tm2.team_id AS team_id_2,
         t1.team_name AS team_name_1,
         t2.team_name AS team_name_2,
         tm1.score AS team_score_1,
@@ -25,6 +27,8 @@ CREATE PROCEDURE get_match_by_id(IN p_match_id INT)
 BEGIN
     SELECT 
         m.match_id AS id,
+        tm1.team_id AS team_id_1,
+        tm2.team_id AS team_id_2,
         t1.team_name AS team_name_1,
         t2.team_name AS team_name_2,
         tm1.score AS team_score_1,
@@ -46,6 +50,8 @@ CREATE PROCEDURE get_matches_by_user(IN p_user_id INT)
 BEGIN
     SELECT 
         m.match_id AS id,
+        tm1.team_id AS team_id_1,
+        tm2.team_id AS team_id_2,
         t1.team_name AS team_name_1,
         t2.team_name AS team_name_2,
         tm1.score AS team_score_1,
