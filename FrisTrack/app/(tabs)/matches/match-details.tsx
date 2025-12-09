@@ -44,37 +44,40 @@ export default function MatchDetailsScreen() {
 	const [saving, setSaving] = useState(false);
 	const [terrainValidated, setTerrainValidated] = useState(false);
 
-  const [serverTerrains, setServerTerrains] = useState<any[]>([]);
-  const [loadingServerTerrains, setLoadingServerTerrains] = useState(false);
-  const [showNameModal, setShowNameModal] = useState(false);
-  const [newTerrainName, setNewTerrainName] = useState("");
-  const [selectedTerrainId, setSelectedTerrainId] = useState<string | null>(null);
-  const [showSavedTerrains, setShowSavedTerrains] = useState(false);
-  const [showInitialChoice, setShowInitialChoice] = useState(true);
-  // Server-stored terrains only (no local persistence)
+	const [serverTerrains, setServerTerrains] = useState<any[]>([]);
+	const [loadingServerTerrains, setLoadingServerTerrains] = useState(false);
+	const [showNameModal, setShowNameModal] = useState(false);
+	const [newTerrainName, setNewTerrainName] = useState("");
+	const [selectedTerrainId, setSelectedTerrainId] = useState<string | null>(null);
+	const [showSavedTerrains, setShowSavedTerrains] = useState(false);
+	const [showInitialChoice, setShowInitialChoice] = useState(true);
+	// Server-stored terrains only (no local persistence)
 
-  const saveCurrentTerrain = async (name?: string) => {
-    if (!allCornersSaved) return;
-    const tname = name || newTerrainName || `Terrain ${new Date().toLocaleString()}`;
-    setShowNameModal(false);
-    setNewTerrainName("");
+	const saveCurrentTerrain = async (name?: string) => {
+		if (!allCornersSaved) return;
+		const tname = name || newTerrainName || `Terrain ${new Date().toLocaleString()}`;
+		setShowNameModal(false);
+		setNewTerrainName("");
 
-    // Persist to backend only
-    try {
-      setSaving(true);
-      const res = await createField({ name: tname, corners: savedCorners });
-      if (res && res.id) {
-        // Add the newly created server terrain to the in-memory list so it appears immediately
-        setServerTerrains((prev) => [{ id: res.id, name: tname, corners: savedCorners }, ...(prev || [])]);
-        setSelectedTerrainId(res.id.toString());
-      }
-    } catch (err) {
-      console.error("Failed to persist field to server:", err);
-      Alert.alert("Erreur", "Impossible d'enregistrer le terrain sur le serveur.");
-    } finally {
-      setSaving(false);
-    }
-  };
+		// Persist to backend only
+		try {
+			setSaving(true);
+			const res = await createField({ name: tname, corners: savedCorners });
+			if (res && res.id) {
+				// Add the newly created server terrain to the in-memory list so it appears immediately
+				setServerTerrains((prev) => [
+					{ id: res.id, name: tname, corners: savedCorners },
+					...(prev || []),
+				]);
+				setSelectedTerrainId(res.id.toString());
+			}
+		} catch (err) {
+			console.error("Failed to persist field to server:", err);
+			Alert.alert("Erreur", "Impossible d'enregistrer le terrain sur le serveur.");
+		} finally {
+			setSaving(false);
+		}
+	};
 
 	const loadTerrain = (terrain: any) => {
 		if (!(terrain && terrain.corners)) return;
@@ -112,37 +115,39 @@ export default function MatchDetailsScreen() {
 		}
 	};
 
-  // Load server terrains on mount so they are available immediately
-  useEffect(() => {
-    fetchServerTerrains();
-  }, []);
+	// Load server terrains on mount so they are available immediately
+	useEffect(() => {
+		fetchServerTerrains();
+	}, []);
 
-  const deleteTerrain = async (id: string, name?: string) => {
-    // Delete from server only
-    try {
-      const terrainName = name || undefined;
-      if (terrainName) {
-        await deleteField(terrainName);
-      } else {
-        // fallback: try id-based delete
-        await deleteField(id);
-      }
-      // Optimistically update UI
-      setServerTerrains((prev) => (prev || []).filter((t) => String(t.id) !== String(id) && String(t.id_field) !== String(id)));
-      if (selectedTerrainId === id) setSelectedTerrainId(null);
+	const deleteTerrain = async (id: string, name?: string) => {
+		// Delete from server only
+		try {
+			const terrainName = name || undefined;
+			if (terrainName) {
+				await deleteField(terrainName);
+			} else {
+				// fallback: try id-based delete
+				await deleteField(id);
+			}
+			// Optimistically update UI
+			setServerTerrains((prev) =>
+				(prev || []).filter((t) => String(t.id) !== String(id) && String(t.id_field) !== String(id))
+			);
+			if (selectedTerrainId === id) setSelectedTerrainId(null);
 
-      // Refresh authoritative list from server to ensure consistency
-      try {
-        await fetchServerTerrains();
-      } catch (e) {
-        // If refresh fails, we already removed the item optimistically; log for debugging
-        console.error("Failed to refresh server terrains after delete:", e);
-      }
-    } catch (err) {
-      console.error("Failed to delete server terrain:", err);
-      Alert.alert("Erreur", "Impossible de supprimer le terrain sur le serveur.");
-    }
-  };
+			// Refresh authoritative list from server to ensure consistency
+			try {
+				await fetchServerTerrains();
+			} catch (e) {
+				// If refresh fails, we already removed the item optimistically; log for debugging
+				console.error("Failed to refresh server terrains after delete:", e);
+			}
+		} catch (err) {
+			console.error("Failed to delete server terrain:", err);
+			Alert.alert("Erreur", "Impossible de supprimer le terrain sur le serveur.");
+		}
+	};
 
 	// undefined = loading, null = not found, object = loaded
 	const [match, setMatch] = useState<Match | null | undefined>(undefined);
@@ -317,7 +322,9 @@ export default function MatchDetailsScreen() {
 					return;
 				}
 
-				const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+				const pos = await Location.getCurrentPositionAsync({
+					accuracy: Location.Accuracy.Highest,
+				});
 
 				setSavedCorners((prev) => ({ ...prev, [activeCorner]: pos }));
 				console.log(`Saved precise position for ${activeCorner}:`, pos);
@@ -685,49 +692,82 @@ export default function MatchDetailsScreen() {
 					</View>
 				)}
 
-        {/* Picker: allow choosing an existing server terrain at any time (toggleable) */}
-        {showSavedTerrains && (
-          <View style={styles.terrainsPicker}>
-            <ThemedText style={[styles.metaText, { color: theme.text }]}>Terrains disponibles</ThemedText>
-            {loadingServerTerrains ? (
-              <ThemedText style={[styles.metaText, { color: theme.text }]}>Chargement...</ThemedText>
-            ) : (() => {
-              const list = serverTerrains || [];
-              if (!list || list.length === 0) {
-                return <ThemedText style={[styles.metaText, { color: theme.text }]}>Pas de terrains disponibles</ThemedText>;
-              }
-              return (
-                <ScrollView style={{ width: "100%", maxHeight: 160 }}>
-                  {list.map((t: any, idx: number) => {
-                    const key = t.id ?? t.id_field ?? t.field_name ?? `terrain-${idx}`;
-                    const selectedKey = selectedTerrainId ? String(selectedTerrainId) : null;
-                    const itemId = t.id ?? t.id_field ?? null;
-                    return (
-                      <View key={key} style={[styles.terrainItem, selectedKey === String(itemId) && styles.terrainSelected]}>
-                      <View style={{ flex: 1 }}>
-                        <ThemedText style={[styles.terrainName, { color: theme.text }]}>{t.name ?? t.field_name}</ThemedText>
-                      </View>
-                      <View style={styles.actionGroup}>
-                        <TouchableOpacity onPress={() => loadTerrain(t)} style={styles.terrainLoadAction}>
-                          <ThemedText style={styles.terrainLoadActionText}>Charger</ThemedText>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => {
-                          Alert.alert("Supprimer le terrain", "Voulez-vous supprimer ce terrain du serveur ?", [
-                            { text: "Annuler", style: "cancel" },
-                            { text: "Supprimer", style: "destructive", onPress: () => deleteTerrain(String(itemId ?? ""), t.name ?? t.field_name) },
-                          ]);
-                        }} style={styles.terrainAction}>
-                          <ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                    );
-                  })}
-                </ScrollView>
-              );
-            })()}
-          </View>
-        )}
+				{/* Picker: allow choosing an existing server terrain at any time (toggleable) */}
+				{showSavedTerrains && (
+					<View style={styles.terrainsPicker}>
+						<ThemedText style={[styles.metaText, { color: theme.text }]}>
+							Terrains disponibles
+						</ThemedText>
+						{loadingServerTerrains ? (
+							<ThemedText style={[styles.metaText, { color: theme.text }]}>
+								Chargement...
+							</ThemedText>
+						) : (
+							(() => {
+								const list = serverTerrains || [];
+								if (!list || list.length === 0) {
+									return (
+										<ThemedText style={[styles.metaText, { color: theme.text }]}>
+											Pas de terrains disponibles
+										</ThemedText>
+									);
+								}
+								return (
+									<ScrollView style={{ width: "100%", maxHeight: 160 }}>
+										{list.map((t: any, idx: number) => {
+											const key = t.id ?? t.id_field ?? t.field_name ?? `terrain-${idx}`;
+											const selectedKey = selectedTerrainId ? String(selectedTerrainId) : null;
+											const itemId = t.id ?? t.id_field ?? null;
+											return (
+												<View
+													key={key}
+													style={[
+														styles.terrainItem,
+														selectedKey === String(itemId) && styles.terrainSelected,
+													]}
+												>
+													<View style={{ flex: 1 }}>
+														<ThemedText style={[styles.terrainName, { color: theme.text }]}>
+															{t.name ?? t.field_name}
+														</ThemedText>
+													</View>
+													<View style={styles.actionGroup}>
+														<TouchableOpacity
+															onPress={() => loadTerrain(t)}
+															style={styles.terrainLoadAction}
+														>
+															<ThemedText style={styles.terrainLoadActionText}>Charger</ThemedText>
+														</TouchableOpacity>
+														<TouchableOpacity
+															onPress={() => {
+																Alert.alert(
+																	"Supprimer le terrain",
+																	"Voulez-vous supprimer ce terrain du serveur ?",
+																	[
+																		{ text: "Annuler", style: "cancel" },
+																		{
+																			text: "Supprimer",
+																			style: "destructive",
+																			onPress: () =>
+																				deleteTerrain(String(itemId ?? ""), t.name ?? t.field_name),
+																		},
+																	]
+																);
+															}}
+															style={styles.terrainAction}
+														>
+															<ThemedText style={styles.terrainActionText}>Supprimer</ThemedText>
+														</TouchableOpacity>
+													</View>
+												</View>
+											);
+										})}
+									</ScrollView>
+								);
+							})()
+						)}
+					</View>
+				)}
 
 				{/* Button to toggle saved terrains view - only show after initial choice made */}
 				{!showInitialChoice && (
@@ -789,7 +829,10 @@ export default function MatchDetailsScreen() {
 									<View
 										style={[
 											styles.modalContent,
-											{ borderColor: theme.border, backgroundColor: theme.background },
+											{
+												borderColor: theme.border,
+												backgroundColor: theme.background,
+											},
 										]}
 									>
 										<ThemedText style={[styles.metaText, { color: theme.text, marginBottom: 8 }]}>

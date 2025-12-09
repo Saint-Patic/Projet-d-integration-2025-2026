@@ -101,7 +101,7 @@ export default function HomeScreen() {
 	};
 
 	const createNewMatch = () => {
-		console.log("Création d'un nouveau match");
+		router.push({ pathname: "./matches/create-match" });
 	};
 
 	const getTeamTextColor = (match: Match, isteam_name_1: boolean) => {
