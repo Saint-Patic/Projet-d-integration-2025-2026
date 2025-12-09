@@ -1,8 +1,3 @@
-const request = require("supertest");
-const express = require("express");
-const matchesRouter = require("../routes/matches");
-const pool = require("../pool");
-
 // Mock dependencies
 const request = require("supertest");
 const express = require("express");
