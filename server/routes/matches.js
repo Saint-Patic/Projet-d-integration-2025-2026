@@ -7,8 +7,15 @@ const authMiddleware = require("../middleware/auth");
 async function callProcedure(sql, params = []) {
 	const conn = await pool.getConnection();
 	try {
-		const [rows] = await conn.query(sql, params);
-		return rows;
+		const result = await conn.query(sql, params);
+		// Normalize mariadb result for CALL and normal queries:
+		// - For stored procedures the driver returns an array of resultsets
+		//   (e.g. [ [rows], [meta], ... ]) so return the first resultset.
+		// - For simple queries it may return an array/object of rows directly.
+		if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0])) {
+			return result[0];
+		}
+		return result;
 	} finally {
 		conn.release();
 	}
@@ -65,48 +72,35 @@ router.get("/:id", authMiddleware, async (req, res) => {
 });
 
 // PUT /api/matches/:m_id/:t_id/score
-// body: team_score_1: number
+// body: { score: number }
 router.put('/:m_id/:t_id/score', authMiddleware, async (req, res) => {
 	const matchId = parseInt(req.params.m_id, 10);
-	console.log(`Le match id: ${matchId}`);
-	const team_score = ParseInt(req.body, 10);
-	console.log(`teamScore ${team_score}`);
 	const teamId = parseInt(req.params.t_id, 10);
-	console.log(`team id: ${teamId}`);
+	const score = parseInt(req.body.score, 10);
 
 	if (Number.isNaN(matchId)) return res.status(400).json({ error: 'Invalid match id' });
-	if (typeof team_score !== 'number') return res.status(400).json({ error: 'team_score_1 and team_score_2 must be numbers' });
 	if (Number.isNaN(teamId)) return res.status(400).json({ error: 'Invalid team id' });
+	if (Number.isNaN(score)) return res.status(400).json({ error: 'Score must be a number' });
+
 	const conn = await pool.getConnection();
 	try {
 		// Ensure match exists and is not finished
-		const m_existing = await callProcedure('CALL get_match_by_id(?)', [matchId]);
-		if (!m_existing || m_existing.length === 0) {
+		const existing = await callProcedure('CALL get_match_by_id(?)', [matchId]);
+		if (!existing || existing.length === 0) {
 			return res.status(404).json({ error: 'Match not found' });
 		}
-		const match = m_existing[0];
+		const match = existing[0];
 		if (match.status === 'finished') {
 			return res.status(403).json({ error: 'Cannot modify score of finished match' });
 		}
-		// Ensure team existes
-		const t_existing = await callProcedure('CALL get_team_by_id(?)', [teamId]);
-		if (!t_existing || t_existing.length === 0) {
-			return res.status(404).json({ error: 'Team not found' });
-		}
 
-		await conn.beginTransaction();
+		// Update the score using the stored procedure
+		await callProcedure('CALL update_score(?,?,?)', [score, matchId, teamId]);
 
-		// Update home team score
-		
-		await callProcedure('CALL update_score(?,?,?)', [team_score, matchId, teamId])
-
-		await conn.commit();
-
-		// Return the updated match using existing procedure
+		// Return the updated match
 		const rows = await callProcedure('CALL get_match_by_id(?)', [matchId]);
 		res.json(rows[0]);
 	} catch (err) {
-		try { await conn.rollback(); } catch (e) { /* ignore */ }
 		console.error('Error updating match score:', err);
 		res.status(500).json({ error: 'db error' });
 	} finally {
