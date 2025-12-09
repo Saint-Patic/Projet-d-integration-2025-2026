@@ -10,6 +10,7 @@ export default function MatchesLayout() {
 				headerStyle: {
 					backgroundColor: theme.background,
 				},
+				headerShown: false,
 				headerTintColor: theme.text,
 				headerTitleStyle: {
 					fontWeight: "bold",
