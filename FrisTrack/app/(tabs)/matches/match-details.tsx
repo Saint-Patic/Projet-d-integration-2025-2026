@@ -20,7 +20,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { createField, deleteField, getFields } from "@/services/fieldService";
 import { getMatchById, type Match, updateMatch } from "@/services/getMatches";
 import ScoreControl from '@/components/perso_components/ScoreControl';
-import { updateMatchScore } from '@/services/matchService';
+import { updateMatchScore } from '@/services/getMatches';
 
 export default function MatchDetailsScreen() {
 	const params = useLocalSearchParams();

@@ -59,6 +59,11 @@ export const updateMatch = async (
   }
 };
 
+export async function updateMatchScore(matchId: string | number, playload: Record<string, any>) {
+  return apiClient.put(`/matches/${matchId}/score`, playload);
+}
+
+
 export const deleteMatch = async (id: number): Promise<Match | null> => {
   try {
     const response = await apiClient.delete<Match>(`/matches/${id}`);
