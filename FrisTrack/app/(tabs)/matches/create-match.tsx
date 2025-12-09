@@ -9,13 +9,13 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { BackButton } from "@/components/perso_components/BackButton";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
+import { BackButton } from "@/components/perso_components/BackButton";
 import { ThemedText } from "@/components/themed-text";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { getLocalisation, type Localisation } from "@/services/getLocalisation";
 import { getTeams, getTeamsByUser } from "@/services/getTeams";
+import { getLocalisation, type Localisation } from "@/services/getLocalisation";
 import type { Team } from "@/types/user";
 
 export default function CreateMatchScreen() {
@@ -35,6 +35,7 @@ export default function CreateMatchScreen() {
 	const [matchTitle, setMatchTitle] = useState("");
 	const [matchDate, setMatchDate] = useState("");
 	const [matchTime, setMatchTime] = useState("");
+	const [inOutdoor, setInOutdoor] = useState<"indoor" | "outdoor">("outdoor");
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -120,6 +121,7 @@ export default function CreateMatchScreen() {
 			Localisation: selectedLocalisation,
 			date: matchDate,
 			time: matchTime,
+			inOutdoor,
 			label: "scheduled",
 		});
 
@@ -260,6 +262,99 @@ export default function CreateMatchScreen() {
 		</View>
 	);
 
+	const IndoorOutdoorSelector = () => (
+		<View style={styles.sectionContainer}>
+			<ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
+				Type de terrain
+			</ThemedText>
+			<View style={styles.radioContainer}>
+				<TouchableOpacity
+					style={[
+						styles.radioButton,
+						{
+							backgroundColor: theme.surface,
+							borderColor:
+								inOutdoor === "outdoor" ? theme.primary : theme.border,
+						},
+						inOutdoor === "outdoor" && styles.selectedRadio,
+					]}
+					onPress={() => setInOutdoor("outdoor")}
+				>
+					<View
+						style={[
+							styles.radioCircle,
+							{
+								borderColor:
+									inOutdoor === "outdoor" ? theme.primary : theme.border,
+							},
+						]}
+					>
+						{inOutdoor === "outdoor" && (
+							<View
+								style={[
+									styles.radioCircleSelected,
+									{ backgroundColor: theme.primary },
+								]}
+							/>
+						)}
+					</View>
+					<ThemedText
+						style={[
+							styles.radioText,
+							{
+								color: inOutdoor === "outdoor" ? theme.primary : theme.text,
+							},
+						]}
+					>
+						Extérieur (Outdoor)
+					</ThemedText>
+				</TouchableOpacity>
+
+				<TouchableOpacity
+					style={[
+						styles.radioButton,
+						{
+							backgroundColor: theme.surface,
+							borderColor:
+								inOutdoor === "indoor" ? theme.primary : theme.border,
+						},
+						inOutdoor === "indoor" && styles.selectedRadio,
+					]}
+					onPress={() => setInOutdoor("indoor")}
+				>
+					<View
+						style={[
+							styles.radioCircle,
+							{
+								borderColor:
+									inOutdoor === "indoor" ? theme.primary : theme.border,
+							},
+						]}
+					>
+						{inOutdoor === "indoor" && (
+							<View
+								style={[
+									styles.radioCircleSelected,
+									{ backgroundColor: theme.primary },
+								]}
+							/>
+						)}
+					</View>
+					<ThemedText
+						style={[
+							styles.radioText,
+							{
+								color: inOutdoor === "indoor" ? theme.primary : theme.text,
+							},
+						]}
+					>
+						Intérieur (Indoor)
+					</ThemedText>
+				</TouchableOpacity>
+			</View>
+		</View>
+	);
+
 	return (
 		<ScreenLayout
 			title="Détails du match"
@@ -311,6 +406,9 @@ export default function CreateMatchScreen() {
 
 				{/* Sélection du lieu */}
 				<LocalisationSelector />
+
+				{/* Indoor/Outdoor */}
+				<IndoorOutdoorSelector />
 
 				{/* Date */}
 				<View style={styles.sectionContainer}>
@@ -430,6 +528,44 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 		borderWidth: 1,
 		fontSize: 16,
+	},
+	radioContainer: {
+		gap: 12,
+	},
+	radioButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		padding: 16,
+		borderRadius: 12,
+		borderWidth: 2,
+		...(Platform.OS === "ios" && {
+			shadowColor: "#000",
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.1,
+			shadowRadius: 4,
+		}),
+		elevation: 2,
+	},
+	selectedRadio: {
+		borderWidth: 3,
+	},
+	radioCircle: {
+		width: 24,
+		height: 24,
+		borderRadius: 12,
+		borderWidth: 2,
+		marginRight: 12,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	radioCircleSelected: {
+		width: 12,
+		height: 12,
+		borderRadius: 6,
+	},
+	radioText: {
+		fontSize: 16,
+		fontWeight: "600",
 	},
 	createButton: {
 		paddingVertical: 16,
