@@ -43,6 +43,8 @@ export default function MatchDetailsScreen() {
 	const [savedCorners, setSavedCorners] = useState<Partial<Record<keyof typeof corners, any>>>({});
 	const [saving, setSaving] = useState(false);
 	const [terrainValidated, setTerrainValidated] = useState(false);
+	// Field container dimensions for position marker
+	const [fieldDimensions, setFieldDimensions] = useState<{ width: number; height: number } | null>(null);
 
   const [serverTerrains, setServerTerrains] = useState<any[]>([]);
   const [loadingServerTerrains, setLoadingServerTerrains] = useState(false);
@@ -190,8 +192,8 @@ export default function MatchDetailsScreen() {
 					subscription = await Location.watchPositionAsync(
 						{
 							accuracy: Location.Accuracy.BestForNavigation,
-							timeInterval: 500, // update every 500ms for smooth tracking
-							distanceInterval: 1, // update for every 1 meter movement
+							timeInterval: 100, // update every 100ms for very smooth tracking
+							distanceInterval: 0, // update on any movement
 						},
 						(pos) => {
 							if (!mounted) return;
@@ -302,7 +304,8 @@ export default function MatchDetailsScreen() {
 	);
 
 	// Calculate user's relative position on the terrain (0-1 range for x and y)
-	// Uses bilinear interpolation based on the 4 GPS corners
+	// Uses inverse bilinear interpolation to map GPS coordinates to a perfect rectangle
+	// Terrain dimensions: 100m long x 37m wide (standard ultimate frisbee field)
 	const calculateRelativePosition = (): { x: number; y: number } | null => {
 		if (!currentLocation || !allCornersSaved) return null;
 		
@@ -316,18 +319,77 @@ export default function MatchDetailsScreen() {
 		
 		if (!tl || !tr || !bl || !br) return null;
 		
-		// Calculate the terrain bounds
-		const minLat = Math.min(tl.latitude, tr.latitude, bl.latitude, br.latitude);
-		const maxLat = Math.max(tl.latitude, tr.latitude, bl.latitude, br.latitude);
-		const minLon = Math.min(tl.longitude, tr.longitude, bl.longitude, br.longitude);
-		const maxLon = Math.max(tl.longitude, tr.longitude, bl.longitude, br.longitude);
+		// Inverse bilinear interpolation to find (u, v) coordinates in the quadrilateral
+		// where u is the position along the width (0=left, 1=right)
+		// and v is the position along the length (0=top, 1=bottom)
 		
-		// Normalize position to 0-1 range
-		// X: left to right (longitude), Y: top to bottom (latitude inverted)
-		const x = (userLon - minLon) / (maxLon - minLon || 1);
-		const y = (maxLat - userLat) / (maxLat - minLat || 1); // Inverted because screen Y goes down
+		// The point P can be expressed as:
+		// P = (1-u)(1-v)*TL + u*(1-v)*TR + (1-u)*v*BL + u*v*BR
 		
-		return { x, y };
+		// We solve for u and v given P (userLat, userLon)
+		// This requires solving a system of equations
+		
+		const px = userLon;
+		const py = userLat;
+		
+		// Corner coordinates
+		const x0 = tl.longitude, y0 = tl.latitude; // TL
+		const x1 = tr.longitude, y1 = tr.latitude; // TR
+		const x2 = bl.longitude, y2 = bl.latitude; // BL
+		const x3 = br.longitude, y3 = br.latitude; // BR
+		
+		// Coefficients for bilinear equation
+		// P = a + b*u + c*v + d*u*v
+		const ax = x0, ay = y0;
+		const bx = x1 - x0, by = y1 - y0;
+		const cx = x2 - x0, cy = y2 - y0;
+		const dx = x0 - x1 - x2 + x3, dy = y0 - y1 - y2 + y3;
+		
+		// Solve for u and v using iterative Newton-Raphson method
+		let u = 0.5, v = 0.5;
+		const maxIterations = 50;
+		const tolerance = 1e-10;
+		
+		for (let i = 0; i < maxIterations; i++) {
+			// Current estimate of position
+			const fx = ax + bx * u + cx * v + dx * u * v - px;
+			const fy = ay + by * u + cy * v + dy * u * v - py;
+			
+			// Check convergence
+			if (Math.abs(fx) < tolerance && Math.abs(fy) < tolerance) break;
+			
+			// Jacobian matrix
+			const dfxdu = bx + dx * v;
+			const dfxdv = cx + dx * u;
+			const dfydu = by + dy * v;
+			const dfydv = cy + dy * u;
+			
+			// Determinant
+			const det = dfxdu * dfydv - dfxdv * dfydu;
+			if (Math.abs(det) < 1e-12) {
+				// Singular matrix - fall back to simple linear interpolation
+				// Find bounds
+				const minLat = Math.min(tl.latitude, tr.latitude, bl.latitude, br.latitude);
+				const maxLat = Math.max(tl.latitude, tr.latitude, bl.latitude, br.latitude);
+				const minLon = Math.min(tl.longitude, tr.longitude, bl.longitude, br.longitude);
+				const maxLon = Math.max(tl.longitude, tr.longitude, bl.longitude, br.longitude);
+				
+				u = (maxLon - minLon) > 0 ? (userLon - minLon) / (maxLon - minLon) : 0.5;
+				v = (maxLat - minLat) > 0 ? (maxLat - userLat) / (maxLat - minLat) : 0.5;
+				break;
+			}
+			
+			// Newton-Raphson update
+			const du = (dfydv * fx - dfxdv * fy) / det;
+			const dv = (dfxdu * fy - dfydu * fx) / det;
+			
+			u -= du;
+			v -= dv;
+		}
+		
+		// u = position along width (left to right), v = position along length (top to bottom)
+		// For the rectangle display, x = u, y = v
+		return { x: u, y: v };
 	};
 
 	const relativePosition = calculateRelativePosition();
@@ -526,7 +588,13 @@ export default function MatchDetailsScreen() {
 				{/* Field rectangle (black) with 4 clickable corners */}
 				{!(showSavedTerrains || showInitialChoice) && (
 					<View style={styles.fieldWrapper}>
-						<View style={styles.fieldContainer}>
+						<View 
+							style={styles.fieldContainer}
+							onLayout={(e) => {
+								const { width, height } = e.nativeEvent.layout;
+								setFieldDimensions({ width, height });
+							}}
+						>
 							{!terrainValidated && (
 								<>
 									{/* Corner: top-left */}
@@ -638,14 +706,14 @@ export default function MatchDetailsScreen() {
 						)}
 
 						{/* Real-time position marker */}
-						{terrainValidated && relativePosition && (
+						{terrainValidated && relativePosition && fieldDimensions && (
 							<View
 								pointerEvents="none"
 								style={[
 									styles.positionMarker,
 									{
-										left: `${Math.min(100, Math.max(0, relativePosition.x * 100))}%`,
-										top: `${Math.min(100, Math.max(0, relativePosition.y * 100))}%`,
+										left: Math.min(fieldDimensions.width, Math.max(0, relativePosition.x * fieldDimensions.width)),
+										top: Math.min(fieldDimensions.height, Math.max(0, relativePosition.y * fieldDimensions.height)),
 									},
 								]}
 							>
@@ -664,7 +732,9 @@ export default function MatchDetailsScreen() {
 						)}
 					</View>
 				</View>
-			)}				{!(showInitialChoice || showSavedTerrains) && (
+			)}
+
+				{!(showInitialChoice || showSavedTerrains) && (
 					<>
 						{/* Confirm button — enabled only after a corner is selected */}
 						<View style={styles.confirmWrapper}>
@@ -1015,7 +1085,7 @@ const styles = StyleSheet.create({
 	fieldContainer: {
 		width: "100%",
 		maxWidth: 520,
-		aspectRatio: 16 / 9,
+		aspectRatio: 100 / 37, // Standard ultimate frisbee field: 100m long x 37m wide
 		backgroundColor: "#000",
 		borderRadius: 8,
 		position: "relative",
