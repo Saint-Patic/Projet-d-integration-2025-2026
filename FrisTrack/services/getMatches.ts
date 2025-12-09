@@ -59,8 +59,13 @@ export const updateMatch = async (
   }
 };
 
-export async function updateMatchScore(matchId: string | number, playload: Record<string, any>) {
-  return apiClient.put(`/matches/${matchId}/score`, playload);
+export async function updateMatchScore(matchId: string | number, score: string | number) {
+  try {
+    const response = await apiClient.put(`/matches/${matchId}/score`, score);
+    return response.data;
+  } catch(error) {
+    console.error(`Error updating score match ${matchId}:`, error);
+  }
 }
 
 

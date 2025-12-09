@@ -153,7 +153,9 @@ export default function MatchDetailsScreen() {
 
 	const [score1, setScore1] = useState<number>(0);
 	const [score2, setScore2] = useState<number>(0);
-
+  	const [teamId1 , setTeamId1] = useState<number>(0);
+  	const [teamId2 , setTeamId2] = useState<number>(0);
+	
 	useEffect(() => {
 		navigation.setOptions({ headerShown: false });
 	}, [navigation]);
@@ -170,7 +172,8 @@ export default function MatchDetailsScreen() {
 			setMatch(null);
 		}
 	}, [matchId]);
-
+	const team1Id = match.team_id_1;
+	const team2Id = match.team_id_2;
 	useEffect(() => {
     if (match) {
         setScore1(match.team_score_1 ?? 0);
@@ -183,7 +186,7 @@ export default function MatchDetailsScreen() {
     setScore1(next);
     try {
         if (matchId != null) {
-            await updateMatchScore(matchId, { team_score_1: next, team_score_2: score2 });
+            await updateMatchScore(matchId, next, teamId1);
         }
         if (match) setMatch({ ...match, team_score_1: next });
     } catch (e) {
@@ -196,7 +199,7 @@ async function handleDeltaTeam2(delta: number) {
     setScore2(next);
     try {
         if (matchId != null) {
-            await updateMatchScore(matchId, { team_score_1: score1, team_score_2: next });
+            await updateMatchScore(matchId, next, teamId2);
         }
         if (match) setMatch({ ...match, team_score_2: next });
     } catch (e) {
