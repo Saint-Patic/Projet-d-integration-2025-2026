@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getTeams, getTeamsByUser } from "@/services/getTeams";
 import { getLocalisation, type Localisation } from "@/services/getLocalisation";
+import { createMatch } from "@/services/createMatch";
 import type { Team } from "@/types/user";
 
 export default function CreateMatchScreen() {
@@ -89,7 +90,7 @@ export default function CreateMatchScreen() {
 		matchTitle,
 	]);
 
-	const handleCreateMatch = () => {
+	const handleCreateMatch = async () => {
 		// Validation
 		if (!selectedUserTeam) {
 			Alert.alert("Erreur", "Veuillez sélectionner votre équipe");
@@ -113,24 +114,28 @@ export default function CreateMatchScreen() {
 			matchTitle.trim() ||
 			`${userTeams.find((t) => t.id === selectedUserTeam)?.team_name} vs ${opponentTeams.find((t) => t.id === selectedOpponentTeam)?.team_name}`;
 
-		// TODO: Connexion au backend pour créer le match
-		console.log("Création du match:", {
-			title: finalTitle,
-			userTeamId: selectedUserTeam,
-			opponentTeamId: selectedOpponentTeam,
-			Localisation: selectedLocalisation,
-			date: matchDate,
-			time: matchTime,
-			inOutdoor,
-			label: "scheduled",
-		});
+		try {
+			await createMatch({
+				title: finalTitle,
+				userTeamId: selectedUserTeam,
+				opponentTeamId: selectedOpponentTeam,
+				Localisation: selectedLocalisation,
+				date: matchDate,
+				time: matchTime,
+				inOutdoor,
+				label: "schedule",
+			});
 
-		Alert.alert("Succès", "Le match a été créé avec succès", [
-			{
-				text: "OK",
-				onPress: () => router.back(),
-			},
-		]);
+			Alert.alert("Succès", "Le match a été créé avec succès", [
+				{
+					text: "OK",
+					onPress: () => router.back(),
+				},
+			]);
+		} catch (error) {
+			console.error("Erreur lors de la création du match:", error);
+			Alert.alert("Erreur", "Impossible de créer le match");
+		}
 	};
 
 	const TeamSelector = ({
