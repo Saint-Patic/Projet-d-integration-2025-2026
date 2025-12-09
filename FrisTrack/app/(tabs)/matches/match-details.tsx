@@ -19,6 +19,8 @@ import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createField, deleteField, getFields } from "@/services/fieldService";
 import { getMatchById, type Match, updateMatch } from "@/services/getMatches";
+import ScoreControl from '@/components/perso_components/ScoreControl';
+import { updateMatchScore } from '@/services/matchService';
 
 export default function MatchDetailsScreen() {
 	const params = useLocalSearchParams();
@@ -149,6 +151,9 @@ export default function MatchDetailsScreen() {
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
 	const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+	const [score1, setScore1] = useState<number>(0);
+	const [score2, setScore2] = useState<number>(0);
+
 	useEffect(() => {
 		navigation.setOptions({ headerShown: false });
 	}, [navigation]);
@@ -165,6 +170,39 @@ export default function MatchDetailsScreen() {
 			setMatch(null);
 		}
 	}, [matchId]);
+
+	useEffect(() => {
+    if (match) {
+        setScore1(match.team_score_1 ?? 0);
+        setScore2(match.team_score_2 ?? 0);
+    }
+}, [match]);
+
+	async function handleDeltaTeam1(delta: number) {
+    const next = Math.max(0, score1 + delta);
+    setScore1(next);
+    try {
+        if (matchId != null) {
+            await updateMatchScore(matchId, { team_score_1: next, team_score_2: score2 });
+        }
+        if (match) setMatch({ ...match, team_score_1: next });
+    } catch (e) {
+        console.warn("Erreur update team1 score", e);
+    }
+}
+
+async function handleDeltaTeam2(delta: number) {
+    const next = Math.max(0, score2 + delta);
+    setScore2(next);
+    try {
+        if (matchId != null) {
+            await updateMatchScore(matchId, { team_score_1: score1, team_score_2: next });
+        }
+        if (match) setMatch({ ...match, team_score_2: next });
+    } catch (e) {
+        console.warn("Erreur update team2 score", e);
+    }
+}
 
 	// Start a location watcher when the screen is focused, stop when unfocused
 	useFocusEffect(
@@ -380,32 +418,10 @@ export default function MatchDetailsScreen() {
 				</View>
 
 				<View style={styles.scoreRow}>
-					<View style={[styles.scoreBox, { borderColor: theme.border }]}>
-						<ThemedText style={[styles.scoreNumber, { color: getTeamTextColor(true) }]}>
-							{match.team_score_1}
-						</ThemedText>
-						<ThemedText style={[styles.teamLabel, { color: theme.primary }]}>
-							{match.team_name_1}
-						</ThemedText>
-						<ThemedText style={[styles.statusText, { color: theme.text }]}>
-							({match.team1_status})
-						</ThemedText>
-					</View>
-
-					<ThemedText style={[styles.versus, { color: theme.primary }]}>VS</ThemedText>
-
-					<View style={[styles.scoreBox, { borderColor: theme.border }]}>
-						<ThemedText style={[styles.scoreNumber, { color: getTeamTextColor(false) }]}>
-							{match.team_score_2}
-						</ThemedText>
-						<ThemedText style={[styles.teamLabel, { color: theme.primary }]}>
-							{match.team_name_2}
-						</ThemedText>
-						<ThemedText style={[styles.statusText, { color: theme.text }]}>
-							({match.team2_status})
-						</ThemedText>
-					</View>
-				</View>
+    <ScoreControl teamLabel={match.team_name_1} score={score1} onDelta={handleDeltaTeam1} />
+    <ThemedText style={[styles.versus, { color: theme.primary }]}>VS</ThemedText>
+    <ScoreControl teamLabel={match.team_name_2} score={score2} onDelta={handleDeltaTeam2} />
+  </View>
 
 				<View style={styles.metaRow}>
 					{match.status && (
