@@ -69,26 +69,66 @@ export default function CreateMatchScreen() {
 		fetchData();
 	}, [user]);
 
-	// Générer automatiquement le titre du match quand les équipes sont sélectionnées
-	useEffect(() => {
-		if (selectedUserTeam && selectedOpponentTeam) {
-			const userTeam = userTeams.find((t) => t.id === selectedUserTeam);
-			const opponentTeam = opponentTeams.find(
-				(t) => t.id === selectedOpponentTeam,
-			);
+	const validateDate = (
+		dateString: string,
+	): { valid: boolean; message?: string } => {
+		// Regex pour le format JJ/MM/AAAA (accepte 1 ou 2 chiffres pour jour et mois)
+		const dateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+		const match = dateString.match(dateRegex);
 
-			if (userTeam && opponentTeam && !matchTitle) {
-				const generatedTitle = `${userTeam.team_name} vs ${opponentTeam.team_name}`;
-				setMatchTitle(generatedTitle);
-			}
+		if (!match) {
+			return {
+				valid: false,
+				message: "Le format de la date doit être JJ/MM/AAAA",
+			};
 		}
-	}, [
-		selectedUserTeam,
-		selectedOpponentTeam,
-		userTeams,
-		opponentTeams,
-		matchTitle,
-	]);
+
+		const [, day, month, year] = match;
+		const dayNum = parseInt(day, 10);
+		const monthNum = parseInt(month, 10);
+		const yearNum = parseInt(year, 10);
+
+		// Vérifier que les valeurs sont dans les plages valides
+		if (monthNum < 1 || monthNum > 12) {
+			return {
+				valid: false,
+				message: "Le mois doit être entre 1 et 12",
+			};
+		}
+
+		if (dayNum < 1 || dayNum > 31) {
+			return {
+				valid: false,
+				message: "Le jour doit être entre 1 et 31",
+			};
+		}
+
+		// Vérifier si la date est valide (gère les mois avec moins de 31 jours)
+		const date = new Date(yearNum, monthNum - 1, dayNum);
+		if (
+			date.getDate() !== dayNum ||
+			date.getMonth() !== monthNum - 1 ||
+			date.getFullYear() !== yearNum
+		) {
+			return {
+				valid: false,
+				message: "Cette date n'existe pas",
+			};
+		}
+
+		// Vérifier que la date n'est pas dans le passé
+		const today = new Date();
+		today.setHours(0, 0, 0, 0); // Reset l'heure pour comparer uniquement les dates
+
+		if (date < today) {
+			return {
+				valid: false,
+				message: "La date ne peut pas être antérieure à aujourd'hui",
+			};
+		}
+
+		return { valid: true };
+	};
 
 	const handleCreateMatch = async () => {
 		// Validation
@@ -109,10 +149,24 @@ export default function CreateMatchScreen() {
 			return;
 		}
 
-		// Générer un titre par défaut si vide
-		const finalTitle =
-			matchTitle.trim() ||
-			`${userTeams.find((t) => t.id === selectedUserTeam)?.team_name} vs ${opponentTeams.find((t) => t.id === selectedOpponentTeam)?.team_name}`;
+		// Valider le format et la validité de la date
+		const dateValidation = validateDate(matchDate);
+		if (!dateValidation.valid) {
+			Alert.alert("Erreur de date", dateValidation.message || "Date invalide");
+			return;
+		}
+
+		// Générer un titre si aucun titre n'a été saisi
+		let finalTitle = matchTitle.trim();
+		if (!finalTitle) {
+			const userTeam = userTeams.find((t) => t.id === selectedUserTeam);
+			const opponentTeam = opponentTeams.find(
+				(t) => t.id === selectedOpponentTeam,
+			);
+			if (userTeam && opponentTeam) {
+				finalTitle = `${userTeam.team_name} vs ${opponentTeam.team_name}`;
+			}
+		}
 
 		try {
 			await createMatch({
@@ -390,7 +444,7 @@ export default function CreateMatchScreen() {
 				{/* Titre du match */}
 				<View style={styles.sectionContainer}>
 					<ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
-						Titre du match
+						Titre du match (optionnel)
 					</ThemedText>
 					<TextInput
 						style={[
@@ -407,6 +461,11 @@ export default function CreateMatchScreen() {
 						onChangeText={setMatchTitle}
 						multiline
 					/>
+					<ThemedText
+						style={[styles.helperText, { color: theme.textSecondary }]}
+					>
+						Si vide, le titre sera généré automatiquement
+					</ThemedText>
 				</View>
 
 				{/* Sélection du lieu */}
@@ -433,7 +492,13 @@ export default function CreateMatchScreen() {
 						placeholderTextColor={theme.textSecondary}
 						value={matchDate}
 						onChangeText={setMatchDate}
+						maxLength={10}
 					/>
+					<ThemedText
+						style={[styles.helperText, { color: theme.textSecondary }]}
+					>
+						Format: JJ/MM/AAAA (ex: 25/12/2025)
+					</ThemedText>
 				</View>
 
 				{/* Heure (optionnel) */}
@@ -454,6 +519,7 @@ export default function CreateMatchScreen() {
 						placeholderTextColor={theme.textSecondary}
 						value={matchTime}
 						onChangeText={setMatchTime}
+						maxLength={5}
 					/>
 				</View>
 
@@ -533,6 +599,11 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 		borderWidth: 1,
 		fontSize: 16,
+	},
+	helperText: {
+		fontSize: 12,
+		marginTop: 6,
+		fontStyle: "italic",
 	},
 	radioContainer: {
 		gap: 12,
