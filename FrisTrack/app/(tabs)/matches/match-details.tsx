@@ -149,6 +149,13 @@ export default function MatchDetailsScreen() {
       setMatch(undefined);
       getMatchById(matchId).then((m) => {
         // m can be an object or null
+        if (m) {
+          // S'assurer que le match chargé a les bonnes valeurs
+          // Si hasRecording est true et que recordingDuration existe, définir elapsedSeconds
+          if (m.hasRecording && m.recordingDuration) {
+            setElapsedSeconds(m.recordingDuration);
+          }
+        }
         setMatch(m ?? null);
       });
     } else {
@@ -422,55 +429,56 @@ export default function MatchDetailsScreen() {
           </ThemedText>
         </View>
 
-        {/* Timer + Bouton Start/Stop (visible uniquement si pas encore de recording) */}
-        {match.status === "scheduled" && !match.hasRecording && (
+        {/* Timer + Bouton Start/Stop - afficher UNIQUEMENT si status !== "finished" */}
+        {match.status !== "finished" && (
           <View style={styles.recordingBlock}>
-            {match.isRecording && (
-              <View style={styles.timerContainer}>
-                <ThemedText style={[styles.timerText, { color: theme.text }]}>
-                  ⏱ {formatTime(elapsedSeconds)}
-                </ThemedText>
-              </View>
-            )}
             <TouchableOpacity
               style={[
                 styles.reviewButton,
                 { backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60" },
               ]}
-              onPress={() => {
+              onPress={async () => {
                 if (match.isRecording) {
                   // Stop: calculer la durée et marquer l'enregistrement
                   const duration = match.recordingStartTime
                     ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
                     : elapsedSeconds;
-                  // Persister dans le service
-                  updateMatch(matchId!, {
+                  
+                  // Persister dans le service avec status "finished"
+                  await updateMatch(matchId!, {
                     isRecording: false,
                     hasRecording: true,
                     recordingDuration: duration,
                     recordingStartTime: undefined,
+                    status: "finished",
                   });
+                  
                   setMatch({
                     ...match,
                     isRecording: false,
                     hasRecording: true,
                     recordingDuration: duration,
                     recordingStartTime: undefined,
+                    status: "finished",
                   });
                   setElapsedSeconds(duration);
                 } else {
-                  // Start: démarrer avec timestamp
+                  // Start: démarrer avec timestamp et status "scheduled"
                   const startTime = Date.now();
-                  // Persister dans le service
-                  updateMatch(matchId!, {
+                  
+                  // Persister dans le service avec status "scheduled"
+                  await updateMatch(matchId!, {
                     isRecording: true,
                     recordingStartTime: startTime,
+                    status: "scheduled",
                   });
+                  
                   setElapsedSeconds(0);
                   setMatch({
                     ...match,
                     isRecording: true,
                     recordingStartTime: startTime,
+                    status: "scheduled",
                   });
                 }
               }}
@@ -482,15 +490,16 @@ export default function MatchDetailsScreen() {
           </View>
         )}
 
-        {/* Bouton Review */}
-        {match.hasRecording && (
+        {/* Bouton Review - afficher UNIQUEMENT si status === "finished" */}
+        {match.status === "finished" && (
           <TouchableOpacity
-            style={[styles.reviewButton, { backgroundColor: "#27ae60" }]}
+            style={[styles.reviewButton, { backgroundColor: "#3498db" }]}
             onPress={handleReview}
           >
             <ThemedText style={styles.reviewButtonText}>Review</ThemedText>
           </TouchableOpacity>
         )}
+
         {/* Field rectangle (black) with 4 clickable corners */}
         {/* Field rectangle (black) with 4 clickable corners */}
         {!showSavedTerrains && !showInitialChoice && (
