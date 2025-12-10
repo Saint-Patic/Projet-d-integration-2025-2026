@@ -53,11 +53,7 @@ describe("Tests d'intégration Fields - Base de données réelle", () => {
     await pool.end();
   });
 
-  // ============================================================
   // TEST 1 – Création de terrain
-  // Définir 4 points GPS, donner un nom, sauvegarder.
-  // Vérifier que le terrain apparaît dans la liste.
-  // ============================================================
   describe("Test 1 – Création de terrain (DB réelle)", () => {
     
     it("devrait créer un terrain avec 4 coins GPS et un nom dans la DB", async () => {
@@ -97,10 +93,7 @@ describe("Tests d'intégration Fields - Base de données réelle", () => {
     });
   });
 
-  // ============================================================
   // TEST 3 – Affichage du terrain (avant suppression)
-  // Charger un terrain et vérifier que les données sont correctes
-  // ============================================================
   describe("Test 3 – Affichage du terrain (DB réelle)", () => {
     
     it("le terrain chargé devrait avoir les 4 coins avec coordonnées numériques", async () => {
@@ -150,10 +143,7 @@ describe("Tests d'intégration Fields - Base de données réelle", () => {
     });
   });
 
-  // ============================================================
   // TEST 2 – Suppression de terrain
-  // Supprimer le terrain créé, vérifier qu'il disparaît de la liste.
-  // ============================================================
   describe("Test 2 – Suppression de terrain (DB réelle)", () => {
     
     it("devrait supprimer le terrain créé par son nom", async () => {
