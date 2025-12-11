@@ -40,12 +40,47 @@ export default function TeamDetailsScreen() {
 	const [isEditMode, setIsEditMode] = useState(editMode === "true");
 	const [members, setMembers] = useState<Member[]>([]);
 	const [originalMembers, setOriginalMembers] = useState<Member[]>([]);
+	const [playersToRemove, setPlayersToRemove] = useState<number[]>([]);
 	const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 
 	useEffect(() => {
-		navigation.setOptions({ headerShown: false });
-	}, [navigation]);
+		// Écouter les changements de navigation
+		const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+			if (
+				!isEditMode ||
+				(members.length === originalMembers.length &&
+					playersToRemove.length === 0)
+			) {
+				// Laisser passer si pas en mode édition ou aucun changement
+				return;
+			}
+
+			// Empêcher l'action par défaut
+			e.preventDefault();
+
+			// Demander confirmation
+			Alert.alert(
+				"Modifications non enregistrées",
+				"Voulez-vous quitter sans enregistrer vos modifications ?",
+				[
+					{ text: "Rester", style: "cancel" },
+					{
+						text: "Quitter",
+						style: "destructive",
+						onPress: () => {
+							setMembers([...originalMembers]);
+							setPlayersToRemove([]);
+							setIsEditMode(false);
+							navigation.dispatch(e.data.action);
+						},
+					},
+				],
+			);
+		});
+
+		return unsubscribe;
+	}, [isEditMode, members, originalMembers, playersToRemove, navigation]);
 
 	const loadTeamPlayers = useCallback(async () => {
 		try {
@@ -166,42 +201,95 @@ export default function TeamDetailsScreen() {
 				return original && original.position !== member.position;
 			});
 
-			if (changedMembers.length === 0) {
-				setIsEditMode(false);
+			// S'il y a des joueurs à supprimer, afficher une alerte de confirmation
+			if (playersToRemove.length > 0) {
+				const playersNames = playersToRemove
+					.map((userId) => {
+						const player = originalMembers.find((m) => m.user_id === userId);
+						return player?.name;
+					})
+					.filter(Boolean)
+					.join(", ");
 
-				return;
-			}
-
-			let successCount = 0;
-			let errorCount = 0;
-
-			for (const member of changedMembers) {
-				try {
-					const updateData = {
-						user_id: member.user_id,
-						team_id: Number(id),
-						role_attack: member.position as "handler" | "stack",
-					};
-
-					await userService.updateTeamRoleAttack(updateData);
-					successCount++;
-				} catch (error) {
-					console.error(`Erreur pour le joueur ${member.name}:`, error);
-					errorCount++;
-				}
-			}
-
-			if (errorCount === 0) {
-				setOriginalMembers([...members]);
-				setIsEditMode(false);
+				Alert.alert(
+					"Confirmer les suppressions",
+					`Voulez-vous vraiment retirer ${playersNames} de l'équipe ?`,
+					[
+						{
+							text: "Annuler",
+							style: "cancel",
+							onPress: () => {
+								// Restaurer les joueurs
+								setMembers([...originalMembers]);
+								setPlayersToRemove([]);
+								setIsEditMode(false);
+							},
+						},
+						{
+							text: "Confirmer",
+							style: "destructive",
+							onPress: async () => {
+								await performSaveChanges(changedMembers);
+							},
+						},
+					],
+				);
+			} else if (changedMembers.length > 0) {
+				// Pas de suppression, juste des changements de position
+				await performSaveChanges(changedMembers);
 			} else {
-				await loadTeamPlayers();
+				// Aucun changement
 				setIsEditMode(false);
 			}
 		} catch (error) {
 			console.error("Erreur lors de la sauvegarde des changements:", error);
-			// Restaurer les valeurs originales en cas d'erreur
 			setMembers([...originalMembers]);
+			setPlayersToRemove([]);
+		}
+	};
+
+	const performSaveChanges = async (changedMembers: Member[]) => {
+		let errorCount = 0;
+
+		// Supprimer les joueurs
+		for (const userId of playersToRemove) {
+			try {
+				await removePlayerFromTeam(userId, Number(id));
+			} catch (error) {
+				console.error(`Erreur pour la suppression du joueur ${userId}:`, error);
+				errorCount++;
+			}
+		}
+
+		// Mettre à jour les positions
+		for (const member of changedMembers) {
+			try {
+				const updateData = {
+					user_id: member.user_id,
+					team_id: Number(id),
+					role_attack: member.position as "handler" | "stack",
+				};
+
+				await userService.updateTeamRoleAttack(updateData);
+			} catch (error) {
+				console.error(`Erreur pour le joueur ${member.name}:`, error);
+				errorCount++;
+			}
+		}
+
+		if (errorCount === 0) {
+			setOriginalMembers([...members]);
+			setPlayersToRemove([]);
+			setIsEditMode(false);
+			Alert.alert("Succès", "Les modifications ont été enregistrées");
+		} else {
+			await loadTeamPlayers();
+			setPlayersToRemove([]);
+			setIsEditMode(false);
+			Alert.alert(
+				"Attention",
+				"Certaines modifications n'ont pas pu être enregistrées",
+			);
 		}
 	};
 
@@ -216,45 +304,12 @@ export default function TeamDetailsScreen() {
 	};
 
 	// Pour Cyril :)
-	// Remplacer la fonction handleRemovePlayer existante par :
-
 	const handleRemovePlayer = (player: Member) => {
-		Alert.alert(
-			"Confirmer la suppression",
-			`Voulez-vous vraiment retirer ${player.name} de l'équipe ?`,
-			[
-				{
-					text: "Annuler",
-					style: "cancel",
-				},
-				{
-					text: "Supprimer",
-					style: "destructive",
-					onPress: async () => {
-						try {
-							// Importer le service au début du fichier
-							await removePlayerFromTeam(player.user_id, Number(id));
+		// Retirer le joueur visuellement
+		setMembers((prev) => prev.filter((m) => m.user_id !== player.user_id));
 
-							// Retirer le joueur de la liste locale
-							setMembers((prev) =>
-								prev.filter((m) => m.user_id !== player.user_id),
-							);
-							setOriginalMembers((prev) =>
-								prev.filter((m) => m.user_id !== player.user_id),
-							);
-
-							Alert.alert("Succès", `${player.name} a été retiré de l'équipe`);
-						} catch (error) {
-							console.error("Error removing player:", error);
-							Alert.alert(
-								"Erreur",
-								"Impossible de retirer le joueur de l'équipe. Veuillez réessayer.",
-							);
-						}
-					},
-				},
-			],
-		);
+		// Ajouter à la liste des joueurs à supprimer
+		setPlayersToRemove((prev) => [...prev, player.user_id]);
 	};
 
 	// Swap la position de deux joueurs dans le tableau
