@@ -1,7 +1,13 @@
 import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { Alert, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
+import React, { useCallback, useState } from "react";
+import {
+	Alert,
+	Platform,
+	StyleSheet,
+	TouchableOpacity,
+	View,
+} from "react-native";
 import { AddButton } from "@/components/perso_components/addButton";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { SwipeableCard } from "@/components/perso_components/swipeableCard";
@@ -17,26 +23,28 @@ export default function TeamScreen() {
 	const { theme } = useTheme();
 	const { user } = useAuth();
 
-	useEffect(() => {
-		const fetchTeamsWithPlayerCount = async () => {
-			if (!user?.user_id) return;
+	const fetchTeamsWithPlayerCount = useCallback(async () => {
+		if (!user?.user_id) return;
 
-			const teamsData = await getTeamsByUser(user.user_id);
+		const teamsData = await getTeamsByUser(user.user_id);
 
-			const teamsWithCount = await Promise.all(
-				teamsData.map(async (team) => {
-					const playerCountData = await getPlayerCount(team.id);
-					return {
-						...team,
-						playerCount: playerCountData?.playerCount ?? 0,
-					};
-				})
-			);
-			setTeams(teamsWithCount);
-		};
-
-		fetchTeamsWithPlayerCount();
+		const teamsWithCount = await Promise.all(
+			teamsData.map(async (team) => {
+				const playerCountData = await getPlayerCount(team.id);
+				return {
+					...team,
+					playerCount: playerCountData?.playerCount ?? 0,
+				};
+			}),
+		);
+		setTeams(teamsWithCount);
 	}, [user]);
+
+	useFocusEffect(
+		useCallback(() => {
+			fetchTeamsWithPlayerCount();
+		}, [fetchTeamsWithPlayerCount]),
+	);
 
 	const editTeam = (teamId: number) => {
 		const team = teams.find((t) => t.id === teamId);
@@ -54,16 +62,20 @@ export default function TeamScreen() {
 	};
 
 	const deleteTeam = (teamId: number) => {
-		Alert.alert("Supprimer l'équipe", `Êtes-vous sûr de vouloir supprimer l'équipe ${teamId} ?`, [
-			{ text: "Annuler", style: "cancel" },
-			{
-				text: "Supprimer",
-				style: "destructive",
-				onPress: () => {
-					setTeams(teams.filter((team) => team.id !== teamId));
+		Alert.alert(
+			"Supprimer l'équipe",
+			`Êtes-vous sûr de vouloir supprimer l'équipe ${teamId} ?`,
+			[
+				{ text: "Annuler", style: "cancel" },
+				{
+					text: "Supprimer",
+					style: "destructive",
+					onPress: () => {
+						setTeams(teams.filter((team) => team.id !== teamId));
+					},
 				},
-			},
-		]);
+			],
+		);
 	};
 
 	const viewTeamDetails = (teamId: number, teamName: string) => {
@@ -124,10 +136,16 @@ export default function TeamScreen() {
 
 				<View style={styles.teamActions}>
 					<TouchableOpacity
-						style={[styles.actionButton, styles.primaryButton, { backgroundColor: theme.primary }]}
+						style={[
+							styles.actionButton,
+							styles.primaryButton,
+							{ backgroundColor: theme.primary },
+						]}
 						onPress={() => viewTeamDetails(team.id, team.team_name)}
 					>
-						<ThemedText style={styles.primaryButtonText}>Voir détails</ThemedText>
+						<ThemedText style={styles.primaryButtonText}>
+							Voir détails
+						</ThemedText>
 					</TouchableOpacity>
 					<TouchableOpacity
 						style={[
@@ -137,7 +155,9 @@ export default function TeamScreen() {
 						]}
 						onPress={() => addPlayer(team.id)}
 					>
-						<ThemedText style={[styles.secondaryButtonText, { color: theme.primary }]}>
+						<ThemedText
+							style={[styles.secondaryButtonText, { color: theme.primary }]}
+						>
 							+ Joueur
 						</ThemedText>
 					</TouchableOpacity>
@@ -148,7 +168,9 @@ export default function TeamScreen() {
 
 	return (
 		<ScreenLayout title="Gestion des Équipes" theme={theme}>
-			<View style={[styles.teamsContainer, { backgroundColor: theme.background }]}>
+			<View
+				style={[styles.teamsContainer, { backgroundColor: theme.background }]}
+			>
 				{teams.map((team) => (
 					<TeamCard key={team.id} team={team} />
 				))}

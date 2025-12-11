@@ -1,6 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import {
+	router,
+	useLocalSearchParams,
+	useNavigation,
+	useFocusEffect,
+} from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
 	ActivityIndicator,
@@ -18,6 +23,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getTeamPlayers } from "@/services/getTeams";
 import { userService } from "@/services/userService";
+import { removePlayerFromTeam } from "@/services/players";
 
 interface Member {
 	id: number;
@@ -63,12 +69,18 @@ export default function TeamDetailsScreen() {
 		}
 	}, [id]);
 
-	useEffect(() => {
-		loadTeamPlayers();
-	}, [loadTeamPlayers]);
+	useFocusEffect(
+		useCallback(() => {
+			loadTeamPlayers();
+		}, [loadTeamPlayers]),
+	);
 	if (isLoading) {
 		return (
-			<ScreenLayout title="Détails équipe" headerLeft={<BackButton theme={theme} />} theme={theme}>
+			<ScreenLayout
+				title="Détails équipe"
+				headerLeft={<BackButton theme={theme} />}
+				theme={theme}
+			>
 				<View
 					style={[
 						styles.container,
@@ -109,7 +121,10 @@ export default function TeamDetailsScreen() {
 	const handlePlayerPress = (userId: number) => {
 		if (!userId || userId <= 0) {
 			console.warn("Invalid user ID:", userId);
-			Alert.alert("Erreur", "Impossible d'ouvrir le profil de ce joueur. Données invalides.");
+			Alert.alert(
+				"Erreur",
+				"Impossible d'ouvrir le profil de ce joueur. Données invalides.",
+			);
 			return;
 		}
 		router.push({
@@ -120,15 +135,24 @@ export default function TeamDetailsScreen() {
 
 	const HeaderRight = () => (
 		<TouchableOpacity onPress={toggleEditMode} style={{ marginRight: 16 }}>
-			<Ionicons name={isEditMode ? "checkmark" : "pencil"} size={24} color={theme.primary} />
+			<Ionicons
+				name={isEditMode ? "checkmark" : "pencil"}
+				size={24}
+				color={theme.primary}
+			/>
 		</TouchableOpacity>
 	);
 
-	const handlePositionChange = (userId: number, newPosition: "handler" | "stack") => {
+	const handlePositionChange = (
+		userId: number,
+		newPosition: "handler" | "stack",
+	) => {
 		setMembers((prevMembers) =>
 			prevMembers.map((member) =>
-				member.user_id === userId ? { ...member, position: newPosition } : member
-			)
+				member.user_id === userId
+					? { ...member, position: newPosition }
+					: member,
+			),
 		);
 	};
 
@@ -136,7 +160,9 @@ export default function TeamDetailsScreen() {
 		try {
 			// Comparer les positions actuelles avec les originales
 			const changedMembers = members.filter((member) => {
-				const original = originalMembers.find((m) => m.user_id === member.user_id);
+				const original = originalMembers.find(
+					(m) => m.user_id === member.user_id,
+				);
 				return original && original.position !== member.position;
 			});
 
@@ -190,20 +216,45 @@ export default function TeamDetailsScreen() {
 	};
 
 	// Pour Cyril :)
-	const handleRemovePlayer = (player: {
-		id: number;
-		name: string;
-		image: any;
-		position: string;
-	}) => {
-		// Affiche les données nécessaires à la suppression dans la console
-		console.log("Suppression joueur:", {
-			id: player.id,
-			name: player.name,
-			teamId: id,
-			// Ajoute d'autres infos si besoin
-		});
-		setMembers((prev) => prev.filter((m) => m.id !== player.id));
+	// Remplacer la fonction handleRemovePlayer existante par :
+
+	const handleRemovePlayer = (player: Member) => {
+		Alert.alert(
+			"Confirmer la suppression",
+			`Voulez-vous vraiment retirer ${player.name} de l'équipe ?`,
+			[
+				{
+					text: "Annuler",
+					style: "cancel",
+				},
+				{
+					text: "Supprimer",
+					style: "destructive",
+					onPress: async () => {
+						try {
+							// Importer le service au début du fichier
+							await removePlayerFromTeam(player.user_id, Number(id));
+
+							// Retirer le joueur de la liste locale
+							setMembers((prev) =>
+								prev.filter((m) => m.user_id !== player.user_id),
+							);
+							setOriginalMembers((prev) =>
+								prev.filter((m) => m.user_id !== player.user_id),
+							);
+
+							Alert.alert("Succès", `${player.name} a été retiré de l'équipe`);
+						} catch (error) {
+							console.error("Error removing player:", error);
+							Alert.alert(
+								"Erreur",
+								"Impossible de retirer le joueur de l'équipe. Veuillez réessayer.",
+							);
+						}
+					},
+				},
+			],
+		);
 	};
 
 	// Swap la position de deux joueurs dans le tableau
@@ -235,12 +286,20 @@ export default function TeamDetailsScreen() {
 		>
 			<View style={[styles.container, { backgroundColor: theme.background }]}>
 				<View style={styles.headerRow}>
-					<ThemedText style={[styles.headerTitle, { color: theme.primary }]}>{teamName}</ThemedText>
+					<ThemedText style={[styles.headerTitle, { color: theme.primary }]}>
+						{teamName}
+					</ThemedText>
 				</View>
 
 				<View style={styles.listContent}>
 					{rows.map((row, idx) => (
-						<View style={[styles.row, row.length === 1 && { justifyContent: "center" }]} key={idx}>
+						<View
+							style={[
+								styles.row,
+								row.length === 1 && { justifyContent: "center" },
+							]}
+							key={idx}
+						>
 							{row.map((item) => (
 								<View style={styles.memberContainer} key={item.user_id}>
 									<View style={styles.memberImageContainer}>
@@ -250,7 +309,10 @@ export default function TeamDetailsScreen() {
 												activeOpacity={0.7}
 											>
 												<View style={styles.imageHighlight}>
-													<Image source={item.image} style={styles.memberImage} />
+													<Image
+														source={item.image}
+														style={styles.memberImage}
+													/>
 													{selectedPlayerId === item.id && (
 														<View
 															style={[
@@ -263,7 +325,10 @@ export default function TeamDetailsScreen() {
 														/>
 													)}
 													<View
-														style={[styles.imageGlow, { backgroundColor: `${theme.primary}15` }]}
+														style={[
+															styles.imageGlow,
+															{ backgroundColor: `${theme.primary}15` },
+														]}
 													/>
 												</View>
 											</TouchableOpacity>
@@ -274,10 +339,16 @@ export default function TeamDetailsScreen() {
 											>
 												<Image
 													source={item.image}
-													style={[styles.memberImage, { borderColor: theme.primary }]}
+													style={[
+														styles.memberImage,
+														{ borderColor: theme.primary },
+													]}
 												/>
 												<View
-													style={[styles.imageGlow, { backgroundColor: `${theme.primary}15` }]}
+													style={[
+														styles.imageGlow,
+														{ backgroundColor: `${theme.primary}15` },
+													]}
 												/>
 											</TouchableOpacity>
 										)}
@@ -287,11 +358,17 @@ export default function TeamDetailsScreen() {
 												onPress={() => handleRemovePlayer(item)}
 												hitSlop={10}
 											>
-												<Ionicons name="remove-circle" size={26} color="#e85555" />
+												<Ionicons
+													name="remove-circle"
+													size={26}
+													color="#e85555"
+												/>
 											</TouchableOpacity>
 										)}
 									</View>
-									<ThemedText style={[styles.memberName, { color: theme.text }]}>
+									<ThemedText
+										style={[styles.memberName, { color: theme.text }]}
+									>
 										{item.name}
 									</ThemedText>
 
@@ -309,12 +386,16 @@ export default function TeamDetailsScreen() {
 														borderWidth: 1,
 													},
 												]}
-												onPress={() => handlePositionChange(item.user_id, "handler")}
+												onPress={() =>
+													handlePositionChange(item.user_id, "handler")
+												}
 											>
 												<ThemedText
 													style={[
 														styles.positionButtonText,
-														item.position === "handler" ? { color: "#fff" } : { color: theme.text },
+														item.position === "handler"
+															? { color: "#fff" }
+															: { color: theme.text },
 													]}
 												>
 													Handler
@@ -332,12 +413,16 @@ export default function TeamDetailsScreen() {
 														borderWidth: 1,
 													},
 												]}
-												onPress={() => handlePositionChange(item.user_id, "stack")}
+												onPress={() =>
+													handlePositionChange(item.user_id, "stack")
+												}
 											>
 												<ThemedText
 													style={[
 														styles.positionButtonText,
-														item.position === "stack" ? { color: "#fff" } : { color: theme.text },
+														item.position === "stack"
+															? { color: "#fff" }
+															: { color: theme.text },
 													]}
 												>
 													Stack
@@ -345,7 +430,12 @@ export default function TeamDetailsScreen() {
 											</TouchableOpacity>
 										</View>
 									) : (
-										<ThemedText style={[styles.memberPosition, { color: theme.textSecondary }]}>
+										<ThemedText
+											style={[
+												styles.memberPosition,
+												{ color: theme.textSecondary },
+											]}
+										>
 											{item.position}
 										</ThemedText>
 									)}
@@ -360,7 +450,9 @@ export default function TeamDetailsScreen() {
 						style={[styles.addButton, { backgroundColor: theme.primary }]}
 						onPress={handleAddPlayer}
 					>
-						<ThemedText style={styles.addButtonText}>Ajouter un joueur</ThemedText>
+						<ThemedText style={styles.addButtonText}>
+							Ajouter un joueur
+						</ThemedText>
 					</TouchableOpacity>
 				)}
 			</View>
