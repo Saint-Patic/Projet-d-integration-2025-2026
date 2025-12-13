@@ -149,6 +149,12 @@ router.delete("/:teamId/players/:userId", authMiddleware, async (req, res) => {
       message: "Player removed from team successfully",
       userId: userId,
       teamId: teamId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "db error" });
+  }
+});
 // POST /api/teams - Créer une nouvelle équipe
 router.post("/", authMiddleware, async (req, res) => {
   try {
