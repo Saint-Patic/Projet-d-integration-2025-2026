@@ -25,6 +25,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { getTeamById, getTeamPlayers } from "@/services/getTeams";
 import { removePlayerFromTeam } from "@/services/players";
 import { userService } from "@/services/userService";
+import { removePlayerFromTeam } from "@/services/players";
 
 interface Member {
 	id: number;
@@ -48,8 +49,42 @@ export default function TeamDetailsScreen() {
 	const [isCoach, setIsCoach] = useState(false);
 
 	useEffect(() => {
-		navigation.setOptions({ headerShown: false });
-	}, [navigation]);
+		// Écouter les changements de navigation
+		const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+			if (
+				!isEditMode ||
+				(members.length === originalMembers.length &&
+					playersToRemove.length === 0)
+			) {
+				// Laisser passer si pas en mode édition ou aucun changement
+				return;
+			}
+
+			// Empêcher l'action par défaut
+			e.preventDefault();
+
+			// Demander confirmation
+			Alert.alert(
+				"Modifications non enregistrées",
+				"Voulez-vous quitter sans enregistrer vos modifications ?",
+				[
+					{ text: "Rester", style: "cancel" },
+					{
+						text: "Quitter",
+						style: "destructive",
+						onPress: () => {
+							setMembers([...originalMembers]);
+							setPlayersToRemove([]);
+							setIsEditMode(false);
+							navigation.dispatch(e.data.action);
+						},
+					},
+				],
+			);
+		});
+
+		return unsubscribe;
+	}, [isEditMode, members, originalMembers, playersToRemove, navigation]);
 
 	const loadTeamData = useCallback(async () => {
 		try {
@@ -229,6 +264,7 @@ export default function TeamDetailsScreen() {
 				return original && original.position !== member.position;
 			});
 
+			// S'il y a des joueurs à supprimer, afficher une alerte de confirmation
 			if (playersToRemove.length > 0) {
 				const playersNames = playersToRemove
 					.map((userId) => {
@@ -261,6 +297,10 @@ export default function TeamDetailsScreen() {
 					],
 				);
 			} else if (changedMembers.length > 0) {
+				// Pas de suppression, juste des changements de position
+				await performSaveChanges(changedMembers);
+			} else {
+				// Aucun changement
 				await performSaveChanges(changedMembers);
 			} else {
 				setIsEditMode(false);
@@ -275,6 +315,7 @@ export default function TeamDetailsScreen() {
 	const performSaveChanges = async (changedMembers: Member[]) => {
 		let errorCount = 0;
 
+		// Supprimer les joueurs
 		for (const userId of playersToRemove) {
 			try {
 				await removePlayerFromTeam(userId, Number(id));
@@ -284,6 +325,7 @@ export default function TeamDetailsScreen() {
 			}
 		}
 
+		// Mettre à jour les positions
 		for (const member of changedMembers) {
 			try {
 				const updateData = {
