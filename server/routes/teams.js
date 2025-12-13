@@ -149,7 +149,63 @@ router.delete("/:teamId/players/:userId", authMiddleware, async (req, res) => {
       message: "Player removed from team successfully",
       userId: userId,
       teamId: teamId,
+// POST /api/teams - Créer une nouvelle équipe
+router.post("/", authMiddleware, async (req, res) => {
+  try {
+    const { team_name, logo, coach_id, players } = req.body;
+
+    // Validation des champs obligatoires
+    if (!team_name) {
+      return res.status(400).json({ error: "Team name is required" });
+    }
+
+    if (!coach_id || !validator.validateId(coach_id.toString())) {
+      return res.status(400).json({ error: "Valid coach ID is required" });
+    }
+
+    // Créer l'équipe
+    const teamResult = await callProcedure("CALL create_team(?, ?, ?)", [
+      team_name,
+      logo || null,
+      coach_id,
+    ]);
+
+    const teamId = teamResult[0]?.team_id;
+
+    if (!teamId) {
+      return res.status(500).json({ error: "Failed to create team" });
+    }
+
+    // Ajouter les joueurs si fournis
+    if (players && Array.isArray(players) && players.length > 0) {
+      for (const player of players) {
+        if (validator.validateId(player.user_id.toString())) {
+          await executeProcedure("CALL add_players_to_team(?, ?, ?, ?)", [
+            teamId,
+            player.user_id,
+            player.role_attack || "stack",
+            player.role_def || "zone",
+          ]);
+        }
+      }
+    }
+
+    res.status(201).json({
+      message: "Team created successfully",
+      team_id: teamId,
+      team_name,
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "db error" });
+  }
+});
+
+// GET /api/teams/users - Récupérer tous les utilisateurs
+router.get("/users/all", authMiddleware, async (req, res) => {
+  try {
+    const rows = await callProcedure("CALL get_all_users()");
+    res.json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "db error" });

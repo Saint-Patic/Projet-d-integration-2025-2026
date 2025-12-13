@@ -20,8 +20,10 @@ import { BackButton } from "@/components/perso_components/BackButton";
 import { getProfileImage } from "@/components/perso_components/loadImages";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { ThemedText } from "@/components/themed-text";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { getTeamPlayers } from "@/services/getTeams";
+import { getTeamById, getTeamPlayers } from "@/services/getTeams";
+import { removePlayerFromTeam } from "@/services/players";
 import { userService } from "@/services/userService";
 import { removePlayerFromTeam } from "@/services/players";
 
@@ -37,12 +39,14 @@ export default function TeamDetailsScreen() {
 	const { id, teamName, editMode } = useLocalSearchParams();
 	const navigation = useNavigation();
 	const { theme } = useTheme();
+	const { user } = useAuth();
 	const [isEditMode, setIsEditMode] = useState(editMode === "true");
 	const [members, setMembers] = useState<Member[]>([]);
 	const [originalMembers, setOriginalMembers] = useState<Member[]>([]);
 	const [playersToRemove, setPlayersToRemove] = useState<number[]>([]);
 	const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
+	const [isCoach, setIsCoach] = useState(false);
 
 	useEffect(() => {
 		// Écouter les changements de navigation
@@ -82,9 +86,16 @@ export default function TeamDetailsScreen() {
 		return unsubscribe;
 	}, [isEditMode, members, originalMembers, playersToRemove, navigation]);
 
-	const loadTeamPlayers = useCallback(async () => {
+	const loadTeamData = useCallback(async () => {
 		try {
 			setIsLoading(true);
+
+			// Récupérer les infos de l'équipe pour vérifier si le user est coach
+			const teamData = await getTeamById(Number(id));
+			const userIsCoach = teamData?.coach_id === user?.user_id;
+			setIsCoach(userIsCoach);
+
+			// Récupérer les joueurs
 			const players = await getTeamPlayers(Number(id));
 
 			const formattedMembers: Member[] = players.map((player, index) => ({
@@ -98,17 +109,60 @@ export default function TeamDetailsScreen() {
 			setMembers(formattedMembers);
 			setOriginalMembers(formattedMembers);
 		} catch (error) {
-			console.error("Error loading team players:", error);
+			console.error("Error loading team data:", error);
 		} finally {
 			setIsLoading(false);
 		}
-	}, [id]);
+	}, [id, user?.user_id]);
 
 	useFocusEffect(
 		useCallback(() => {
-			loadTeamPlayers();
-		}, [loadTeamPlayers]),
+			loadTeamData();
+		}, [loadTeamData]),
 	);
+
+	useEffect(() => {
+		const handleBackPress = () => {
+			if (isEditMode) {
+				setMembers([...originalMembers]);
+				setPlayersToRemove([]);
+				setIsEditMode(false);
+			}
+		};
+
+		const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+			if (
+				!isEditMode ||
+				(members.length === originalMembers.length &&
+					playersToRemove.length === 0)
+			) {
+				return;
+			}
+
+			e.preventDefault();
+
+			Alert.alert(
+				"Modifications non enregistrées",
+				"Voulez-vous quitter sans enregistrer vos modifications ?",
+				[
+					{ text: "Rester", style: "cancel" },
+					{
+						text: "Quitter",
+						style: "destructive",
+						onPress: () => {
+							setMembers([...originalMembers]);
+							setPlayersToRemove([]);
+							setIsEditMode(false);
+							navigation.dispatch(e.data.action);
+						},
+					},
+				],
+			);
+		});
+
+		return unsubscribe;
+	}, [isEditMode, members, originalMembers, playersToRemove, navigation]);
+
 	if (isLoading) {
 		return (
 			<ScreenLayout
@@ -131,19 +185,25 @@ export default function TeamDetailsScreen() {
 			</ScreenLayout>
 		);
 	}
-	// Calcule le nombre de colonnes dynamiquement
+
 	const screenWidth = Dimensions.get("window").width;
 	let columns = 2;
 	if (screenWidth > 700) columns = 3;
 	if (screenWidth > 1000) columns = 4;
 
-	// Découpe les membres en lignes selon le nombre de colonnes
 	const rows = [];
 	for (let i = 0; i < members.length; i += columns) {
 		rows.push(members.slice(i, i + columns));
 	}
 
 	const handleAddPlayer = () => {
+		if (!isCoach) {
+			Alert.alert(
+				"Permission refusée",
+				"Seul le coach peut ajouter des joueurs",
+			);
+			return;
+		}
 		router.push({
 			pathname: "./add-player",
 			params: {
@@ -168,15 +228,19 @@ export default function TeamDetailsScreen() {
 		});
 	};
 
-	const HeaderRight = () => (
-		<TouchableOpacity onPress={toggleEditMode} style={{ marginRight: 16 }}>
-			<Ionicons
-				name={isEditMode ? "checkmark" : "pencil"}
-				size={24}
-				color={theme.primary}
-			/>
-		</TouchableOpacity>
-	);
+	const HeaderRight = () => {
+		if (!isCoach) return null;
+
+		return (
+			<TouchableOpacity onPress={toggleEditMode} style={{ marginRight: 16 }}>
+				<Ionicons
+					name={isEditMode ? "checkmark" : "pencil"}
+					size={24}
+					color={theme.primary}
+				/>
+			</TouchableOpacity>
+		);
+	};
 
 	const handlePositionChange = (
 		userId: number,
@@ -193,7 +257,6 @@ export default function TeamDetailsScreen() {
 
 	const saveChanges = async () => {
 		try {
-			// Comparer les positions actuelles avec les originales
 			const changedMembers = members.filter((member) => {
 				const original = originalMembers.find(
 					(m) => m.user_id === member.user_id,
@@ -219,7 +282,6 @@ export default function TeamDetailsScreen() {
 							text: "Annuler",
 							style: "cancel",
 							onPress: () => {
-								// Restaurer les joueurs
 								setMembers([...originalMembers]);
 								setPlayersToRemove([]);
 								setIsEditMode(false);
@@ -239,6 +301,8 @@ export default function TeamDetailsScreen() {
 				await performSaveChanges(changedMembers);
 			} else {
 				// Aucun changement
+				await performSaveChanges(changedMembers);
+			} else {
 				setIsEditMode(false);
 			}
 		} catch (error) {
@@ -283,7 +347,7 @@ export default function TeamDetailsScreen() {
 			setIsEditMode(false);
 			Alert.alert("Succès", "Les modifications ont été enregistrées");
 		} else {
-			await loadTeamPlayers();
+			await loadTeamData();
 			setPlayersToRemove([]);
 			setIsEditMode(false);
 			Alert.alert(
@@ -294,25 +358,23 @@ export default function TeamDetailsScreen() {
 	};
 
 	const toggleEditMode = () => {
+		if (!isCoach) {
+			Alert.alert("Permission refusée", "Seul le coach peut modifier l'équipe");
+			return;
+		}
+
 		if (isEditMode) {
-			// Si on quitte le mode édition, sauvegarder les changements
 			saveChanges();
 		} else {
-			// Si on entre en mode édition, juste activer le mode
 			setIsEditMode(true);
 		}
 	};
 
-	// Pour Cyril :)
 	const handleRemovePlayer = (player: Member) => {
-		// Retirer le joueur visuellement
 		setMembers((prev) => prev.filter((m) => m.user_id !== player.user_id));
-
-		// Ajouter à la liste des joueurs à supprimer
 		setPlayersToRemove((prev) => [...prev, player.user_id]);
 	};
 
-	// Swap la position de deux joueurs dans le tableau
 	const handleEditImagePress = (playerId: number) => {
 		if (selectedPlayerId === null) {
 			setSelectedPlayerId(playerId);
@@ -323,7 +385,6 @@ export default function TeamDetailsScreen() {
 				const idx1 = prev.findIndex((m) => m.id === selectedPlayerId);
 				const idx2 = prev.findIndex((m) => m.id === playerId);
 				if (idx1 === -1 || idx2 === -1) return prev;
-				// Clone les objets pour éviter les bugs de référence
 				const newArr = prev.map((m) => ({ ...m }));
 				[newArr[idx1], newArr[idx2]] = [newArr[idx2], newArr[idx1]];
 				return newArr;
@@ -344,6 +405,16 @@ export default function TeamDetailsScreen() {
 					<ThemedText style={[styles.headerTitle, { color: theme.primary }]}>
 						{teamName}
 					</ThemedText>
+					{isCoach && (
+						<View
+							style={[styles.coachBadge, { backgroundColor: theme.primary }]}
+						>
+							<Ionicons name="star" size={14} color="#fff" />
+							<ThemedText style={styles.coachBadgeText}>
+								Vous êtes coach
+							</ThemedText>
+						</View>
+					)}
 				</View>
 
 				<View style={styles.listContent}>
@@ -500,7 +571,7 @@ export default function TeamDetailsScreen() {
 					))}
 				</View>
 
-				{isEditMode && (
+				{isEditMode && isCoach && (
 					<TouchableOpacity
 						style={[styles.addButton, { backgroundColor: theme.primary }]}
 						onPress={handleAddPlayer}
@@ -535,6 +606,20 @@ const styles = StyleSheet.create({
 		textShadowOffset: { width: 0, height: 2 },
 		textShadowRadius: 3,
 		paddingVertical: 10,
+	},
+	coachBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 16,
+		marginTop: 8,
+	},
+	coachBadgeText: {
+		color: "#fff",
+		fontSize: 12,
+		fontWeight: "700",
 	},
 	listContent: {
 		paddingHorizontal: 24,
