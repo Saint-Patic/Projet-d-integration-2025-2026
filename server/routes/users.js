@@ -11,17 +11,7 @@ const {
   generalLimiter,
   updateLimiter,
 } = require("../middleware/rateLimiter");
-
-// Helper to call procedures
-async function callProcedure(sql, params = []) {
-  const conn = await pool.getConnection();
-  try {
-    const rows = await conn.query(sql, params);
-    return rows;
-  } finally {
-    conn.release();
-  }
-}
+const { callProcedure, executeProcedure } = require("./utils");
 
 // POST /api/users/login
 router.post("/login", loginLimiter, async (req, res) => {
