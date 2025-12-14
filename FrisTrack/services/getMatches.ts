@@ -67,7 +67,6 @@ export async function updateMatchScore(
   score: string | number,
   teamId: number | undefined
 ) {
-  console.log(`matchId: ${matchId}, score: ${score}, team id: ${teamId}`);
   try {
     if (teamId === undefined) return console.error(`Team id undefined`);
     const response = await apiClient.put(
