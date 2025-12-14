@@ -38,21 +38,25 @@ export default function CreateMatchScreen() {
   const [matchTime, setMatchTime] = useState("");
   const [inOutdoor, setInOutdoor] = useState<"indoor" | "outdoor">("outdoor");
 
+  // États pour les messages d'erreur
+  const [userTeamError, setUserTeamError] = useState("");
+  const [opponentTeamError, setOpponentTeamError] = useState("");
+  const [localisationError, setLocalisationError] = useState("");
+  const [titleError, setTitleError] = useState("");
+  const [dateError, setDateError] = useState("");
+  const [timeError, setTimeError] = useState("");
+
   useEffect(() => {
     const fetchData = async () => {
       if (!user?.user_id) return;
 
       try {
-        // Récupérer TOUTES les équipes du user (coach ET joueur)
         const allMyTeams = await getTeamsByUser(user.user_id);
-
-        // Filtrer pour ne garder que les équipes où le user est coach
         const coachTeams = allMyTeams.filter(
           (team) => team.coach_id === user.user_id
         );
         setUserTeams(coachTeams);
 
-        // Si aucune équipe où le user est coach
         if (coachTeams.length === 0) {
           Alert.alert(
             "Information",
@@ -60,17 +64,13 @@ export default function CreateMatchScreen() {
           );
         }
 
-        // Récupérer toutes les équipes
         const allTeams = await getTeams();
-
-        // Filtrer pour exclure TOUTES les équipes où le user est impliqué (coach OU joueur)
         const myTeamIds = allMyTeams.map((team) => team.id);
         const opponentTeamsList = allTeams.filter(
           (team) => !myTeamIds.includes(team.id)
         );
         setOpponentTeams(opponentTeamsList);
 
-        // Récupérer les lieux disponibles
         const LocalisationsList = await getLocalisation();
         setLocalisations(LocalisationsList);
       } catch (error) {
@@ -85,7 +85,6 @@ export default function CreateMatchScreen() {
   const validateDate = (
     dateString: string
   ): { valid: boolean; message?: string } => {
-    // Regex pour le format JJ/MM/AAAA (accepte 1 ou 2 chiffres pour jour et mois)
     const dateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
     const match = dateString.match(dateRegex);
 
@@ -101,7 +100,6 @@ export default function CreateMatchScreen() {
     const monthNum = parseInt(month, 10);
     const yearNum = parseInt(year, 10);
 
-    // Vérifier que les valeurs sont dans les plages valides
     if (monthNum < 1 || monthNum > 12) {
       return {
         valid: false,
@@ -116,7 +114,6 @@ export default function CreateMatchScreen() {
       };
     }
 
-    // Vérifier si la date est valide (gère les mois avec moins de 31 jours)
     const date = new Date(yearNum, monthNum - 1, dayNum);
     if (
       date.getDate() !== dayNum ||
@@ -129,9 +126,8 @@ export default function CreateMatchScreen() {
       };
     }
 
-    // Vérifier que la date n'est pas dans le passé
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset l'heure pour comparer uniquement les dates
+    today.setHours(0, 0, 0, 0);
 
     if (date < today) {
       return {
@@ -140,7 +136,6 @@ export default function CreateMatchScreen() {
       };
     }
 
-    // Vérifier que la date n'est pas plus de 10 ans dans le futur
     const maxDate = new Date(today);
     maxDate.setFullYear(today.getFullYear() + 10);
 
@@ -154,34 +149,92 @@ export default function CreateMatchScreen() {
     return { valid: true };
   };
 
-  const handleCreateMatch = async () => {
-    // Validation
-    if (!selectedUserTeam) {
-      Alert.alert("Erreur", "Veuillez sélectionner votre équipe");
-      return;
-    }
-    if (!selectedOpponentTeam) {
-      Alert.alert("Erreur", "Veuillez sélectionner l'équipe adverse");
-      return;
-    }
-    if (!selectedLocalisation) {
-      Alert.alert("Erreur", "Veuillez sélectionner un lieu");
-      return;
-    }
-    if (!matchDate.trim()) {
-      Alert.alert("Erreur", "Veuillez entrer une date");
-      return;
+  const validateTime = (
+    timeString: string
+  ): { valid: boolean; message?: string } => {
+    // Si l'heure est vide, c'est valide (optionnel)
+    if (!timeString.trim()) {
+      return { valid: true };
     }
 
-    // Valider le format et la validité de la date
-    const dateValidation = validateDate(matchDate);
-    if (!dateValidation.valid) {
-      Alert.alert("Erreur de date", dateValidation.message || "Date invalide");
-      return;
+    // Regex pour le format HH:MM
+    const timeRegex = /^(\d{1,2}):(\d{2})$/;
+    const match = timeString.match(timeRegex);
+
+    if (!match) {
+      return {
+        valid: false,
+        message: "Le format de l'heure doit être HH:MM",
+      };
+    }
+
+    const [, hours, minutes] = match;
+    const hoursNum = parseInt(hours, 10);
+    const minutesNum = parseInt(minutes, 10);
+
+    // Vérifier que les heures sont entre 0 et 23
+    if (hoursNum < 0 || hoursNum > 23) {
+      return {
+        valid: false,
+        message: "Les heures doivent être entre 0 et 23",
+      };
+    }
+
+    // Vérifier que les minutes sont entre 0 et 59
+    if (minutesNum < 0 || minutesNum > 59) {
+      return {
+        valid: false,
+        message: "Les minutes doivent être entre 0 et 59",
+      };
+    }
+
+    return { valid: true };
+  };
+  const handleCreateMatch = async () => {
+    // Réinitialiser toutes les erreurs
+    setUserTeamError("");
+    setOpponentTeamError("");
+    setLocalisationError("");
+    setTitleError("");
+    setDateError("");
+
+    let hasError = false;
+
+    // Validation
+    if (!selectedUserTeam) {
+      setUserTeamError("Veuillez sélectionner votre équipe");
+      hasError = true;
+    }
+    if (!selectedOpponentTeam) {
+      setOpponentTeamError("Veuillez sélectionner l'équipe adverse");
+      hasError = true;
+    }
+    if (!selectedLocalisation) {
+      setLocalisationError("Veuillez sélectionner un lieu");
+      hasError = true;
+    }
+    if (!matchDate.trim()) {
+      setDateError("Veuillez entrer une date");
+      hasError = true;
+    } else {
+      // Valider le format et la validité de la date
+      const dateValidation = validateDate(matchDate);
+      if (!dateValidation.valid) {
+        setDateError(dateValidation.message || "Date invalide");
+        hasError = true;
+      }
+    }
+
+    // Valider l'heure si elle est renseignée
+    if (matchTime.trim()) {
+      const timeValidation = validateTime(matchTime);
+      if (!timeValidation.valid) {
+        setTimeError(timeValidation.message || "Heure invalide");
+        hasError = true;
+      }
     }
 
     // Générer un titre si aucun titre n'a été saisi
-    // taille max : 26 char => max char / équipe = (26 - 4)/2 = 11
     let finalTitle = matchTitle.trim();
     if (!finalTitle) {
       const userTeam = userTeams.find((t) => t.id === selectedUserTeam);
@@ -191,10 +244,18 @@ export default function CreateMatchScreen() {
       if (userTeam && opponentTeam) {
         finalTitle = `${userTeam.team_name} vs ${opponentTeam.team_name}`;
       }
-      if (finalTitle.length > 26) {
-        Alert.alert("Erreur", "Titre de match trop long (max 26 charactères)");
-        return;
-      }
+    }
+
+    if (finalTitle.length > 26) {
+      setTitleError("Titre de match trop long (max 26 caractères)");
+      hasError = true;
+    }
+
+    if (hasError) {
+      return;
+    }
+    if (!selectedUserTeam || !selectedOpponentTeam || !selectedLocalisation) {
+      return; // Double vérification pour TypeScript
     }
 
     try {
@@ -226,11 +287,13 @@ export default function CreateMatchScreen() {
     teams,
     selectedTeamId,
     onSelect,
+    error,
   }: {
     title: string;
     teams: Team[];
     selectedTeamId: number | null;
     onSelect: (id: number) => void;
+    error?: string;
   }) => (
     <View style={styles.sectionContainer}>
       <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
@@ -253,8 +316,11 @@ export default function CreateMatchScreen() {
                 styles.teamCard,
                 {
                   backgroundColor: theme.surface,
-                  borderColor:
-                    selectedTeamId === team.id ? theme.primary : theme.border,
+                  borderColor: error
+                    ? "#e74c3c"
+                    : selectedTeamId === team.id
+                    ? theme.primary
+                    : theme.border,
                 },
                 selectedTeamId === team.id && styles.selectedTeamCard,
               ]}
@@ -282,6 +348,11 @@ export default function CreateMatchScreen() {
           ))
         )}
       </View>
+      {error && (
+        <ThemedText style={[styles.errorText, { color: "#e74c3c" }]}>
+          {error}
+        </ThemedText>
+      )}
     </View>
   );
 
@@ -305,10 +376,11 @@ export default function CreateMatchScreen() {
                 styles.teamCard,
                 {
                   backgroundColor: theme.surface,
-                  borderColor:
-                    selectedLocalisation === Localisation
-                      ? theme.primary
-                      : theme.border,
+                  borderColor: localisationError
+                    ? "#e74c3c"
+                    : selectedLocalisation === Localisation
+                    ? theme.primary
+                    : theme.border,
                 },
                 selectedLocalisation === Localisation &&
                   styles.selectedTeamCard,
@@ -349,6 +421,11 @@ export default function CreateMatchScreen() {
           ))
         )}
       </View>
+      {localisationError && (
+        <ThemedText style={[styles.errorText, { color: "#e74c3c" }]}>
+          {localisationError}
+        </ThemedText>
+      )}
     </View>
   );
 
@@ -462,6 +539,7 @@ export default function CreateMatchScreen() {
           teams={userTeams}
           selectedTeamId={selectedUserTeam}
           onSelect={setSelectedUserTeam}
+          error={userTeamError}
         />
 
         {/* Sélection de l'équipe adverse */}
@@ -470,6 +548,7 @@ export default function CreateMatchScreen() {
           teams={opponentTeams}
           selectedTeamId={selectedOpponentTeam}
           onSelect={setSelectedOpponentTeam}
+          error={opponentTeamError}
         />
 
         {/* Titre du match */}
@@ -482,7 +561,7 @@ export default function CreateMatchScreen() {
               styles.input,
               {
                 backgroundColor: theme.surface,
-                borderColor: theme.border,
+                borderColor: titleError ? "#e74c3c" : theme.border,
                 color: theme.text,
               },
             ]}
@@ -492,6 +571,11 @@ export default function CreateMatchScreen() {
             onChangeText={setMatchTitle}
             multiline
           />
+          {titleError && (
+            <ThemedText style={[styles.errorText, { color: "#e74c3c" }]}>
+              {titleError}
+            </ThemedText>
+          )}
           <ThemedText
             style={[styles.helperText, { color: theme.textSecondary }]}
           >
@@ -515,7 +599,7 @@ export default function CreateMatchScreen() {
               styles.input,
               {
                 backgroundColor: theme.surface,
-                borderColor: theme.border,
+                borderColor: dateError ? "#e74c3c" : theme.border,
                 color: theme.text,
               },
             ]}
@@ -525,6 +609,11 @@ export default function CreateMatchScreen() {
             onChangeText={setMatchDate}
             maxLength={10}
           />
+          {dateError && (
+            <ThemedText style={[styles.errorText, { color: "#e74c3c" }]}>
+              {dateError}
+            </ThemedText>
+          )}
           <ThemedText
             style={[styles.helperText, { color: theme.textSecondary }]}
           >
@@ -542,7 +631,7 @@ export default function CreateMatchScreen() {
               styles.input,
               {
                 backgroundColor: theme.surface,
-                borderColor: theme.border,
+                borderColor: timeError ? "#e74c3c" : theme.border,
                 color: theme.text,
               },
             ]}
@@ -552,6 +641,16 @@ export default function CreateMatchScreen() {
             onChangeText={setMatchTime}
             maxLength={5}
           />
+          {timeError && (
+            <ThemedText style={[styles.errorText, { color: "#e74c3c" }]}>
+              {timeError}
+            </ThemedText>
+          )}
+          <ThemedText
+            style={[styles.helperText, { color: theme.textSecondary }]}
+          >
+            Format: HH:MM (ex: 14:30)
+          </ThemedText>
         </View>
 
         {/* Bouton de création */}
@@ -635,6 +734,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 6,
     fontStyle: "italic",
+  },
+  errorText: {
+    fontSize: 13,
+    marginTop: 6,
+    fontWeight: "600",
   },
   radioContainer: {
     gap: 12,
