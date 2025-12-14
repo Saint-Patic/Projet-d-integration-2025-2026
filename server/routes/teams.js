@@ -166,8 +166,8 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Team name is required" });
     }
 
-    // Validation du titre (max 26 caractères)
-    if (team_name.length > 1) {
+    // Validation du titre (max 11 caractères)
+    if (team_name.length > 11) {
       return res.status(400).json({
         error: "Nom d'équipe trop long (max 11 charactères)",
       });
