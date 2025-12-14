@@ -213,6 +213,7 @@ export default function TeamDetailsScreen() {
   };
 
   const handlePlayerPress = (userId: number) => {
+    console.log("🚀 ~ handlePlayerPress ~ userId:", userId);
     if (!userId || userId <= 0) {
       console.warn("Invalid user ID:", userId);
       Alert.alert(

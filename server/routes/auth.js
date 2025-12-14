@@ -8,17 +8,7 @@ const {
   generalLimiter,
 } = require("../middleware/rateLimiter");
 const authMiddleware = require("../middleware/auth");
-
-// Helper to call procedures
-async function callProcedure(sql, params = []) {
-  const conn = await pool.getConnection();
-  try {
-    const rows = await conn.query(sql, params);
-    return rows;
-  } finally {
-    conn.release();
-  }
-}
+const { callProcedure, executeProcedure } = require("./utils");
 
 // POST /api/auth/check-email
 router.post(

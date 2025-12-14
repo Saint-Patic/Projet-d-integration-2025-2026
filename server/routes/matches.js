@@ -2,28 +2,8 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../pool");
 const authMiddleware = require("../middleware/auth");
-
-// Helper to call procedures
-async function callProcedure(sql, params = []) {
-  const conn = await pool.getConnection();
-  try {
-    const result = await conn.query(sql, params);
-    // Normalize mariadb result for CALL and normal queries:
-    // - For stored procedures the driver returns an array of resultsets
-    //   (e.g. [ [rows], [meta], ... ]) so return the first resultset.
-    // - For simple queries it may return an array/object of rows directly.
-    if (
-      Array.isArray(result) &&
-      result.length > 0 &&
-      Array.isArray(result[0])
-    ) {
-      return result[0];
-    }
-    return result;
-  } finally {
-    conn.release();
-  }
-}
+const validator = require("../middleware/validator");
+const { callProcedure, executeProcedure } = require("./utils");
 
 // GET /api/matches
 router.get("/", authMiddleware, async (req, res) => {
@@ -62,6 +42,11 @@ router.get("/user/:userId", authMiddleware, async (req, res) => {
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!validator.validateId(id)) {
+      return res.status(400).json({ error: "Invalid match ID" });
+    }
+
     const rows = await callProcedure("CALL get_match_by_id(?)", [id]);
 
     if (!rows || rows.length === 0) {
@@ -205,6 +190,56 @@ router.put("/:m_id/:t_id/score", authMiddleware, async (req, res) => {
     res.status(500).json({ error: "db error" });
   } finally {
     conn.release();
+  }
+});
+
+// DELETE /api/matches/:id
+router.delete("/:id", authMiddleware, async (req, res) => {
+  try {
+    const matchId = parseInt(req.params.id, 10);
+    const userId = req.user.userId;
+
+    if (!validator.validateId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid match ID" });
+    }
+
+    // Vérifier si le match existe
+    const existing = await callProcedure("CALL get_match_by_id(?)", [matchId]);
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+
+    // Vérifier si l'utilisateur est coach de l'équipe à domicile
+    const permissionCheck = await callProcedure(
+      "CALL can_user_delete_match(?, ?)",
+      [userId, matchId]
+    );
+
+    const canDelete = permissionCheck[0]?.can_delete === 1;
+
+    if (!canDelete) {
+      return res.status(403).json({
+        error:
+          "Non autorisé. Seul le coach de l'équipe à domicile peut supprimer ce match.",
+      });
+    }
+
+    // Supprimer le match
+    const result = await executeProcedure("CALL delete_match(?)", [matchId]);
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ error: "Match not found or already deleted" });
+    }
+
+    res.json({
+      success: true,
+      message: `Match ${matchId} deleted successfully`,
+    });
+  } catch (err) {
+    console.error("Error deleting match:", err);
+    res.status(500).json({ error: "db error", details: err.message });
   }
 });
 

@@ -82,11 +82,11 @@ export async function updateMatchScore(
 
 export const deleteMatch = async (id: number): Promise<Match | null> => {
   try {
-    const response = await apiClient.delete<Match>(`/matches/${id}`);
+    const response = await apiClient.delete(`/matches/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error deleting match ${id}:`, error);
-    return null;
+    throw error;
   }
 };
 

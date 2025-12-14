@@ -13,7 +13,11 @@ import { SwipeableCard } from "@/components/perso_components/swipeableCard";
 import { ThemedText } from "@/components/themed-text";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { getMatchesByUser, updateMatch } from "@/services/getMatches";
+import {
+  getMatchesByUser,
+  updateMatch,
+  deleteMatch as deleteMatchService,
+} from "@/services/getMatches";
 import type { Match } from "@/types/user";
 
 export default function HomeScreen() {
@@ -48,14 +52,25 @@ export default function HomeScreen() {
   const deleteMatch = (matchId: number) => {
     Alert.alert(
       "Supprimer le match",
-      `Êtes-vous sûr de vouloir supprimer le match ${matchId} ?`,
+      `Êtes-vous sûr de vouloir supprimer ce match ?`,
       [
         { text: "Annuler", style: "cancel" },
         {
           text: "Supprimer",
           style: "destructive",
-          onPress: () => {
-            setMatches(matches.filter((match) => match.id !== matchId));
+          onPress: async () => {
+            try {
+              await deleteMatchService(matchId);
+              setMatches(matches.filter((match) => match.id !== matchId));
+              Alert.alert("Succès", "Match supprimé avec succès");
+            } catch (error: any) {
+              console.error("Error deleting match:", error);
+              const errorMessage =
+                error.response?.data?.error || error.response?.status === 403
+                  ? "Vous n'êtes pas autorisé à supprimer ce match. Seul le coach de l'équipe à domicile peut le faire."
+                  : "Impossible de supprimer le match";
+              Alert.alert("Erreur", errorMessage);
+            }
           },
         },
       ]
@@ -136,10 +151,10 @@ export default function HomeScreen() {
   const MatchCard = ({ match }: { match: Match }) => {
     return (
       <SwipeableCard
-        title={match.name}
+        title="Match"
         cardId={match.id}
         borderTopColor={theme.primary}
-        onEdit={() => editMatch(match.id)}
+        onEdit={() => viewMatchDetails(match.id)}
         onDelete={() => deleteMatch(match.id)}
         theme={theme}
       >
@@ -242,10 +257,9 @@ export default function HomeScreen() {
       <View
         style={[styles.matchesContainer, { backgroundColor: theme.background }]}
       >
-        {matches.map((match) => {
-          console.log("🚀 ~ HomeScreen ~ match:", match);
-          return <MatchCard key={match.id} match={match} />;
-        })}
+        {matches.map((match) => (
+          <MatchCard key={match.id} match={match} />
+        ))}
       </View>
       <AddButton onPress={createNewMatch} text="Nouveau Match" theme={theme} />
     </ScreenLayout>

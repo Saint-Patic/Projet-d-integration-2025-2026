@@ -11,17 +11,7 @@ const {
   generalLimiter,
   updateLimiter,
 } = require("../middleware/rateLimiter");
-
-// Helper to call procedures
-async function callProcedure(sql, params = []) {
-  const conn = await pool.getConnection();
-  try {
-    const rows = await conn.query(sql, params);
-    return rows;
-  } finally {
-    conn.release();
-  }
-}
+const { callProcedure, executeProcedure } = require("./utils");
 
 // POST /api/users/login
 router.post("/login", loginLimiter, async (req, res) => {
@@ -203,9 +193,11 @@ router.get("/:id", authMiddleware, generalLimiter, async (req, res) => {
 
   try {
     const rows = await callProcedure("CALL get_user_info(?)", [id]);
+    console.log("🚀 ~ rows:", rows);
 
-    if (rows && rows.length > 0 && rows[0].length > 0) {
-      const user = rows[0][0];
+    if (rows && rows.length > 0) {
+      const user = rows[0];
+      console.log("🚀 ~ user:", user);
       if (user.birthdate) {
         user.birthdate = new Date(user.birthdate).toISOString();
       }
@@ -214,7 +206,7 @@ router.get("/:id", authMiddleware, generalLimiter, async (req, res) => {
       }
       res.json(user);
     } else {
-      res.json(null);
+      res.status(404).json({ error: "User not found" });
     }
   } catch (err) {
     console.error(err);

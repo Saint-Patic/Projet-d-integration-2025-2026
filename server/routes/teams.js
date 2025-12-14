@@ -3,17 +3,7 @@ const router = express.Router();
 const pool = require("../pool");
 const authMiddleware = require("../middleware/auth");
 const validator = require("../middleware/validator");
-
-// Helper to call procedures
-async function callProcedure(sql, params = []) {
-  const conn = await pool.getConnection();
-  try {
-    const [rows] = await conn.query(sql, params);
-    return rows;
-  } finally {
-    conn.release();
-  }
-}
+const { callProcedure } = require("./utils");
 
 // Helper to execute procedures without result set (DELETE, UPDATE, INSERT)
 async function executeProcedure(sql, params = []) {
