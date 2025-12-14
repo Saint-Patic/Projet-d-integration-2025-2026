@@ -193,9 +193,11 @@ router.get("/:id", authMiddleware, generalLimiter, async (req, res) => {
 
   try {
     const rows = await callProcedure("CALL get_user_info(?)", [id]);
+    console.log("🚀 ~ rows:", rows);
 
-    if (rows && rows.length > 0 && rows[0].length > 0) {
-      const user = rows[0][0];
+    if (rows && rows.length > 0) {
+      const user = rows[0];
+      console.log("🚀 ~ user:", user);
       if (user.birthdate) {
         user.birthdate = new Date(user.birthdate).toISOString();
       }
