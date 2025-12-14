@@ -155,6 +155,7 @@ export default function MatchDetailsScreen() {
 	const [match, setMatch] = useState<Match | null | undefined>(undefined);
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
 	const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+	const [isRecording, setIsRecording] = useState(false);
 
 	const [score1, setScore1] = useState<number>(0);
 	const [score2, setScore2] = useState<number>(0);
@@ -183,6 +184,10 @@ export default function MatchDetailsScreen() {
 	if (match) {
 		setScore1(match.team_score_1 ?? 0);
 		setScore2(match.team_score_2 ?? 0);
+		setIsRecording(match.status === "in_progress");
+		if (match.status === "finished" && match.recordingDuration) {
+			setElapsedSeconds(match.recordingDuration);
+		}
 	}
 }, [match]);
 
@@ -272,30 +277,58 @@ async function handleDeltaTeam2(delta: number) {
 		// TODO: Ajouter la logique pour ouvrir la revue/replay du match enregistré
 	};
 
-	// Démarre/arrête le chrono en fonction de match.isRecording
-	useEffect(() => {
-		if (!match) return;
+	const handleStartStop = async () => {
+		if (!matchId) return;
 
-		// Si le match a une durée enregistrée (après Stop), l'afficher
-		if (match.recordingDuration && !match.isRecording) {
-			setElapsedSeconds(match.recordingDuration);
-			return;
-		}
-
-		if (match.isRecording && match.recordingStartTime) {
-			// Calculer le temps écoulé depuis le début
-			const updateElapsed = () => {
-				const elapsed = Math.floor((Date.now() - match.recordingStartTime!) / 1000);
-				setElapsedSeconds(elapsed);
-			};
-
-			// Mise à jour initiale
-			updateElapsed();
-
-			// Mise à jour toutes les secondes
-			timerRef.current = setInterval(updateElapsed, 1000);
+		if (isRecording) {
+			// Stop: mettre le match en "finished"
+			try {
+				await updateMatch(matchId, {
+					status: "finished",
+					recordingDuration: elapsedSeconds,
+					isRecording: false,
+					hasRecording: true,
+				});
+				setMatch((prev) => prev ? {
+					...prev,
+					status: "finished",
+					recordingDuration: elapsedSeconds,
+					isRecording: false,
+					hasRecording: true,
+				} : prev);
+				setIsRecording(false);
+			} catch (e) {
+				console.error("Erreur lors de l'arrêt du match:", e);
+				Alert.alert("Erreur", "Impossible d'arrêter le match");
+			}
 		} else {
-			// arrêt chrono
+			// Start: mettre le match en "in_progress"
+			try {
+				await updateMatch(matchId, {
+					status: "in_progress",
+					isRecording: true,
+				});
+				setMatch((prev) => prev ? {
+					...prev,
+					status: "in_progress",
+					isRecording: true,
+				} : prev);
+				setElapsedSeconds(0);
+				setIsRecording(true);
+			} catch (e) {
+				console.error("Erreur lors du démarrage du match:", e);
+				Alert.alert("Erreur", "Impossible de démarrer le match");
+			}
+		}
+	};
+
+	// Démarre/arrête le chrono en fonction de isRecording
+	useEffect(() => {
+		if (isRecording) {
+			timerRef.current = setInterval(() => {
+				setElapsedSeconds((prev) => prev + 1);
+			}, 1000);
+		} else {
 			if (timerRef.current) {
 				clearInterval(timerRef.current);
 				timerRef.current = null;
@@ -308,7 +341,7 @@ async function handleDeltaTeam2(delta: number) {
 				timerRef.current = null;
 			}
 		};
-	}, [match]);
+	}, [isRecording]);
 
 	const formatTime = (total: number) => {
 		const mm = Math.floor(total / 60)
@@ -434,82 +467,37 @@ async function handleDeltaTeam2(delta: number) {
   </View>
 
 				<View style={styles.metaRow}>
-					{match.status && (
-						<ThemedText style={[styles.metaText, { color: theme.text }]}>
-							Statut: {match.status}
-						</ThemedText>
-					)}
-				</View>
-
-				{/* Affichage du temps total (toujours affiché, même à 00:00) */}
-				<View style={styles.timerContainer}>
-					<ThemedText style={[styles.timerText, { color: theme.text }]}>
-						⏱ Temps de match: {formatTime(elapsedSeconds)}
+					<ThemedText style={[styles.metaText, { color: theme.text }]}>
+						Statut: {match.status === "in_progress" ? "En cours" : match.status === "finished" ? "Termine" : "Programme"}
 					</ThemedText>
 				</View>
 
-				{/* Timer + Bouton Start/Stop (visible uniquement si pas encore de recording) */}
-				{match.status === "scheduled" && !match.hasRecording && (
+				{/* Affichage du temps total */}
+				<View style={styles.timerContainer}>
+					<ThemedText style={[styles.timerText, { color: theme.text }]}>
+						Temps de match: {formatTime(elapsedSeconds)}
+					</ThemedText>
+				</View>
+
+				{/* Bouton Start/Stop */}
+				{(match.status === "scheduled" || match.status === "in_progress") && (
 					<View style={styles.recordingBlock}>
-						{match.isRecording && (
-							<View style={styles.timerContainer}>
-								<ThemedText style={[styles.timerText, { color: theme.text }]}>
-									⏱ {formatTime(elapsedSeconds)}
-								</ThemedText>
-							</View>
-						)}
 						<TouchableOpacity
 							style={[
 								styles.reviewButton,
-								{ backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60" },
+								{ backgroundColor: isRecording ? "#e74c3c" : "#27ae60" },
 							]}
-							onPress={() => {
-								if (match.isRecording) {
-									// Stop: calculer la durée et marquer l'enregistrement
-									const duration = match.recordingStartTime
-										? Math.floor((Date.now() - match.recordingStartTime) / 1000)
-										: elapsedSeconds;
-									// Persister dans le service
-									updateMatch(matchId!, {
-										isRecording: false,
-										hasRecording: true,
-										recordingDuration: duration,
-										recordingStartTime: undefined,
-									});
-									setMatch({
-										...match,
-										isRecording: false,
-										hasRecording: true,
-										recordingDuration: duration,
-										recordingStartTime: undefined,
-									});
-									setElapsedSeconds(duration);
-								} else {
-									// Start: démarrer avec timestamp
-									const startTime = Date.now();
-									// Persister dans le service
-									updateMatch(matchId!, {
-										isRecording: true,
-										recordingStartTime: startTime,
-									});
-									setElapsedSeconds(0);
-									setMatch({
-										...match,
-										isRecording: true,
-										recordingStartTime: startTime,
-									});
-								}
-							}}
+							onPress={handleStartStop}
 						>
 							<ThemedText style={styles.reviewButtonText}>
-								{match.isRecording ? "⏹ Stop" : "▶ Start"}
+								{isRecording ? "Stop" : "Start"}
 							</ThemedText>
 						</TouchableOpacity>
 					</View>
 				)}
 
 				{/* Bouton Review */}
-				{match.hasRecording && (
+				{match.status === "finished" && (
 					<TouchableOpacity
 						style={[styles.reviewButton, { backgroundColor: "#27ae60" }]}
 						onPress={handleReview}
