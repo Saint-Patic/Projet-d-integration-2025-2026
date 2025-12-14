@@ -2,17 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../pool");
 const authMiddleware = require("../middleware/auth");
-
-// Helper to call procedures
-async function callProcedure(sql, params = []) {
-  const conn = await pool.getConnection();
-  try {
-    const [rows] = await conn.query(sql, params);
-    return rows;
-  } finally {
-    conn.release();
-  }
-}
+const { callProcedure } = require("./utils");
 
 // GET /api/location
 router.get("/", async (req, res) => {

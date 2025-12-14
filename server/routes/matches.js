@@ -2,24 +2,8 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../pool");
 const authMiddleware = require("../middleware/auth");
-
-// Helper to call procedures
-async function callProcedure(sql, params = []) {
-	const conn = await pool.getConnection();
-	try {
-		const result = await conn.query(sql, params);
-		// Normalize mariadb result for CALL and normal queries:
-		// - For stored procedures the driver returns an array of resultsets
-		//   (e.g. [ [rows], [meta], ... ]) so return the first resultset.
-		// - For simple queries it may return an array/object of rows directly.
-		if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0])) {
-			return result[0];
-		}
-		return result;
-	} finally {
-		conn.release();
-	}
-}
+const validator = require("../middleware/validator");
+const { callProcedure, executeProcedure } = require("./utils");
 
 // GET /api/matches
 router.get("/", authMiddleware, async (req, res) => {
@@ -58,6 +42,11 @@ router.get("/user/:userId", authMiddleware, async (req, res) => {
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!validator.validateId(id)) {
+      return res.status(400).json({ error: "Invalid match ID" });
+    }
+
     const rows = await callProcedure("CALL get_match_by_id(?)", [id]);
 
     if (!rows || rows.length === 0) {
@@ -93,6 +82,12 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
+    if (title.length > 26) {
+      return res.status(400).json({
+        error: "Titre trop long (max 26 charactères)",
+      });
+    }
+
     // Convertir la date du format DD/MM/YYYY au format YYYY-MM-DD
     let formattedDate;
     if (date.includes("/")) {
@@ -103,6 +98,27 @@ router.post("/", authMiddleware, async (req, res) => {
       )}`;
     } else {
       formattedDate = date; // Au cas où la date serait déjà au bon format
+    }
+    // Validation de la date
+    const matchDate = new Date(formattedDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Vérifier que la date n'est pas dans le passé
+    if (matchDate < today) {
+      return res.status(400).json({
+        error: "Le match ne peut pas se dérouler dans le passé",
+      });
+    }
+
+    // Vérifier que la date n'est pas plus de 10 ans dans le futur
+    const maxDate = new Date(today);
+    maxDate.setFullYear(today.getFullYear() + 10);
+
+    if (matchDate > maxDate) {
+      return res.status(400).json({
+        error: "Le match ne peut pas se passer dans plus de 10 ans",
+      });
     }
 
     // Construire la date complète au format YYYY-MM-DD HH:MM:SS
@@ -137,39 +153,94 @@ router.post("/", authMiddleware, async (req, res) => {
 
 // PUT /api/matches/:m_id/:t_id/score
 // body: { score: number }
-router.put('/:m_id/:t_id/score', authMiddleware, async (req, res) => {
-	const matchId = parseInt(req.params.m_id, 10);
-	const teamId = parseInt(req.params.t_id, 10);
-	const score = parseInt(req.body.score, 10);
+router.put("/:m_id/:t_id/score", authMiddleware, async (req, res) => {
+  const matchId = parseInt(req.params.m_id, 10);
+  const teamId = parseInt(req.params.t_id, 10);
+  const score = parseInt(req.body.score, 10);
 
-	if (Number.isNaN(matchId)) return res.status(400).json({ error: 'Invalid match id' });
-	if (Number.isNaN(teamId)) return res.status(400).json({ error: 'Invalid team id' });
-	if (Number.isNaN(score)) return res.status(400).json({ error: 'Score must be a number' });
+  if (Number.isNaN(matchId))
+    return res.status(400).json({ error: "Invalid match id" });
+  if (Number.isNaN(teamId))
+    return res.status(400).json({ error: "Invalid team id" });
+  if (Number.isNaN(score))
+    return res.status(400).json({ error: "Score must be a number" });
 
-	const conn = await pool.getConnection();
-	try {
-		// Ensure match exists and is not finished
-		const existing = await callProcedure('CALL get_match_by_id(?)', [matchId]);
-		if (!existing || existing.length === 0) {
-			return res.status(404).json({ error: 'Match not found' });
-		}
-		const match = existing[0];
-		if (match.status === 'finished') {
-			return res.status(403).json({ error: 'Cannot modify score of finished match' });
-		}
+  const conn = await pool.getConnection();
+  try {
+    // Ensure match exists and is not finished
+    const existing = await callProcedure("CALL get_match_by_id(?)", [matchId]);
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+    const match = existing[0];
+    if (match.status === "finished") {
+      return res
+        .status(403)
+        .json({ error: "Cannot modify score of finished match" });
+    }
 
-		// Update the score using the stored procedure
-		await callProcedure('CALL update_score(?,?,?)', [score, matchId, teamId]);
+    // Update the score using the stored procedure
+    await callProcedure("CALL update_score(?,?,?)", [score, matchId, teamId]);
 
-		// Return the updated match
-		const rows = await callProcedure('CALL get_match_by_id(?)', [matchId]);
-		res.json(rows[0]);
-	} catch (err) {
-		console.error('Error updating match score:', err);
-		res.status(500).json({ error: 'db error' });
-	} finally {
-		conn.release();
-	}
+    // Return the updated match
+    const rows = await callProcedure("CALL get_match_by_id(?)", [matchId]);
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("Error updating match score:", err);
+    res.status(500).json({ error: "db error" });
+  } finally {
+    conn.release();
+  }
+});
+
+// DELETE /api/matches/:id
+router.delete("/:id", authMiddleware, async (req, res) => {
+  try {
+    const matchId = parseInt(req.params.id, 10);
+    const userId = req.user.userId;
+
+    if (!validator.validateId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid match ID" });
+    }
+
+    // Vérifier si le match existe
+    const existing = await callProcedure("CALL get_match_by_id(?)", [matchId]);
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+
+    // Vérifier si l'utilisateur est coach de l'équipe à domicile
+    const permissionCheck = await callProcedure(
+      "CALL can_user_delete_match(?, ?)",
+      [userId, matchId]
+    );
+
+    const canDelete = permissionCheck[0]?.can_delete === 1;
+
+    if (!canDelete) {
+      return res.status(403).json({
+        error:
+          "Non autorisé. Seul le coach de l'équipe à domicile peut supprimer ce match.",
+      });
+    }
+
+    // Supprimer le match
+    const result = await executeProcedure("CALL delete_match(?)", [matchId]);
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ error: "Match not found or already deleted" });
+    }
+
+    res.json({
+      success: true,
+      message: `Match ${matchId} deleted successfully`,
+    });
+  } catch (err) {
+    console.error("Error deleting match:", err);
+    res.status(500).json({ error: "db error", details: err.message });
+  }
 });
 
 module.exports = router;

@@ -2,18 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../pool");
 const authMiddleware = require("../middleware/auth");
-// Helper to run queries
-async function runQuery(sql, params = []) {
-	const conn = await pool.getConnection();
-	try {
-		// For SELECT queries mariadb returns [rows, fields], for INSERT/UPDATE it returns an object.
-		// Avoid destructuring to support both shapes.
-		const result = await conn.query(sql, params);
-		return result;
-	} finally {
-		conn.release();
-	}
-}
+const { runQuery } = require("./utils");
 
 // POST /api/fields
 // Body expected: { name: string, corners: { tl: { coords: { latitude, longitude } }, tr: ..., bl: ..., br: ... } }
@@ -57,7 +46,10 @@ router.post("/", async (req, res) => {
 
     // result may be OkPacket or [rows, fields] or an array of result sets from CALL
     // Try several fallbacks to get an inserted id or return success
-    const insertId = result?.insertId ?? (Array.isArray(result) && result[0]?.insertId) ?? null;
+    const insertId =
+      result?.insertId ??
+      (Array.isArray(result) && result[0]?.insertId) ??
+      null;
 
     res.status(201).json({ id: insertId, field_name: name });
   } catch (err) {

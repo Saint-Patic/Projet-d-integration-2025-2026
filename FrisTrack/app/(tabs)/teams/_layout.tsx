@@ -39,6 +39,14 @@ export default function TeamsLayout() {
 					headerBackTitle: "Retour",
 				}}
 			/>
+			<Stack.Screen
+				name="create-team"
+				options={{
+					title: "nouvelle équipe",
+					headerShown: false,
+					headerBackTitle: "Retour",
+				}}
+			/>
 		</Stack>
 	);
 }
