@@ -103,6 +103,17 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
+    // Convertir la date du format DD/MM/YYYY au format YYYY-MM-DD
+    let formattedDate;
+    if (date.includes("/")) {
+      const [day, month, year] = date.split("/");
+      formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(
+        2,
+        "0"
+      )}`;
+    } else {
+      formattedDate = date; // Au cas où la date serait déjà au bon format
+    }
     // Validation de la date
     const matchDate = new Date(formattedDate);
     const today = new Date();
@@ -123,17 +134,6 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(400).json({
         error: "Le match ne peut pas se passer dans plus de 10 ans",
       });
-    }
-    // Convertir la date du format DD/MM/YYYY au format YYYY-MM-DD
-    let formattedDate;
-    if (date.includes("/")) {
-      const [day, month, year] = date.split("/");
-      formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(
-        2,
-        "0"
-      )}`;
-    } else {
-      formattedDate = date; // Au cas où la date serait déjà au bon format
     }
 
     // Construire la date complète au format YYYY-MM-DD HH:MM:SS
