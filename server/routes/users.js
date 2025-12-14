@@ -204,7 +204,7 @@ router.get("/:id", authMiddleware, generalLimiter, async (req, res) => {
       }
       res.json(user);
     } else {
-      res.json(null);
+      res.status(404).json({ error: "User not found" });
     }
   } catch (err) {
     console.error(err);
