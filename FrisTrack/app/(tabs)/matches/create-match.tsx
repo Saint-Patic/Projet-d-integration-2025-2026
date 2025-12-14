@@ -140,6 +140,17 @@ export default function CreateMatchScreen() {
       };
     }
 
+    // Vérifier que la date n'est pas plus de 10 ans dans le futur
+    const maxDate = new Date(today);
+    maxDate.setFullYear(today.getFullYear() + 10);
+
+    if (date > maxDate) {
+      return {
+        valid: false,
+        message: "La date ne peut pas dépasser 10 ans dans le futur",
+      };
+    }
+
     return { valid: true };
   };
 
@@ -170,6 +181,7 @@ export default function CreateMatchScreen() {
     }
 
     // Générer un titre si aucun titre n'a été saisi
+    // taille max : 26 char => max char / équipe = (26 - 4)/2 = 11
     let finalTitle = matchTitle.trim();
     if (!finalTitle) {
       const userTeam = userTeams.find((t) => t.id === selectedUserTeam);
@@ -178,6 +190,10 @@ export default function CreateMatchScreen() {
       );
       if (userTeam && opponentTeam) {
         finalTitle = `${userTeam.team_name} vs ${opponentTeam.team_name}`;
+      }
+      if (finalTitle.length > 26) {
+        Alert.alert("Erreur", "Titre de match trop long (max 26 charactères)");
+        return;
       }
     }
 

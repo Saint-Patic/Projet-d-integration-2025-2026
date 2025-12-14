@@ -4,7 +4,6 @@ import { RegisterUserData } from "@/types/user";
 // Utilisez apiClient au lieu d'axios directement
 import apiClient from "./apiClient";
 
-export { RegisterUserData };
 
 export const registerService = {
   register: async (userData: RegisterUserData) => {
