@@ -154,7 +154,7 @@ export default function HomeScreen() {
         title="Match"
         cardId={match.id}
         borderTopColor={theme.primary}
-        onEdit={() => editMatch(match.id)}
+        onEdit={() => viewMatchDetails(match.id)}
         onDelete={() => deleteMatch(match.id)}
         theme={theme}
       >
