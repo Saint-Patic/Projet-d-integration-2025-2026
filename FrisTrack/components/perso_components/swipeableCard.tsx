@@ -160,6 +160,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
           >
             <ThemedText style={[styles.cardTitle, dynamicStyles.cardTitle]}>
               {title}
+              {cardId !== 0 && ` #${cardId}`}
             </ThemedText>
             <ThemedText style={styles.swipeHint}>← Glisser →</ThemedText>
           </View>

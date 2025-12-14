@@ -151,8 +151,8 @@ export default function HomeScreen() {
   const MatchCard = ({ match }: { match: Match }) => {
     return (
       <SwipeableCard
-        title="Match"
-        cardId={match.id}
+        title={match.name}
+        cardId={0}
         borderTopColor={theme.primary}
         onEdit={() => viewMatchDetails(match.id)}
         onDelete={() => deleteMatch(match.id)}
