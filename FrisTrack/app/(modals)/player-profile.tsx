@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -17,12 +17,24 @@ import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/contexts/ThemeContext";
 import { authService } from "@/services/getUserLogin";
 
+interface PlayerUser {
+  id: number;
+  lastname: string;
+  firstname: string;
+  profile_picture: string;
+  foot_size: number;
+  dominant_hand: string;
+  user_weight: number;
+  user_height: number;
+  age: number;
+}
+
 export default function PlayerProfilScreen() {
   const { theme } = useTheme();
   const { playerId } = useLocalSearchParams();
-  const currentPlayerId = playerId ? parseInt(playerId as string) : 1;
+  const currentPlayerId = playerId ? parseInt(playerId as string, 10) : 1;
   const [showFullImage, setShowFullImage] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<PlayerUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -32,24 +44,19 @@ export default function PlayerProfilScreen() {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  useEffect(() => {
-    loadUserData();
-  }, [currentPlayerId]);
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(false);
       const userData = await authService.getUserById(currentPlayerId);
 
       if (!userData) {
-        console.error("User not found");
         setUser(null);
         setError(true);
         return;
       }
 
-      const formattedUser = {
+      const formattedUser: PlayerUser = {
         id: userData.user_id,
         lastname: userData.lastname,
         firstname: userData.firstname,
@@ -72,13 +79,16 @@ export default function PlayerProfilScreen() {
       };
       setUser(formattedUser);
     } catch (error) {
-      console.error("Error loading user data:", error);
       setUser(null);
       setError(true);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPlayerId]);
+
+  useEffect(() => {
+    loadUserData();
+  }, [loadUserData]);
 
   if (isLoading) {
     return (

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "expo-router";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { Platform, StyleSheet, Switch, View } from "react-native";
 import { BackButton } from "@/components/perso_components/BackButton";
 import { ColorOption } from "@/components/perso_components/ColorOption";
@@ -92,9 +92,9 @@ export default function SettingsScreen() {
 					</ThemedText>
 
 					<View style={styles.colorGrid}>
-						{themeColors.map((color, index) => (
+						{themeColors.map((color) => (
 							<ColorOption
-								key={index}
+								key={color.value}
 								color={color}
 								label={color.label}
 								isSelected={selectedColor === color.value}
