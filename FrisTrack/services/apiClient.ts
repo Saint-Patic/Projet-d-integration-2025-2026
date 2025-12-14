@@ -44,8 +44,6 @@ apiClient.interceptors.request.use(
 // Intercepteur de réponse
 apiClient.interceptors.response.use(
   (response) => {
-
-    }
     return response;
   },
   async (error) => {
