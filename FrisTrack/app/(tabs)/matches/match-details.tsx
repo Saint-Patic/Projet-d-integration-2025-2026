@@ -155,7 +155,6 @@ export default function MatchDetailsScreen() {
 	const [match, setMatch] = useState<Match | null | undefined>(undefined);
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
 	const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-	const [isRecording, setIsRecording] = useState(false);
 
 	const [score1, setScore1] = useState<number>(0);
 	const [score2, setScore2] = useState<number>(0);
@@ -184,10 +183,6 @@ export default function MatchDetailsScreen() {
 	if (match) {
 		setScore1(match.team_score_1 ?? 0);
 		setScore2(match.team_score_2 ?? 0);
-		setIsRecording(match.status === "in_progress");
-		if (match.status === "finished" && match.recordingDuration) {
-			setElapsedSeconds(match.recordingDuration);
-		}
 	}
 }, [match]);
 
@@ -278,43 +273,52 @@ async function handleDeltaTeam2(delta: number) {
 	};
 
 	const handleStartStop = async () => {
-		if (!matchId) return;
+		if (!matchId || !match) return;
 
-		if (isRecording) {
-			// Stop: mettre le match en "finished"
+		if (match.isRecording) {
+			// Stop: calculer la durée et mettre le match en "finished"
+			const duration = match.recordingStartTime
+				? Math.floor((Date.now() - match.recordingStartTime) / 1000)
+				: elapsedSeconds;
+			
 			try {
 				await updateMatch(matchId, {
 					status: "finished",
-					recordingDuration: elapsedSeconds,
 					isRecording: false,
 					hasRecording: true,
+					recordingDuration: duration,
+					recordingStartTime: undefined,
 				});
-				setMatch((prev) => prev ? {
-					...prev,
+				setMatch({
+					...match,
 					status: "finished",
-					recordingDuration: elapsedSeconds,
 					isRecording: false,
 					hasRecording: true,
-				} : prev);
-				setIsRecording(false);
+					recordingDuration: duration,
+					recordingStartTime: undefined,
+				});
+				setElapsedSeconds(duration);
 			} catch (e) {
 				console.error("Erreur lors de l'arrêt du match:", e);
 				Alert.alert("Erreur", "Impossible d'arrêter le match");
 			}
 		} else {
-			// Start: mettre le match en "in_progress"
+			// Start: démarrer avec timestamp et mettre en "in_progress"
+			const startTime = Date.now();
+			
 			try {
 				await updateMatch(matchId, {
 					status: "in_progress",
 					isRecording: true,
+					recordingStartTime: startTime,
 				});
-				setMatch((prev) => prev ? {
-					...prev,
+				setElapsedSeconds(0);
+				setMatch({
+					...match,
 					status: "in_progress",
 					isRecording: true,
-				} : prev);
-				setElapsedSeconds(0);
-				setIsRecording(true);
+					recordingStartTime: startTime,
+				});
 			} catch (e) {
 				console.error("Erreur lors du démarrage du match:", e);
 				Alert.alert("Erreur", "Impossible de démarrer le match");
@@ -322,13 +326,30 @@ async function handleDeltaTeam2(delta: number) {
 		}
 	};
 
-	// Démarre/arrête le chrono en fonction de isRecording
+	// Démarre/arrête le chrono en fonction de match.isRecording
 	useEffect(() => {
-		if (isRecording) {
-			timerRef.current = setInterval(() => {
-				setElapsedSeconds((prev) => prev + 1);
-			}, 1000);
+		if (!match) return;
+
+		// Si le match a une durée enregistrée (après Stop), l'afficher
+		if (match.recordingDuration && !match.isRecording) {
+			setElapsedSeconds(match.recordingDuration);
+			return;
+		}
+
+		if (match.isRecording && match.recordingStartTime) {
+			// Calculer le temps écoulé depuis le début
+			const updateElapsed = () => {
+				const elapsed = Math.floor((Date.now() - match.recordingStartTime!) / 1000);
+				setElapsedSeconds(elapsed);
+			};
+
+			// Mise à jour initiale
+			updateElapsed();
+
+			// Mise à jour toutes les secondes
+			timerRef.current = setInterval(updateElapsed, 1000);
 		} else {
+			// arrêt chrono
 			if (timerRef.current) {
 				clearInterval(timerRef.current);
 				timerRef.current = null;
@@ -341,7 +362,7 @@ async function handleDeltaTeam2(delta: number) {
 				timerRef.current = null;
 			}
 		};
-	}, [isRecording]);
+	}, [match]);
 
 	const formatTime = (total: number) => {
 		const mm = Math.floor(total / 60)
@@ -468,7 +489,7 @@ async function handleDeltaTeam2(delta: number) {
 
 				<View style={styles.metaRow}>
 					<ThemedText style={[styles.metaText, { color: theme.text }]}>
-						Statut: {match.status === "in_progress" ? "En cours" : match.status === "finished" ? "Termine" : "Programme"}
+						Statut: {match.status || "scheduled"}
 					</ThemedText>
 				</View>
 
@@ -480,17 +501,17 @@ async function handleDeltaTeam2(delta: number) {
 				</View>
 
 				{/* Bouton Start/Stop */}
-				{(match.status === "scheduled" || match.status === "in_progress") && (
+				{(!match.status || match.status === "scheduled" || match.status === "in_progress") && (
 					<View style={styles.recordingBlock}>
 						<TouchableOpacity
 							style={[
 								styles.reviewButton,
-								{ backgroundColor: isRecording ? "#e74c3c" : "#27ae60" },
+								{ backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60" },
 							]}
 							onPress={handleStartStop}
 						>
 							<ThemedText style={styles.reviewButtonText}>
-								{isRecording ? "Stop" : "Start"}
+								{match.isRecording ? "Stop" : "Start"}
 							</ThemedText>
 						</TouchableOpacity>
 					</View>
