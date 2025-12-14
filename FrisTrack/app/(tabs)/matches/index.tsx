@@ -83,7 +83,6 @@ export default function HomeScreen() {
         if (match.id === matchId) {
           const isRecording = !match.isRecording;
           if (isRecording) {
-            console.log(`Démarrage de l'enregistrement du match ${matchId}`);
             // Enregistrer l'heure de début
             const startTime = Date.now();
             updateMatch(matchId, {
@@ -96,7 +95,6 @@ export default function HomeScreen() {
               recordingStartTime: startTime,
             };
           } else {
-            console.log(`Arrêt de l'enregistrement du match ${matchId}`);
             // Calculer la durée totale en secondes
             const duration = match.recordingStartTime
               ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
