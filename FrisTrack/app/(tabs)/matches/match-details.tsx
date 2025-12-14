@@ -479,22 +479,27 @@ export default function MatchDetailsScreen() {
         </View>
 
         <View style={styles.metaRow}>
-          {match.status && (
-            <ThemedText style={[styles.metaText, { color: theme.text }]}>
-              Statut: {match.status}
-            </ThemedText>
-          )}
+          <ThemedText style={[styles.metaText, { color: theme.text }]}>
+            Statut: {
+              match.status === "finished" ? "Terminé" :
+              match.status === "in_progress" ? "En cours" :
+              match.status === "scheduled" ? "Programmé" :
+              match.isRecording ? "En cours" :
+              match.hasRecording ? "Terminé" :
+              "Programmé"
+            }
+          </ThemedText>
         </View>
 
         {/* Affichage du temps total (toujours affiché, même à 00:00) */}
         <View style={styles.timerContainer}>
           <ThemedText style={[styles.timerText, { color: theme.text }]}>
-            ⏱ Temps de match: {formatTime(elapsedSeconds)}
+            Temps de match: {formatTime(elapsedSeconds)}
           </ThemedText>
         </View>
 
         {/* Timer + Bouton Start/Stop (visible uniquement si pas encore de recording) */}
-        {match.status === "scheduled" && !match.hasRecording && (
+        {(match.status === "scheduled" || !match.status) && !match.hasRecording && (
           <View style={styles.recordingBlock}>
             {match.isRecording && (
               <View style={styles.timerContainer}>
