@@ -2,6 +2,7 @@ import apiClient from "./apiClient";
 
 export interface Match {
   id: number;
+  name: string;
   team_id_1?: number; // Ajoutez ceci
   team_id_2?: number; // Ajoutez ceci
   team_name_1: string;
@@ -79,9 +80,7 @@ export async function updateMatchScore(
   }
 }
 
-export const deleteMatch = async (
-  id: number
-): Promise<{ success: boolean; message: string }> => {
+export const deleteMatch = async (id: number): Promise<Match | null> => {
   try {
     const response = await apiClient.delete(`/matches/${id}`);
     return response.data;

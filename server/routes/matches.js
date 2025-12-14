@@ -82,6 +82,12 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
+    if (title.length > 26) {
+      return res.status(400).json({
+        error: "Titre trop long (max 26 charactères)",
+      });
+    }
+
     // Convertir la date du format DD/MM/YYYY au format YYYY-MM-DD
     let formattedDate;
     if (date.includes("/")) {
@@ -92,6 +98,27 @@ router.post("/", authMiddleware, async (req, res) => {
       )}`;
     } else {
       formattedDate = date; // Au cas où la date serait déjà au bon format
+    }
+    // Validation de la date
+    const matchDate = new Date(formattedDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Vérifier que la date n'est pas dans le passé
+    if (matchDate < today) {
+      return res.status(400).json({
+        error: "Le match ne peut pas se dérouler dans le passé",
+      });
+    }
+
+    // Vérifier que la date n'est pas plus de 10 ans dans le futur
+    const maxDate = new Date(today);
+    maxDate.setFullYear(today.getFullYear() + 10);
+
+    if (matchDate > maxDate) {
+      return res.status(400).json({
+        error: "Le match ne peut pas se passer dans plus de 10 ans",
+      });
     }
 
     // Construire la date complète au format YYYY-MM-DD HH:MM:SS

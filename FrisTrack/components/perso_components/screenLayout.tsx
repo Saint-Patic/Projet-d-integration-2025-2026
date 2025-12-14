@@ -15,6 +15,7 @@ interface ScreenLayoutProps {
   titleOffset?: number;
   headerRight?: React.ReactNode;
   headerLeft?: React.ReactNode;
+  disableScroll?: boolean; // Nouvelle prop
   theme?: {
     primary: string;
     background: string;
@@ -31,6 +32,7 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   titleOffset = 0,
   headerRight,
   headerLeft,
+  disableScroll = false, // Par défaut, le scroll est activé
   theme,
 }: ScreenLayoutProps) => {
   // Couleurs par défaut si aucun thème n'est passé
@@ -83,15 +85,26 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
         {headerRight && <View style={styles.headerRight}>{headerRight}</View>}
       </ThemedView>
 
-      <ScrollView
-        style={[
-          styles.scrollableContent,
-          { backgroundColor: currentTheme.background },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {children}
-      </ScrollView>
+      {disableScroll ? (
+        <View
+          style={[
+            styles.scrollableContent,
+            { backgroundColor: currentTheme.background },
+          ]}
+        >
+          {children}
+        </View>
+      ) : (
+        <ScrollView
+          style={[
+            styles.scrollableContent,
+            { backgroundColor: currentTheme.background },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
+      )}
     </View>
   );
 };
