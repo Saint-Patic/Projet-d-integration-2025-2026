@@ -295,9 +295,6 @@ export default function TeamDetailsScreen() {
             },
           ]
         );
-      } else if (changedMembers.length > 0) {
-        // Pas de suppression, juste des changements de position
-        await performSaveChanges(changedMembers);
       } else {
         // Aucun changement
         await performSaveChanges(changedMembers);
