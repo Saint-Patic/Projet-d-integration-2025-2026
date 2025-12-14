@@ -65,4 +65,12 @@ BEGIN
     WHERE team_id = p_team;
 END$$
 
+CREATE PROCEDURE remove_player_from_team(
+    IN p_user_id INT,
+    IN p_team_id INT
+)
+BEGIN
+    DELETE FROM user_team 
+    WHERE user_id = p_user_id AND team_id = p_team_id;
+END$$
 DELIMITER ;
