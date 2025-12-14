@@ -45,10 +45,6 @@ export default function HomeScreen() {
     }, [user])
   );
 
-  const editMatch = (matchId: number) => {
-    console.log(`Édition du match ${matchId}`);
-  };
-
   const deleteMatch = (matchId: number) => {
     Alert.alert(
       "Supprimer le match",

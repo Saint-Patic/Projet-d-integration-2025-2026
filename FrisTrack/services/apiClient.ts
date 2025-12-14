@@ -29,15 +29,6 @@ apiClient.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
-
-      if (__DEV__) {
-        console.log("API Request:", {
-          url: config.url,
-          method: config.method,
-          baseURL: config.baseURL,
-          headers: config.headers,
-        });
-      }
     } catch (error) {
       console.error("Error retrieving auth token:", error);
     }
@@ -53,12 +44,7 @@ apiClient.interceptors.request.use(
 // Intercepteur de réponse
 apiClient.interceptors.response.use(
   (response) => {
-    if (__DEV__) {
-      console.log("API Response:", {
-        url: response.config.url,
-        status: response.status,
-        data: response.data,
-      });
+
     }
     return response;
   },
