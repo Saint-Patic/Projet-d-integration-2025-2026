@@ -5,6 +5,7 @@ const authMiddleware = require("../middleware/auth");
 const validator = require("../middleware/validator");
 const { callProcedure } = require("./utils");
 
+// Helper to execute procedures without result set (DELETE, UPDATE, INSERT)
 async function executeProcedure(sql, params = []) {
   const conn = await pool.getConnection();
   try {
@@ -109,6 +110,41 @@ router.get("/:id/players", authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE /api/teams/:teamId/players/:userId
+router.delete("/:teamId/players/:userId", authMiddleware, async (req, res) => {
+  try {
+    const { teamId, userId } = req.params;
+
+    // Validation des IDs
+    if (!validator.validateId(teamId)) {
+      return res.status(400).json({ error: "Invalid team ID" });
+    }
+    if (!validator.validateId(userId)) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+
+    // Vérifier que l'équipe existe
+    const teamRows = await callProcedure("CALL get_team_by_id(?)", [teamId]);
+    if (!teamRows || teamRows.length === 0) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    // Supprimer le joueur de l'équipe
+    await executeProcedure("CALL remove_player_from_team(?, ?)", [
+      userId,
+      teamId,
+    ]);
+
+    res.status(200).json({
+      message: "Player removed from team successfully",
+      userId: userId,
+      teamId: teamId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "db error" });
+  }
+});
 // POST /api/teams - Créer une nouvelle équipe
 router.post("/", authMiddleware, async (req, res) => {
   try {
