@@ -47,44 +47,6 @@ export default function TeamDetailsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCoach, setIsCoach] = useState(false);
 
-  useEffect(() => {
-    // Écouter les changements de navigation
-    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
-      if (
-        !isEditMode ||
-        (members.length === originalMembers.length &&
-          playersToRemove.length === 0)
-      ) {
-        // Laisser passer si pas en mode édition ou aucun changement
-        return;
-      }
-
-      // Empêcher l'action par défaut
-      e.preventDefault();
-
-      // Demander confirmation
-      Alert.alert(
-        "Modifications non enregistrées",
-        "Voulez-vous quitter sans enregistrer vos modifications ?",
-        [
-          { text: "Rester", style: "cancel" },
-          {
-            text: "Quitter",
-            style: "destructive",
-            onPress: () => {
-              setMembers([...originalMembers]);
-              setPlayersToRemove([]);
-              setIsEditMode(false);
-              navigation.dispatch(e.data.action);
-            },
-          },
-        ]
-      );
-    });
-
-    return unsubscribe;
-  }, [isEditMode, members, originalMembers, playersToRemove, navigation]);
-
   const loadTeamData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -121,14 +83,6 @@ export default function TeamDetailsScreen() {
   );
 
   useEffect(() => {
-    const handleBackPress = () => {
-      if (isEditMode) {
-        setMembers([...originalMembers]);
-        setPlayersToRemove([]);
-        setIsEditMode(false);
-      }
-    };
-
     const unsubscribe = navigation.addListener("beforeRemove", (e) => {
       if (
         !isEditMode ||
