@@ -118,10 +118,33 @@ app.get("/", (req, res) => {
   });
 });
 
-// Health check endpoint
-app.get("/health", (req, res) => {
+/// Health check endpoint avec vérification DB
+app.get("/health", async (req, res) => {
+  const pool = require("./pool");
+  let dbStatus = "Connected";
+  let dbError = null;
+
+  try {
+    const conn = await pool.getConnection();
+    await conn.ping();
+    conn.release();
+  } catch (err) {
+    dbStatus = "Disconnected";
+    dbError = err.message;
+    console.error("Health check DB error:", err);
+    return res.status(503).json({
+      status: "ERROR",
+      database: dbStatus,
+      error: dbError,
+      code: err.code,
+      sqlState: err.sqlState,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   res.json({
     status: "OK",
+    database: dbStatus,
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
   });
