@@ -168,121 +168,123 @@ export default function MatchDetailsScreen() {
     }
   };
 
-	// undefined = loading, null = not found, object = loaded
-	const [match, setMatch] = useState<Match | null | undefined>(undefined);
-	const [elapsedSeconds, setElapsedSeconds] = useState(0);
-	const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // undefined = loading, null = not found, object = loaded
+  const [match, setMatch] = useState<Match | null | undefined>(undefined);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-	const [score1, setScore1] = useState<number>(0);
-	const [score2, setScore2] = useState<number>(0);
+  const [score1, setScore1] = useState<number>(0);
+  const [score2, setScore2] = useState<number>(0);
 
-	useEffect(() => {
-		navigation.setOptions({ headerShown: false });
-	}, [navigation]);
+  useEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
-	useEffect(() => {
-		if (matchId != null) {
-			// start loading
-			setMatch(undefined);
-			getMatchById(matchId).then((m) => {
-				// m can be an object or null
-				setMatch(m ?? null);
-			});
-		} else {
-			setMatch(null);
-		}
-	}, [matchId]);
+  useEffect(() => {
+    if (matchId != null) {
+      // start loading
+      setMatch(undefined);
+      getMatchById(matchId).then((m) => {
+        // m can be an object or null
+        setMatch(m ?? null);
+      });
+    } else {
+      setMatch(null);
+    }
+  }, [matchId]);
 
-	const team1Id = match?.team_id_1;
-	const team2Id = match?.team_id_2;
+  const team1Id = match?.team_id_1;
+  const team2Id = match?.team_id_2;
 
-	useEffect(() => {
-		if (match) {
-			setScore1(match.team_score_1 ?? 0);
-			setScore2(match.team_score_2 ?? 0);
-		}
-	}, [match]);
+  useEffect(() => {
+    if (match) {
+      setScore1(match.team_score_1 ?? 0);
+      setScore2(match.team_score_2 ?? 0);
+    }
+  }, [match]);
 
-	async function handleDeltaTeam1(delta: number) {
-		const next = Math.min(13, Math.max(0, score1 + delta));
-		setScore1(next);
-		try {
-			if (matchId != null) {
-				await updateMatchScore(matchId, next, team1Id);
-			}
-			if (match) setMatch({ ...match, team_score_1: next });
-		} catch (e) {
-			console.warn("Erreur update team1 score", e);
-		}
-	}
+  async function handleDeltaTeam1(delta: number) {
+    const next = Math.min(13, Math.max(0, score1 + delta));
+    setScore1(next);
+    try {
+      if (matchId != null) {
+        await updateMatchScore(matchId, next, team1Id);
+      }
+      if (match) setMatch({ ...match, team_score_1: next });
+    } catch (e) {
+      console.warn("Erreur update team1 score", e);
+    }
+  }
 
-	async function handleDeltaTeam2(delta: number) {
-		const next = Math.min(13, Math.max(0, score2 + delta));
-		setScore2(next);
-		try {
-			if (matchId != null) {
-				await updateMatchScore(matchId, next, team2Id);
-			}
-			if (match) setMatch({ ...match, team_score_2: next });
-		} catch (e) {
-			console.warn("Erreur update team2 score", e);
-		}
-	}
+  async function handleDeltaTeam2(delta: number) {
+    const next = Math.min(13, Math.max(0, score2 + delta));
+    setScore2(next);
+    try {
+      if (matchId != null) {
+        await updateMatchScore(matchId, next, team2Id);
+      }
+      if (match) setMatch({ ...match, team_score_2: next });
+    } catch (e) {
+      console.warn("Erreur update team2 score", e);
+    }
+  }
 
-	// Start a location watcher when the screen is focused, stop when unfocused
-	useFocusEffect(
-		React.useCallback(() => {
-			let subscription: Location.LocationSubscription | null = null;
-			let mounted = true;
+  // Start a location watcher when the screen is focused, stop when unfocused
+  useFocusEffect(
+    React.useCallback(() => {
+      let subscription: Location.LocationSubscription | null = null;
+      let mounted = true;
 
-			const startWatching = async () => {
-				try {
-					setLocLoading(true);
-					setLocError(null);
+      const startWatching = async () => {
+        try {
+          setLocLoading(true);
+          setLocError(null);
 
-					const { status } = await Location.requestForegroundPermissionsAsync();
-					if (!mounted) return;
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (!mounted) return;
 
-					if (status !== "granted") {
-						setLocError("Permission refusée");
-						setLocLoading(false);
-						return;
-					}
+          if (status !== "granted") {
+            setLocError("Permission refusée");
+            setLocLoading(false);
+            return;
+          }
 
-					// Start watching position with high accuracy for real-time tracking on terrain
-					subscription = await Location.watchPositionAsync(
-						{
-							accuracy: Location.Accuracy.BestForNavigation,
-							timeInterval: 100, // update every 100ms for very smooth tracking
-							distanceInterval: 0, // update on any movement
-						},
-						(pos) => {
-							if (!mounted) return;
-							setLocation(pos);
-						}
-					);
-				} catch (e: any) {
-					setLocError(e?.message ?? "Erreur lors de la récupération de la position");
-				} finally {
-					if (mounted) setLocLoading(false);
-				}
-			};
+          // Start watching position with high accuracy for real-time tracking on terrain
+          subscription = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.BestForNavigation,
+              timeInterval: 100, // update every 100ms for very smooth tracking
+              distanceInterval: 0, // update on any movement
+            },
+            (pos) => {
+              if (!mounted) return;
+              setLocation(pos);
+            }
+          );
+        } catch (e: any) {
+          setLocError(
+            e?.message ?? "Erreur lors de la récupération de la position"
+          );
+        } finally {
+          if (mounted) setLocLoading(false);
+        }
+      };
 
-			startWatching();
+      startWatching();
 
-			return () => {
-				mounted = false;
-				if (subscription) {
-					subscription.remove();
-					subscription = null;
-				}
-			};
-		}, [])
-	);
+      return () => {
+        mounted = false;
+        if (subscription) {
+          subscription.remove();
+          subscription = null;
+        }
+      };
+    }, [])
+  );
 
-	const handleBack = () => {
-		router.back();
-	};
+  const handleBack = () => {
+    router.back();
+  };
 
 	const handleReview = () => {
 		console.log(`Ouverture de la revue du match ${matchId}`);
@@ -476,7 +478,7 @@ export default function MatchDetailsScreen() {
 				<View style={styles.scoreRow}>
 					<View style={[styles.scoreBox, { borderColor: theme.border }]}>
 						<ThemedText style={[styles.scoreNumber, { color: getTeamTextColor(true) }]}>
-							{match.team_score_1}
+							{score1}
 						</ThemedText>
 						<ThemedText style={[styles.teamLabel, { color: theme.primary }]}>
 							{match.team_name_1}
@@ -490,7 +492,7 @@ export default function MatchDetailsScreen() {
 
 					<View style={[styles.scoreBox, { borderColor: theme.border }]}>
 						<ThemedText style={[styles.scoreNumber, { color: getTeamTextColor(false) }]}>
-							{match.team_score_2}
+							{score2}
 						</ThemedText>
 						<ThemedText style={[styles.teamLabel, { color: theme.primary }]}>
 							{match.team_name_2}
@@ -499,6 +501,22 @@ export default function MatchDetailsScreen() {
 							({match.team2_status})
 						</ThemedText>
 					</View>
+				</View>
+
+				{/* Score controls - permet de modifier les scores pendant le match */}
+				<View style={styles.scoreControlsRow}>
+					<ScoreControl
+						teamLabel={""}
+						score={""}
+						onDelta={handleDeltaTeam1}
+						disabled={match.status === "completed"}
+					/>
+					<ScoreControl
+						teamLabel={""}
+						score={""}
+						onDelta={handleDeltaTeam2}
+						disabled={match.status === "completed"}
+					/>
 				</View>
 
 				<View style={styles.metaRow}>
@@ -1066,6 +1084,12 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		alignItems: "center",
 		marginBottom: 24,
+	},
+	scoreControlsRow: {
+		flexDirection: "row",
+		justifyContent: "space-around",
+		alignItems: "center",
+		marginBottom: 16,
 	},
 	scoreBox: {
 		flex: 1,
