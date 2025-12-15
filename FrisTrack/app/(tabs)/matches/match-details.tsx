@@ -168,128 +168,13 @@ export default function MatchDetailsScreen() {
     }
   };
 
-  // undefined = loading, null = not found, object = loaded
-  const [match, setMatch] = useState<Match | null | undefined>(undefined);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const [score1, setScore1] = useState<number>(0);
-  const [score2, setScore2] = useState<number>(0);
-
-  useEffect(() => {
-    navigation.setOptions({ headerShown: false });
-  }, [navigation]);
-
-  useEffect(() => {
-    if (matchId != null) {
-      // start loading
-      setMatch(undefined);
-      getMatchById(matchId).then((m) => {
-        // m can be an object or null
-        setMatch(m ?? null);
-      });
-    } else {
-      setMatch(null);
-    }
-  }, [matchId]);
-
-  const team1Id = match?.team_id_1;
-  const team2Id = match?.team_id_2;
-
-  useEffect(() => {
-    if (match) {
-      setScore1(match.team_score_1 ?? 0);
-      setScore2(match.team_score_2 ?? 0);
-    }
-  }, [match]);
-
-  async function handleDeltaTeam1(delta: number) {
-    const next = Math.min(13, Math.max(0, score1 + delta));
-    setScore1(next);
-    try {
-      if (matchId != null) {
-        await updateMatchScore(matchId, next, team1Id);
-      }
-      if (match) setMatch({ ...match, team_score_1: next });
-    } catch (e) {
-      console.warn("Erreur update team1 score", e);
-    }
-  }
-
-  async function handleDeltaTeam2(delta: number) {
-    const next = Math.min(13, Math.max(0, score2 + delta));
-    setScore2(next);
-    try {
-      if (matchId != null) {
-        await updateMatchScore(matchId, next, team2Id);
-      }
-      if (match) setMatch({ ...match, team_score_2: next });
-    } catch (e) {
-      console.warn("Erreur update team2 score", e);
-    }
-  }
-
-  // Start a location watcher when the screen is focused, stop when unfocused
-  useFocusEffect(
-    React.useCallback(() => {
-      let subscription: Location.LocationSubscription | null = null;
-      let mounted = true;
-
-      const startWatching = async () => {
-        try {
-          setLocLoading(true);
-          setLocError(null);
-
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          if (!mounted) return;
-
-          if (status !== "granted") {
-            setLocError("Permission refusée");
-            setLocLoading(false);
-            return;
-          }
-
-          // Start watching position. Adjust accuracy and distanceInterval as needed.
-          subscription = await Location.watchPositionAsync(
-            {
-              accuracy: Location.Accuracy.Balanced,
-              timeInterval: 3000, // minimum time between updates in ms
-              distanceInterval: 5, // minimum change in meters to receive update
-            },
-            (pos) => {
-              if (!mounted) return;
-              setLocation(pos);
-            }
-          );
-        } catch (e: any) {
-          setLocError(
-            e?.message ?? "Erreur lors de la récupération de la position"
-          );
-        } finally {
-          if (mounted) setLocLoading(false);
-        }
-      };
-
-      startWatching();
-
-      return () => {
-        mounted = false;
-        if (subscription) {
-          subscription.remove();
-          subscription = null;
-        }
-      };
-    }, [])
-  );
-
-  const handleBack = () => {
-    router.back();
-  };
-
 	// undefined = loading, null = not found, object = loaded
 	const [match, setMatch] = useState<Match | null | undefined>(undefined);
 	const [elapsedSeconds, setElapsedSeconds] = useState(0);
 	const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+	const [score1, setScore1] = useState<number>(0);
+	const [score2, setScore2] = useState<number>(0);
 
 	useEffect(() => {
 		navigation.setOptions({ headerShown: false });
@@ -307,6 +192,42 @@ export default function MatchDetailsScreen() {
 			setMatch(null);
 		}
 	}, [matchId]);
+
+	const team1Id = match?.team_id_1;
+	const team2Id = match?.team_id_2;
+
+	useEffect(() => {
+		if (match) {
+			setScore1(match.team_score_1 ?? 0);
+			setScore2(match.team_score_2 ?? 0);
+		}
+	}, [match]);
+
+	async function handleDeltaTeam1(delta: number) {
+		const next = Math.min(13, Math.max(0, score1 + delta));
+		setScore1(next);
+		try {
+			if (matchId != null) {
+				await updateMatchScore(matchId, next, team1Id);
+			}
+			if (match) setMatch({ ...match, team_score_1: next });
+		} catch (e) {
+			console.warn("Erreur update team1 score", e);
+		}
+	}
+
+	async function handleDeltaTeam2(delta: number) {
+		const next = Math.min(13, Math.max(0, score2 + delta));
+		setScore2(next);
+		try {
+			if (matchId != null) {
+				await updateMatchScore(matchId, next, team2Id);
+			}
+			if (match) setMatch({ ...match, team_score_2: next });
+		} catch (e) {
+			console.warn("Erreur update team2 score", e);
+		}
+	}
 
 	// Start a location watcher when the screen is focused, stop when unfocused
 	useFocusEffect(
