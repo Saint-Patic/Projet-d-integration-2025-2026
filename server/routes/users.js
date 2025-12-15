@@ -488,16 +488,4 @@ router.put(
   }
 );
 
-      res.json({
-        success: true,
-        message: "Rôle d'attaque mis à jour avec succès",
-      });
-    } catch (err) {
-      console.error("Erreur lors de la mise à jour du role_attack:", err);
-      res.status(500).json({ error: "Erreur serveur lors de la mise à jour" });
-    } finally {
-      conn.release();
-    }
-  }
-);
 module.exports = router;
