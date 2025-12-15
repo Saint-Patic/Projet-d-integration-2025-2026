@@ -43,6 +43,7 @@ export interface RegisterUserData {
 
 export interface Match {
   id: number;
+  name: string;
   team_name_1: string;
   team_name_2: string;
   team_score_1: number;

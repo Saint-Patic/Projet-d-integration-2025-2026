@@ -62,6 +62,9 @@ const matches = loadRoute("/routes/matches".replace(/^\.\//, "routes/"));
 const auth = loadRoute("/routes/auth".replace(/^\.\//, "routes/"));
 const users = loadRoute("/routes/users".replace(/^\.\//, "routes/"));
 const fields = loadRoute("/routes/fields".replace(/^\.\//, "routes/"));
+const localisation = loadRoute(
+  "/routes/localisation".replace(/^\.\//, "routes/")
+);
 
 const app = express();
 
@@ -130,6 +133,7 @@ app.use("/api/teams", teams);
 app.use("/api/matches", matches);
 app.use("/api/users", users);
 app.use("/api/fields", fields);
+app.use("/api/localisation", localisation);
 
 // Gestion des routes non trouvées (404)
 app.use((req, res) => {

@@ -72,8 +72,3 @@ if (!fs.existsSync(envDir)) {
 }
 
 fs.writeFileSync(envPath, envContent);
-console.log("✅ .env file created for development with local IP");
-console.log(`📍 API URL: http://${ip}:3300/api`);
-console.log("");
-console.log("💡 For production, manually set:");
-console.log("   EXPO_PUBLIC_API_URL=https://fristrack.duckdns.org/api");

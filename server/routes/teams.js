@@ -3,17 +3,18 @@ const router = express.Router();
 const pool = require("../pool");
 const authMiddleware = require("../middleware/auth");
 const validator = require("../middleware/validator");
+const { callProcedure, executeProcedure } = require("./utils"); // Importer executeProcedure depuis utils
 
-// Helper to call procedures
-async function callProcedure(sql, params = []) {
-  const conn = await pool.getConnection();
+// GET /api/teams/users/all - DOIT ÊTRE AVANT les routes paramétrées
+router.get("/users/all", authMiddleware, async (req, res) => {
   try {
-    const [rows] = await conn.query(sql, params);
-    return rows;
-  } finally {
-    conn.release();
+    const rows = await callProcedure("CALL get_all_users()");
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "db error" });
   }
-}
+});
 
 // GET /api/teams
 router.get("/", authMiddleware, async (req, res) => {

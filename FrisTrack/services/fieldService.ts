@@ -1,4 +1,4 @@
-import api from "./apiClient";
+import apiClient from "./apiClient";
 
 export interface FieldCreateRequest {
   name: string;
@@ -7,7 +7,7 @@ export interface FieldCreateRequest {
 
 export const createField = async (payload: FieldCreateRequest) => {
   try {
-    const response = await api.post("/fields", {
+    const response = await apiClient.post("/fields", {
       name: payload.name,
       corners: payload.corners,
     });
@@ -20,7 +20,7 @@ export const createField = async (payload: FieldCreateRequest) => {
 
 export const getFields = async () => {
   try {
-    const res = await api.get("/fields");
+    const res = await apiClient.get("/fields");
     return res.data;
   } catch (err) {
     console.error("Error fetching fields:", err);
@@ -28,9 +28,12 @@ export const getFields = async () => {
   }
 };
 
-export const deleteField = async (id: string | number) => {
+export const deleteField = async (nameOrId: string | number) => {
   try {
-    const res = await api.delete(`/fields/${id}`);
+    // Prefer deletion by name: call the server route /fields/name/:name
+    // If caller passes a number, convert to string
+    const asString = String(nameOrId);
+    const res = await apiClient.delete(`/fields/name/${encodeURIComponent(asString)}`);
     return res.data;
   } catch (err) {
     console.error("Error deleting field:", err);

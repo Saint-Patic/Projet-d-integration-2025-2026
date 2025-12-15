@@ -13,7 +13,6 @@ const validatePseudo = (pseudo) => {
   if (!pseudo || typeof pseudo !== "string") return false;
   const trimmed = pseudo.trim();
   if (trimmed.length < 3 || trimmed.length > 30) return false;
-
   return /^[a-zA-Z0-9_\-]{3,30}$/.test(trimmed);
 };
 
