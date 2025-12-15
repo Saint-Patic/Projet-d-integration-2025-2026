@@ -45,10 +45,6 @@ export default function HomeScreen() {
     }, [user])
   );
 
-  const editMatch = (matchId: number) => {
-    console.log(`Édition du match ${matchId}`);
-  };
-
   const deleteMatch = (matchId: number) => {
     Alert.alert(
       "Supprimer le match",
@@ -87,7 +83,6 @@ export default function HomeScreen() {
         if (match.id === matchId) {
           const isRecording = !match.isRecording;
           if (isRecording) {
-            console.log(`Démarrage de l'enregistrement du match ${matchId}`);
             // Enregistrer l'heure de début
             const startTime = Date.now();
             updateMatch(matchId, {
@@ -100,7 +95,6 @@ export default function HomeScreen() {
               recordingStartTime: startTime,
             };
           } else {
-            console.log(`Arrêt de l'enregistrement du match ${matchId}`);
             // Calculer la durée totale en secondes
             const duration = match.recordingStartTime
               ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
@@ -151,8 +145,8 @@ export default function HomeScreen() {
   const MatchCard = ({ match }: { match: Match }) => {
     return (
       <SwipeableCard
-        title="Match"
-        cardId={match.id}
+         title={match.name}
+        cardId={0}
         borderTopColor={theme.primary}
         onEdit={() => viewMatchDetails(match.id)}
         onDelete={() => deleteMatch(match.id)}

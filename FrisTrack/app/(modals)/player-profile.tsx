@@ -41,7 +41,6 @@ export default function PlayerProfilScreen() {
       setIsLoading(true);
       setError(false);
       const userData = await authService.getUserById(currentPlayerId);
-      console.log("🚀 ~ loadUserData ~ userData:", userData);
 
       if (!userData) {
         console.error("User not found");
