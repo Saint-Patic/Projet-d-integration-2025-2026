@@ -959,6 +959,8 @@ export default function MatchDetailsScreen() {
                 onPress={() => {
                   setTerrainValidated(false);
                   setActiveCorner(null);
+                  setShowSavedTerrains(false);
+                  setShowInitialChoice(false);
                 }}
                 style={[
                   styles.confirmButton,
