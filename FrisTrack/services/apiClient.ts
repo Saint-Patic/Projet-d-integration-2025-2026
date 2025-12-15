@@ -10,12 +10,12 @@ const getBaseURL = () => {
 
   // En production, utilise votre serveur personnel
   // IMPORTANT: Changez cette URL vers votre serveur réel
-  return process.env.EXPO_PUBLIC_API_URL || "https://api.votre-domaine.com/api";
+  return "https://fristrack.duckdns.org/api";
 };
 
 const apiClient = axios.create({
-  baseURL: getBaseURL(),
-  timeout: 15000, // Augmenté à 15s pour les connexions lentes
+  baseURL: API_BASE_URL,
+  timeout: 10000, // 10 secondes
   headers: {
     "Content-Type": "application/json",
   },
