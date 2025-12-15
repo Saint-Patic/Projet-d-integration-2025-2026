@@ -13,11 +13,14 @@ export interface Match {
   team2_status: string;
   date: string;
   status?: string;
+  status_match?: string;
   color?: string;
   isRecording?: boolean;
   hasRecording?: boolean;
   recordingStartTime?: number;
   recordingDuration?: number;
+  length_match?: number; // Pour l'écriture en DB
+  duree_match?: number; // Pour la lecture depuis la DB (alias de length_match)
 }
 export const getMatches = async (): Promise<Match[]> => {
   try {

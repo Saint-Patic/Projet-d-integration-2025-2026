@@ -300,10 +300,29 @@ export default function MatchDetailsScreen() {
   // Démarre/arrête le chrono en fonction de match.isRecording
   useEffect(() => {
     if (!match) return;
-
-    // Si le match a une durée enregistrée (après Stop), l'afficher
-    if (match.recordingDuration && !match.isRecording) {
-      setElapsedSeconds(match.recordingDuration);
+    console.log("Match test", match);
+    console.log("duree_match value:", match.duree_match, "type:", typeof match.duree_match);
+    
+    // Si le match est finished, charger la durée depuis duree_match
+    if (match.status_match === "finished" && match.duree_match != null) {
+      // Convertir TIME (HH:MM:SS) en secondes si c'est une chaîne
+      let seconds = 0;
+      if (typeof match.duree_match === "string") {
+        const parts = match.duree_match.split(":");
+        if (parts.length === 3) {
+          const h = parseInt(parts[0], 10) || 0;
+          const m = parseInt(parts[1], 10) || 0;
+          const s = parseInt(parts[2], 10) || 0;
+          seconds = h * 3600 + m * 60 + s;
+        } else {
+          // Si ce n'est pas au format HH:MM:SS, essayer de le parser comme nombre
+          seconds = parseInt(match.duree_match, 10) || 0;
+        }
+      } else {
+        seconds = Number(match.duree_match) || 0;
+      }
+      console.log("Converted seconds:", seconds);
+      setElapsedSeconds(seconds);
       return;
     }
 
@@ -346,7 +365,7 @@ export default function MatchDetailsScreen() {
   };
 
   const getTeamTextColor = (isTeam1: boolean) => {
-    if (!match || match.status !== "finished") {
+    if (!match || match.status_match !== "finished") {
       return theme.text;
     }
 
@@ -481,9 +500,9 @@ export default function MatchDetailsScreen() {
         <View style={styles.metaRow}>
           <ThemedText style={[styles.metaText, { color: theme.text }]}>
             Statut: {
-              match.status === "finished" ? "Terminé" :
-              match.status === "in_progress" ? "En cours" :
-              match.status === "scheduled" ? "Programmé" :
+              match.status_match === "finished" ? "Terminé" :
+              match.status_match === "in_progress" ? "En cours" :
+              match.status_match === "schedule" ? "Programmé" :
               match.isRecording ? "En cours" :
               match.hasRecording ? "Terminé" :
               "Programmé"
@@ -498,8 +517,8 @@ export default function MatchDetailsScreen() {
           </ThemedText>
         </View>
 
-        {/* Timer + Bouton Start/Stop (visible uniquement si pas encore de recording) */}
-        {(match.status === "scheduled" || !match.status) && !match.hasRecording && (
+        {/* Timer + Bouton Start/Stop (visible uniquement si pas encore fini) */}
+        {match.status_match === "schedule" && (
           <View style={styles.recordingBlock}>
             {match.isRecording && (
               <View style={styles.timerContainer}>
@@ -513,35 +532,36 @@ export default function MatchDetailsScreen() {
                 styles.reviewButton,
                 { backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60" },
               ]}
-              onPress={() => {
+              onPress={async () => {
                 if (match.isRecording) {
-                  // Stop: calculer la durée et marquer l'enregistrement
                   const duration = match.recordingStartTime
                     ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
                     : elapsedSeconds;
-                  // Persister dans le service
-                  updateMatch(matchId!, {
+                  
+                  // Mettre à jour l'état local
+                  const { recordingStartTime, ...matchWithoutStartTime } = match;
+                  const updatedMatch = {
+                    ...matchWithoutStartTime,
                     isRecording: false,
-                    hasRecording: true,
-                    recordingDuration: duration,
-                    recordingStartTime: undefined,
-                  });
-                  setMatch({
-                    ...match,
-                    isRecording: false,
-                    hasRecording: true,
-                    recordingDuration: duration,
-                    recordingStartTime: undefined,
-                  });
+                    status_match: "finished",
+                  };
+                  setMatch(updatedMatch);
                   setElapsedSeconds(duration);
+                  
+                  // Sauvegarder en base: changer status à finished et sauvegarder la durée
+                  try {
+                    if (matchId != null) {
+                      await updateMatch(matchId, {
+                        status_match: "finished",
+                        length_match: duration,
+                      });
+                    }
+                  } catch (e) {
+                    console.warn("Erreur lors de la sauvegarde de l'arrêt du recording", e);
+                  }
                 } else {
-                  // Start: démarrer avec timestamp
+                  // Start: démarrer avec timestamp (local seulement)
                   const startTime = Date.now();
-                  // Persister dans le service
-                  updateMatch(matchId!, {
-                    isRecording: true,
-                    recordingStartTime: startTime,
-                  });
                   setElapsedSeconds(0);
                   setMatch({
                     ...match,
@@ -558,8 +578,8 @@ export default function MatchDetailsScreen() {
           </View>
         )}
 
-        {/* Bouton Review */}
-        {match.hasRecording && (
+        {/* Bouton Review (visible quand le match est finished) */}
+        {match.status_match === "finished" && (
           <TouchableOpacity
             style={[styles.reviewButton, { backgroundColor: "#27ae60" }]}
             onPress={handleReview}
