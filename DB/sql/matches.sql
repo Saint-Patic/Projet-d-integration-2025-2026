@@ -5,6 +5,8 @@ CREATE PROCEDURE get_all_matches()
 BEGIN
     SELECT 
         m.match_id AS id,
+        tm1.team_id AS team_id_1,
+        tm2.team_id AS team_id_2,
         t1.team_name AS team_name_1,
         t2.team_name AS team_name_2,
         tm1.score AS team_score_1,
@@ -25,6 +27,8 @@ CREATE PROCEDURE get_match_by_id(IN p_match_id INT)
 BEGIN
     SELECT 
         m.match_id AS id,
+        tm1.team_id AS team_id_1,
+        tm2.team_id AS team_id_2,
         t1.team_name AS team_name_1,
         t2.team_name AS team_name_2,
         tm1.score AS team_score_1,
@@ -46,6 +50,8 @@ CREATE PROCEDURE get_matches_by_user(IN p_user_id INT)
 BEGIN
     SELECT 
         m.match_id AS id,
+        tm1.team_id AS team_id_1,
+        tm2.team_id AS team_id_2,
         t1.team_name AS team_name_1,
         t2.team_name AS team_name_2,
         tm1.score AS team_score_1,
@@ -64,5 +70,34 @@ BEGIN
         tm1.team_id IN (SELECT team_id FROM user_team WHERE user_id = p_user_id)
         OR tm2.team_id IN (SELECT team_id FROM user_team WHERE user_id = p_user_id)
       );
+END$$
+
+CREATE PROCEDURE delete_match(IN p_match_id INT)
+BEGIN
+    -- Supprimer d'abord les relations dans team_match
+    DELETE FROM team_match WHERE match_id = p_match_id;
+    
+    -- Supprimer ensuite le match
+    DELETE FROM match_frisbee WHERE match_id = p_match_id;
+END$$
+
+-- Procédure pour vérifier si un utilisateur peut supprimer un match
+CREATE PROCEDURE can_user_delete_match(
+    IN p_user_id INT,
+    IN p_match_id INT
+)
+BEGIN
+    SELECT 
+        CASE 
+            WHEN EXISTS (
+                SELECT 1
+                FROM team_match tm
+                INNER JOIN team t ON tm.team_id = t.team_id
+                WHERE tm.match_id = p_match_id
+                    AND tm.home_away_team = 'home'
+                    AND t.coach_id = p_user_id
+            ) THEN 1
+            ELSE 0
+        END AS can_delete;
 END$$
 DELIMITER ;

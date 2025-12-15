@@ -11,17 +11,7 @@ const {
   generalLimiter,
   updateLimiter,
 } = require("../middleware/rateLimiter");
-
-// Helper to call procedures
-async function callProcedure(sql, params = []) {
-  const conn = await pool.getConnection();
-  try {
-    const rows = await conn.query(sql, params);
-    return rows;
-  } finally {
-    conn.release();
-  }
-}
+const { callProcedure, executeProcedure } = require("./utils");
 
 // POST /api/users/login
 router.post("/login", loginLimiter, async (req, res) => {
@@ -204,8 +194,8 @@ router.get("/:id", authMiddleware, generalLimiter, async (req, res) => {
   try {
     const rows = await callProcedure("CALL get_user_info(?)", [id]);
 
-    if (rows && rows.length > 0 && rows[0].length > 0) {
-      const user = rows[0][0];
+    if (rows && rows.length > 0) {
+      const user = rows[0];
       if (user.birthdate) {
         user.birthdate = new Date(user.birthdate).toISOString();
       }
@@ -214,7 +204,7 @@ router.get("/:id", authMiddleware, generalLimiter, async (req, res) => {
       }
       res.json(user);
     } else {
-      res.json(null);
+      res.status(404).json({ error: "User not found" });
     }
   } catch (err) {
     console.error(err);
@@ -455,16 +445,17 @@ router.put(
 
     const conn = await pool.getConnection();
     try {
-      // Vérifier que l'utilisateur connecté est bien membre de l'équipe ou est coach
-      const [membership] = await conn.query(
-        `SELECT ut.user_id, u.user_type 
-       FROM user_team ut
-       JOIN users u ON ut.user_id = u.user_id
-       WHERE ut.team_id = ? AND ut.user_id = ?`,
-        [team_id, req.user.userId]
+      // Vérifier que l'utilisateur connecté est coach de l'équipe
+      const [teamRows] = await conn.query(
+        `SELECT coach_id FROM team WHERE team_id = ?`,
+        [team_id]
       );
 
-      if (!membership || membership.length === 0) {
+      if (!teamRows || !teamRows.coach_id) {
+        return res.status(404).json({ error: "Équipe non trouvée" });
+      }
+
+      if (teamRows.coach_id !== req.user.userId) {
         return res
           .status(403)
           .json({ error: "Non autorisé à modifier cette équipe" });
@@ -472,8 +463,8 @@ router.put(
 
       const result = await conn.query(
         `UPDATE user_team 
-       SET role_attack = ? 
-       WHERE team_id = ? AND user_id = ?`,
+         SET role_attack = ? 
+         WHERE team_id = ? AND user_id = ?`,
         [role_attack, team_id, user_id]
       );
 
@@ -496,5 +487,4 @@ router.put(
     }
   }
 );
-
 module.exports = router;
