@@ -365,7 +365,7 @@ export default function MatchDetailsScreen() {
   };
 
   const getTeamTextColor = (isTeam1: boolean) => {
-    if (!match || match.status_match !== "finished") {
+    if (!match || match.status !== "finished") {
       return theme.text;
     }
 

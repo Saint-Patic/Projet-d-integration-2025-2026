@@ -57,22 +57,8 @@ router.post("/register", registerLimiter, async (req, res) => {
     dominant_hand,
   } = req.body;
 
-  console.log("Registration request received:", {
-    email,
-    firstname,
-    lastname,
-    pseudo,
-    birthdate,
-    user_weight,
-    user_height,
-    foot_size,
-    dominant_hand,
-    passwordLength: password?.length,
-  });
-
   // Validation des champs obligatoires
   if (!(email && password && firstname && lastname && birthdate)) {
-    console.log("Missing required fields");
     return res
       .status(400)
       .json({ error: "Tous les champs obligatoires doivent être remplis" });
@@ -80,13 +66,11 @@ router.post("/register", registerLimiter, async (req, res) => {
 
   // Validation email
   if (!validator.validateEmail(email)) {
-    console.log("Invalid email format:", email);
     return res.status(400).json({ error: "Format d'email invalide" });
   }
 
   // Validation mot de passe
   if (!validator.validatePassword(password)) {
-    console.log("Invalid password format");
     return res.status(400).json({
       error:
         "Le mot de passe doit contenir au moins 10 caractères, 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial",
@@ -97,7 +81,6 @@ router.post("/register", registerLimiter, async (req, res) => {
   if (
     !(validator.validateName(firstname) && validator.validateName(lastname))
   ) {
-    console.log("Invalid firstname or lastname:", firstname, lastname);
     return res
       .status(400)
       .json({ error: "Nom et prénom invalides (minimum 2 caractères)" });
@@ -105,7 +88,6 @@ router.post("/register", registerLimiter, async (req, res) => {
 
   // Validation pseudo si fourni
   if (pseudo && !validator.validatePseudo(pseudo)) {
-    console.log("Invalid pseudo:", pseudo);
     return res.status(400).json({
       error:
         "Pseudo invalide (minimum 3 caractères, lettres, chiffres, _ et - uniquement)",
@@ -114,7 +96,6 @@ router.post("/register", registerLimiter, async (req, res) => {
 
   // Validation date de naissance
   if (!validator.validateBirthdate(birthdate)) {
-    console.log("Invalid birthdate:", birthdate);
     return res.status(400).json({ error: "Date de naissance invalide" });
   }
 
@@ -154,7 +135,6 @@ router.post("/register", registerLimiter, async (req, res) => {
       "right",
     ].includes(dominant_hand)
   ) {
-    console.log("Invalid dominant_hand:", dominant_hand);
     return res.status(400).json({ error: "Main dominante invalide" });
   }
 

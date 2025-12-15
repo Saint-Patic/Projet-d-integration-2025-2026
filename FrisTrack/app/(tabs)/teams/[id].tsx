@@ -47,44 +47,6 @@ export default function TeamDetailsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCoach, setIsCoach] = useState(false);
 
-  useEffect(() => {
-    // Écouter les changements de navigation
-    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
-      if (
-        !isEditMode ||
-        (members.length === originalMembers.length &&
-          playersToRemove.length === 0)
-      ) {
-        // Laisser passer si pas en mode édition ou aucun changement
-        return;
-      }
-
-      // Empêcher l'action par défaut
-      e.preventDefault();
-
-      // Demander confirmation
-      Alert.alert(
-        "Modifications non enregistrées",
-        "Voulez-vous quitter sans enregistrer vos modifications ?",
-        [
-          { text: "Rester", style: "cancel" },
-          {
-            text: "Quitter",
-            style: "destructive",
-            onPress: () => {
-              setMembers([...originalMembers]);
-              setPlayersToRemove([]);
-              setIsEditMode(false);
-              navigation.dispatch(e.data.action);
-            },
-          },
-        ]
-      );
-    });
-
-    return unsubscribe;
-  }, [isEditMode, members, originalMembers, playersToRemove, navigation]);
-
   const loadTeamData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -121,14 +83,6 @@ export default function TeamDetailsScreen() {
   );
 
   useEffect(() => {
-    const handleBackPress = () => {
-      if (isEditMode) {
-        setMembers([...originalMembers]);
-        setPlayersToRemove([]);
-        setIsEditMode(false);
-      }
-    };
-
     const unsubscribe = navigation.addListener("beforeRemove", (e) => {
       if (
         !isEditMode ||
@@ -213,7 +167,6 @@ export default function TeamDetailsScreen() {
   };
 
   const handlePlayerPress = (userId: number) => {
-    console.log("🚀 ~ handlePlayerPress ~ userId:", userId);
     if (!userId || userId <= 0) {
       console.warn("Invalid user ID:", userId);
       Alert.alert(
@@ -360,9 +313,97 @@ export default function TeamDetailsScreen() {
     }
 
     if (isEditMode) {
-      saveChanges();
+      // Sauvegarder uniquement s'il y a des suppressions ou des changements de position
+      const changedMembers = members.filter((member) => {
+        const original = originalMembers.find(
+          (m) => m.user_id === member.user_id
+        );
+        return original && original.position !== member.position;
+      });
+
+      if (playersToRemove.length > 0 || changedMembers.length > 0) {
+        saveChanges();
+      } else {
+        setIsEditMode(false);
+      }
     } else {
       setIsEditMode(true);
+    }
+  };
+
+  const handleAddPlayerWithValidation = () => {
+    if (!isCoach) {
+      Alert.alert(
+        "Permission refusée",
+        "Seul le coach peut ajouter des joueurs"
+      );
+      return;
+    }
+
+    // Si des joueurs sont marqués pour suppression, demander confirmation
+    if (playersToRemove.length > 0) {
+      const playersNames = playersToRemove
+        .map((userId) => {
+          const player = originalMembers.find((m) => m.user_id === userId);
+          return player?.name;
+        })
+        .filter(Boolean)
+        .join(", ");
+
+      Alert.alert(
+        "Confirmer les suppressions",
+        `Vous avez marqué ${playersNames} pour suppression. Voulez-vous valider ces suppressions avant d'ajouter de nouveaux joueurs ?`,
+        [
+          {
+            text: "Annuler",
+            style: "cancel",
+            // Ne fait rien, reste sur la page
+          },
+          {
+            text: "Valider et continuer",
+            onPress: async () => {
+              // Sauvegarder les suppressions
+              await performSaveChangesForAdd();
+              // Puis naviguer vers l'ajout
+              handleAddPlayer();
+            },
+          },
+        ]
+      );
+    } else {
+      // Pas de suppression, aller directement à l'ajout
+      handleAddPlayer();
+    }
+  };
+
+  const performSaveChangesForAdd = async () => {
+    let errorCount = 0;
+
+    // Supprimer les joueurs
+    for (const userId of playersToRemove) {
+      try {
+        await removePlayerFromTeam(userId, Number(id));
+      } catch (error) {
+        console.error(`Erreur pour la suppression du joueur ${userId}:`, error);
+        errorCount++;
+      }
+    }
+
+    if (errorCount === 0) {
+      // Mettre à jour l'état local
+      const newMembers = members.filter(
+        (m) => !playersToRemove.includes(m.user_id)
+      );
+      setMembers(newMembers);
+      setOriginalMembers(newMembers);
+      setPlayersToRemove([]);
+    } else {
+      await loadTeamData();
+      setPlayersToRemove([]);
+      Alert.alert(
+        "Attention",
+        "Certaines suppressions n'ont pas pu être effectuées"
+      );
     }
   };
 
@@ -570,7 +611,7 @@ export default function TeamDetailsScreen() {
         {isEditMode && isCoach && (
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: theme.primary }]}
-            onPress={handleAddPlayer}
+            onPress={handleAddPlayerWithValidation}
           >
             <ThemedText style={styles.addButtonText}>
               Ajouter un joueur

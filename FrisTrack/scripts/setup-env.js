@@ -39,4 +39,3 @@ if (!fs.existsSync(envDir)) {
   fs.mkdirSync(envDir, { recursive: true });
 }
 fs.writeFileSync(envPath, envContent);
-console.log(`.env file created with IP: ${ip}`);
