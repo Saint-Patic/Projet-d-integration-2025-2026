@@ -4,6 +4,7 @@ export * from "./getTeams";
 export * from "./getMatches";
 export * from "./addUserLogin";
 export * from "./fieldService";
+export * from "./teams";
 export type { LoginRequest, LoginResponse } from "./getUserLogin";
 export type { User, RegisterUserData } from "@/types/user";
-export type { UserProfile, GetUserResponse } from "./userService";
+export type { GetUserResponse } from "./userService";

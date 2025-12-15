@@ -10,11 +10,9 @@ const validateName = (name) => {
 
 // Validation du pseudo
 const validatePseudo = (pseudo) => {
-    
   if (!pseudo || typeof pseudo !== "string") return false;
   const trimmed = pseudo.trim();
   if (trimmed.length < 3 || trimmed.length > 30) return false;
-
   return /^[a-zA-Z0-9_\-]{3,30}$/.test(trimmed);
 };
 
@@ -85,8 +83,14 @@ const validateRoleAttack = (role) => {
   return validRoles.includes(role);
 };
 
-// Validation de l'ID
+// Validation de l'ID - stricte pour rejeter les décimales et caractères spéciaux
 const validateId = (id) => {
+  // Convertir en string pour vérifier le format
+  const idStr = String(id);
+
+  // Rejeter si contient des caractères non numériques (sauf signe moins au début)
+  if (!/^-?\d+$/.test(idStr)) return false;
+
   const num = parseInt(id, 10);
   return !isNaN(num) && num > 0 && num <= 2147483647;
 };
