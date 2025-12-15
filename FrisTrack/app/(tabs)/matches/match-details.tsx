@@ -694,28 +694,36 @@ export default function MatchDetailsScreen() {
 
 							{/* Coordinates shown near each corner */}
 							{savedCorners.tl && (
-								<ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsTL]}>
-									TL: {savedCorners.tl.coords.latitude.toFixed(6)},{" "}
-									{savedCorners.tl.coords.longitude.toFixed(6)}
-								</ThemedText>
+								<View pointerEvents="none" style={[styles.coordsText, styles.coordsTL]}>
+									<ThemedText style={styles.coordsTextInner}>
+										TL: {savedCorners.tl.coords.latitude.toFixed(6)},{" "}
+										{savedCorners.tl.coords.longitude.toFixed(6)}
+									</ThemedText>
+								</View>
 							)}
 							{savedCorners.tr && (
-								<ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsTR]}>
-									TR: {savedCorners.tr.coords.latitude.toFixed(6)},{" "}
-									{savedCorners.tr.coords.longitude.toFixed(6)}
-								</ThemedText>
+								<View pointerEvents="none" style={[styles.coordsText, styles.coordsTR]}>
+									<ThemedText style={styles.coordsTextInner}>
+										TR: {savedCorners.tr.coords.latitude.toFixed(6)},{" "}
+										{savedCorners.tr.coords.longitude.toFixed(6)}
+									</ThemedText>
+								</View>
 							)}
 							{savedCorners.bl && (
-								<ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsBL]}>
-									BL: {savedCorners.bl.coords.latitude.toFixed(6)},{" "}
-									{savedCorners.bl.coords.longitude.toFixed(6)}
-								</ThemedText>
+								<View pointerEvents="none" style={[styles.coordsText, styles.coordsBL]}>
+									<ThemedText style={styles.coordsTextInner}>
+										BL: {savedCorners.bl.coords.latitude.toFixed(6)},{" "}
+										{savedCorners.bl.coords.longitude.toFixed(6)}
+									</ThemedText>
+								</View>
 							)}
 						{savedCorners.br && (
-							<ThemedText pointerEvents="none" style={[styles.coordsText, styles.coordsBR]}>
-								BR: {savedCorners.br.coords.latitude.toFixed(6)},{" "}
-								{savedCorners.br.coords.longitude.toFixed(6)}
-							</ThemedText>
+							<View pointerEvents="none" style={[styles.coordsText, styles.coordsBR]}>
+								<ThemedText style={styles.coordsTextInner}>
+									BR: {savedCorners.br.coords.latitude.toFixed(6)},{" "}
+									{savedCorners.br.coords.longitude.toFixed(6)}
+								</ThemedText>
+							</View>
 						)}
 
 						{/* Real-time position marker */}
@@ -1373,15 +1381,16 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	coordsText: {
-		color: "#fff",
-		fontSize: 12,
-		fontWeight: "600",
-		marginBottom: 2,
 		position: "absolute",
 		backgroundColor: "rgba(0,0,0,0.5)",
 		paddingHorizontal: 6,
 		paddingVertical: 4,
 		borderRadius: 6,
+	},
+	coordsTextInner: {
+		color: "#fff",
+		fontSize: 12,
+		fontWeight: "600",
 	},
 	coordsTL: {
 		top: 8,
