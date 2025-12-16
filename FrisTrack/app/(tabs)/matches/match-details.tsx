@@ -1,19 +1,3 @@
-  // Sauvegarde du temps de match à chaque perte de focus (retour arrière, navigation)
-  useFocusEffect(
-    React.useCallback(() => {
-      // Pas d'action à l'arrivée
-      return () => {
-        // À la perte de focus, si le match est en cours, on sauvegarde le temps
-        if (match && match.isRecording && match.status_match === "en cours" && matchId != null) {
-          updateMatch(matchId, {
-            length_match: elapsedSeconds,
-          }).catch((e) => {
-            console.warn("Erreur lors de la sauvegarde du temps de match à la perte de focus", e);
-          });
-        }
-      };
-    }, [match, elapsedSeconds, matchId])
-  );
 import * as Location from "expo-location";
 import {
   router,
@@ -320,24 +304,35 @@ export default function MatchDetailsScreen() {
   // Sauvegarde automatique du temps de match pendant l'enregistrement
   useEffect(() => {
     if (!match) return;
-    // Si le match est finished, charger la durée depuis duree_match
-    if (match.status_match === "finished" && match.duree_match != null) {
-      let seconds = 0;
-      if (typeof match.duree_match === "string") {
-        const parts = match.duree_match.split(":");
+    console.log("Match data:", match);
+    // Toujours initialiser le chrono avec la valeur sauvegardée (duree_match ou length_match) si présente
+    let seconds = 0;
+    let rawDuration = undefined;
+    // Prend d'abord length_match si c'est un nombre valide, sinon duree_match si c'est un nombre ou string valide
+    if (typeof match.length_match === 'number' && !isNaN(match.length_match)) {
+      rawDuration = match.length_match;
+    } else if (typeof match.duree_match === 'number' && !isNaN(match.duree_match)) {
+      rawDuration = match.duree_match;
+    } else if (typeof match.duree_match === 'string') {
+      rawDuration = match.duree_match;
+    }
+    if (rawDuration != null && typeof rawDuration !== 'object') {
+      if (typeof rawDuration === "string") {
+        const parts = rawDuration.split(":");
         if (parts.length === 3) {
           const h = parseInt(parts[0], 10) || 0;
           const m = parseInt(parts[1], 10) || 0;
           const s = parseInt(parts[2], 10) || 0;
           seconds = h * 3600 + m * 60 + s;
         } else {
-          seconds = parseInt(match.duree_match, 10) || 0;
+          seconds = parseInt(rawDuration, 10) || 0;
         }
       } else {
-        seconds = Number(match.duree_match) || 0;
+        seconds = Number(rawDuration) || 0;
       }
-      setElapsedSeconds(seconds);
-      return;
+      if (!match.isRecording && elapsedSeconds !== seconds) {
+        setElapsedSeconds(seconds);
+      }
     }
 
     let saveTimer: ReturnType<typeof setInterval> | null = null;
@@ -577,7 +572,7 @@ export default function MatchDetailsScreen() {
                 if (match.isRecording) {
                   // STOP : terminer le match
                   const duration = match.recordingStartTime
-                    ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
+                    ? Math.floor((Date.now() - match.recordingStartTime) / 1000) + (match.length_match || 0)
                     : elapsedSeconds;
 
                   // Arrêter la sauvegarde auto avant de sauvegarder la durée finale
@@ -592,6 +587,7 @@ export default function MatchDetailsScreen() {
                     ...matchWithoutStartTime,
                     isRecording: false,
                     status_match: "finished",
+                    length_match: duration,
                   };
                   setMatch(updatedMatch);
                   setElapsedSeconds(duration);
@@ -610,14 +606,13 @@ export default function MatchDetailsScreen() {
                 } else {
                   // START : démarrer l'enregistrement
                   const startTime = Date.now();
-                  setElapsedSeconds(0);
+                  // On ne remet pas à zéro si une durée existe déjà
                   setMatch({
                     ...match,
                     isRecording: true,
                     recordingStartTime: startTime,
                     status_match: "en cours",
                   });
-                  
                   // Sauvegarder en base: changer status à "en cours"
                   try {
                     if (matchId != null) {

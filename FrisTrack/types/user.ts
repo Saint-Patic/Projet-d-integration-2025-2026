@@ -50,13 +50,13 @@ export interface Match {
   team_score_2: number;
   team1_status: string;
   team2_status: string;
-  date: string;
+  date: Date;
   status?: string;
   color?: string;
   isRecording?: boolean;
   hasRecording?: boolean;
   recordingStartTime?: number;
-  recordingDuration?: number;
+  recordingDuration?: string;
 }
 
 export interface Team {
