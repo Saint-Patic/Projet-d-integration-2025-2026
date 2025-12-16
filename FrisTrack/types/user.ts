@@ -61,6 +61,7 @@ export interface Match {
   recordingDuration?: string;
   length_match?: number; // Pour l'écriture en DB
   duree_match?: number; // Pour la lecture depuis la DB (alias de length_match)
+  id_field?: number | null;
 }
 
 export interface Team {
