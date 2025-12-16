@@ -23,7 +23,8 @@ import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createField, deleteField, getFields } from "@/services/fieldService";
-import { getMatchById, type Match, updateMatch } from "@/services/getMatches";
+import { getMatchById, updateMatch } from "@/services/getMatches";
+import { Match } from "@/types/user"
 import ScoreControl from "@/components/perso_components/ScoreControl";
 import { updateMatchScore } from "@/services/getMatches";
 
@@ -401,7 +402,7 @@ export default function MatchDetailsScreen() {
   };
 
   const getTeamTextColor = (isTeam1: boolean) => {
-    if (!match || match.status !== "finished") {
+    if (!match || match.status_match !== "finished") {
       return theme.text;
     }
 
