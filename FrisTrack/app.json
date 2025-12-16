@@ -3,6 +3,7 @@
     "name": "FrisTrack",
     "slug": "FrisTrack",
     "version": "1.0.0",
+    "owner": "naifu",
     "orientation": "portrait",
     "icon": "./assets/images/lezard.png",
     "scheme": "fristrack",
