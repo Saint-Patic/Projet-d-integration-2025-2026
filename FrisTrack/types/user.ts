@@ -56,7 +56,13 @@ export interface Match {
   isRecording?: boolean;
   hasRecording?: boolean;
   recordingStartTime?: number;
-  recordingDuration?: string;
+  recordingDuration?: number;
+  length_match?: number;
+  duree_match?: number | string;
+  status_match?: string;
+  team_id_1?: number;
+  team_id_2?: number;
+  id_field?: number | null;
 }
 
 export interface Team {

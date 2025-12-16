@@ -5,7 +5,7 @@ import {
   useLocalSearchParams,
   useNavigation,
 } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   type GestureResponderEvent,
@@ -22,10 +22,10 @@ import { BackButton } from "@/components/perso_components/BackButton";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/contexts/ThemeContext";
-import { createField, deleteField, getFields } from "@/services/fieldService";
-import { getMatchById, type Match, updateMatch } from "@/services/getMatches";
+import { createField, deleteField, getFields, getFieldById, linkFieldToMatch } from "@/services/fieldService";
+import { getMatchById, updateMatch, updateMatchScore } from "@/services/getMatches";
+import { Match } from "@/types/user";
 import ScoreControl from "@/components/perso_components/ScoreControl";
-import { updateMatchScore } from "@/services/getMatches";
 
 export default function MatchDetailsScreen() {
 	const params = useLocalSearchParams();
@@ -60,6 +60,8 @@ export default function MatchDetailsScreen() {
   );
   const [showSavedTerrains, setShowSavedTerrains] = useState(false);
   const [showInitialChoice, setShowInitialChoice] = useState(true);
+  const [linkedFieldId, setLinkedFieldId] = useState<number | null>(null);
+  const [linkedFieldName, setLinkedFieldName] = useState<string | null>(null);
   // Server-stored terrains only (no local persistence)
 
   const saveCurrentTerrain = async (name?: string) => {
@@ -128,6 +130,44 @@ export default function MatchDetailsScreen() {
     }
   };
 
+  // Fonction pour lier un terrain au match
+  const handleLinkFieldToMatch = async (fieldId: number, fieldName: string) => {
+    if (!matchId) return;
+    try {
+      await linkFieldToMatch(matchId, fieldId);
+      setLinkedFieldId(fieldId);
+      setLinkedFieldName(fieldName);
+      setSelectedTerrainId(fieldId.toString());
+      if (match) {
+        setMatch({ ...match, id_field: fieldId });
+      }
+      Alert.alert("Succès", `Le terrain "${fieldName}" a été lié au match.`);
+    } catch (err) {
+      console.error("Failed to link field to match:", err);
+      Alert.alert("Erreur", "Impossible de lier le terrain au match.");
+    }
+  };
+
+  // Charger le terrain lié au match s'il existe
+  const loadLinkedField = useCallback(async (fieldId: number) => {
+    console.log("=== loadLinkedField called with fieldId:", fieldId);
+    try {
+      const field = await getFieldById(fieldId);
+      console.log("=== getFieldById response:", field);
+      if (field) {
+        loadTerrain(field);
+        setLinkedFieldId(fieldId);
+        setLinkedFieldName(field.name || field.field_name);
+        setShowInitialChoice(false);
+        console.log("=== Terrain loaded successfully");
+      } else {
+        console.log("=== No field returned");
+      }
+    } catch (err) {
+      console.error("Failed to load linked field:", err);
+    }
+  }, []);
+
   // Load server terrains on mount so they are available immediately
   useEffect(() => {
     fetchServerTerrains();
@@ -186,15 +226,38 @@ export default function MatchDetailsScreen() {
       setMatch(undefined);
       getMatchById(matchId).then((m) => {
         // m can be an object or null
+        console.log("=== Match loaded:", m);
+        console.log("=== Match id_field:", m?.id_field);
         setMatch(m ?? null);
+        // Si le match a un terrain lié, le charger
+        if (m && m.id_field) {
+          console.log("=== Calling loadLinkedField with:", m.id_field);
+          loadLinkedField(m.id_field);
+        } else {
+          console.log("=== No id_field in match");
+        }
       });
     } else {
       setMatch(null);
     }
-  }, [matchId]);
+  }, [matchId, loadLinkedField]);
 
   const team1Id = match?.team_id_1;
   const team2Id = match?.team_id_2;
+
+  // Debug: log pour comprendre pourquoi le bouton Start/Stop ne s'affiche pas
+  useEffect(() => {
+    if (match) {
+      console.log('=== MATCH STATUS DEBUG ===');
+      console.log('match.status:', match.status);
+      console.log('match.status_match:', match.status_match);
+      console.log('match.hasRecording:', match.hasRecording);
+      console.log('match.isRecording:', match.isRecording);
+      console.log('Condition pour afficher bouton: status === "scheduled" && !hasRecording');
+      console.log('Résultat:', match.status === "scheduled" && !match.hasRecording);
+      console.log('==========================');
+    }
+  }, [match]);
 
   useEffect(() => {
     if (match) {
@@ -568,20 +631,25 @@ export default function MatchDetailsScreen() {
 						teamLabel={""}
 						score={""}
 						onDelta={handleDeltaTeam1}
-						disabled={match.status === "completed"}
+						disabled={match.status_match === "finished"}
 					/>
 					<ScoreControl
 						teamLabel={""}
 						score={""}
 						onDelta={handleDeltaTeam2}
-						disabled={match.status === "completed"}
+						disabled={match.status_match === "finished"}
 					/>
 				</View>
 
 				<View style={styles.metaRow}>
-					{match.status && (
+					{match.status_match && (
 						<ThemedText style={[styles.metaText, { color: theme.text }]}>
-							Statut: {match.status}
+							Statut: {match.status_match}
+						</ThemedText>
+					)}
+					{linkedFieldName && (
+						<ThemedText style={[styles.metaText, { color: theme.primary }]}>
+							🏟️ Terrain: {linkedFieldName}
 						</ThemedText>
 					)}
 				</View>
@@ -593,8 +661,8 @@ export default function MatchDetailsScreen() {
 					</ThemedText>
 				</View>
 
-				{/* Timer + Bouton Start/Stop (visible uniquement si pas encore de recording) */}
-				{match.status === "scheduled" && !match.hasRecording && (
+				{/* Timer + Bouton Start/Stop (visible si match pas terminé) */}
+				{match.status_match !== "finished" && (
 					<View style={styles.recordingBlock}>
 						{match.isRecording && (
 							<View style={styles.timerContainer}>
@@ -913,7 +981,7 @@ export default function MatchDetailsScreen() {
                   );
                 }
                 return (
-                  <ScrollView style={{ width: "100%", maxHeight: 160 }}>
+                  <ScrollView style={{ width: "100%", maxHeight: 200 }}>
                     {list.map((t: any, idx: number) => {
                       const key =
                         t.id ?? t.id_field ?? t.field_name ?? `terrain-${idx}`;
@@ -921,6 +989,8 @@ export default function MatchDetailsScreen() {
                         ? String(selectedTerrainId)
                         : null;
                       const itemId = t.id ?? t.id_field ?? null;
+                      const fieldName = t.name ?? t.field_name;
+                      const isLinkedToThisMatch = linkedFieldId === itemId;
                       return (
                         <View
                           key={key}
@@ -928,6 +998,7 @@ export default function MatchDetailsScreen() {
                             styles.terrainItem,
                             selectedKey === String(itemId) &&
                               styles.terrainSelected,
+                            isLinkedToThisMatch && styles.terrainLinked,
                           ]}
                         >
                           <View style={{ flex: 1 }}>
@@ -937,7 +1008,8 @@ export default function MatchDetailsScreen() {
                                 { color: theme.text },
                               ]}
                             >
-                              {t.name ?? t.field_name}
+                              {fieldName}
+                              {isLinkedToThisMatch && " (Lié)"}
                             </ThemedText>
                           </View>
                           <View style={styles.actionGroup}>
@@ -949,6 +1021,16 @@ export default function MatchDetailsScreen() {
                                 Charger
                               </ThemedText>
                             </TouchableOpacity>
+                            {!isLinkedToThisMatch && itemId && (
+                              <TouchableOpacity
+                                onPress={() => handleLinkFieldToMatch(itemId, fieldName)}
+                                style={styles.terrainLinkAction}
+                              >
+                                <ThemedText style={styles.terrainLinkActionText}>
+                                  Lier
+                                </ThemedText>
+                              </TouchableOpacity>
+                            )}
                             <TouchableOpacity
                               onPress={() => {
                                 Alert.alert(
@@ -1424,6 +1506,21 @@ const styles = StyleSheet.create({
 	},
 	terrainSelected: {
 		backgroundColor: "rgba(0,128,0,0.12)",
+	},
+	terrainLinked: {
+		backgroundColor: "rgba(0,150,255,0.15)",
+		borderLeftWidth: 3,
+		borderLeftColor: "#0096ff",
+	},
+	terrainLinkAction: {
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		backgroundColor: "#3498db",
+		borderRadius: 8,
+	},
+	terrainLinkActionText: {
+		color: "#fff",
+		fontWeight: "700",
 	},
 	smallToggleButton: {
 		paddingVertical: 8,
