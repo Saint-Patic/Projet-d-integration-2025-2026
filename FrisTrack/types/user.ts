@@ -46,17 +46,21 @@ export interface Match {
   name: string;
   team_name_1: string;
   team_name_2: string;
+  team_id_1?: number;
+  team_id_2?: number;
   team_score_1: number;
   team_score_2: number;
   team1_status: string;
   team2_status: string;
-  date: string;
-  status?: string;
+  date: Date;
+  status_match?: string;
   color?: string;
   isRecording?: boolean;
   hasRecording?: boolean;
   recordingStartTime?: number;
-  recordingDuration?: number;
+  recordingDuration?: string;
+  length_match?: number; // Pour l'écriture en DB
+  duree_match?: number; // Pour la lecture depuis la DB (alias de length_match)
 }
 
 export interface Team {

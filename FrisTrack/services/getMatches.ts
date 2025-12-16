@@ -1,28 +1,14 @@
 import apiClient from "./apiClient";
+import { Match } from "@/types/user";
 
-export interface Match {
-  id: number;
-  name: string;
-  team_id_1?: number; // Ajoutez ceci
-  team_id_2?: number; // Ajoutez ceci
-  team_name_1: string;
-  team_name_2: string;
-  team_score_1: number;
-  team_score_2: number;
-  team1_status: string;
-  team2_status: string;
-  date: string;
-  status?: string;
-  color?: string;
-  isRecording?: boolean;
-  hasRecording?: boolean;
-  recordingStartTime?: number;
-  recordingDuration?: number;
-}
 export const getMatches = async (): Promise<Match[]> => {
   try {
     const response = await apiClient.get<Match[]>("/matches");
-    return response.data;
+    const matches: Match[] = response.data.map(m => ({
+      ...m,
+      date: new Date(m.date)
+    }));
+    return matches;
   } catch (error) {
     console.error("Error fetching matches:", error);
     throw error;
@@ -32,7 +18,12 @@ export const getMatches = async (): Promise<Match[]> => {
 export const getMatchById = async (id: number): Promise<Match | null> => {
   try {
     const response = await apiClient.get<Match>(`/matches/${id}`);
-    return response.data;
+    const match: Match = {
+      ...response.data,
+      date: new Date(response.data.date)
+    };
+    console.log("Fetched match:", response.data);
+    return match;
   } catch (error) {
     console.error(`Error fetching match ${id}:`, error);
     return null;
@@ -95,7 +86,7 @@ export const finishMatch = async (
   score2: number
 ): Promise<Match | null> => {
   return updateMatch(id, {
-    status: "finished",
+    status_match: "finished",
     team_score_1: score1,
     team_score_2: score2,
     color: score1 > score2 ? "#27ae60" : "#e74c3c",
