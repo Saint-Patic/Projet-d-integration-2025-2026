@@ -1,3 +1,19 @@
+  // Sauvegarde du temps de match à chaque perte de focus (retour arrière, navigation)
+  useFocusEffect(
+    React.useCallback(() => {
+      // Pas d'action à l'arrivée
+      return () => {
+        // À la perte de focus, si le match est en cours, on sauvegarde le temps
+        if (match && match.isRecording && match.status_match === "en cours" && matchId != null) {
+          updateMatch(matchId, {
+            length_match: elapsedSeconds,
+          }).catch((e) => {
+            console.warn("Erreur lors de la sauvegarde du temps de match à la perte de focus", e);
+          });
+        }
+      };
+    }, [match, elapsedSeconds, matchId])
+  );
 import * as Location from "expo-location";
 import {
   router,
@@ -301,14 +317,11 @@ export default function MatchDetailsScreen() {
   };
 
   // Démarre/arrête le chrono en fonction de match.isRecording
+  // Sauvegarde automatique du temps de match pendant l'enregistrement
   useEffect(() => {
     if (!match) return;
-    console.log("Match test", match);
-    console.log("duree_match value:", match.duree_match, "type:", typeof match.duree_match);
-    
     // Si le match est finished, charger la durée depuis duree_match
     if (match.status_match === "finished" && match.duree_match != null) {
-      // Convertir TIME (HH:MM:SS) en secondes si c'est une chaîne
       let seconds = 0;
       if (typeof match.duree_match === "string") {
         const parts = match.duree_match.split(":");
@@ -318,18 +331,18 @@ export default function MatchDetailsScreen() {
           const s = parseInt(parts[2], 10) || 0;
           seconds = h * 3600 + m * 60 + s;
         } else {
-          // Si ce n'est pas au format HH:MM:SS, essayer de le parser comme nombre
           seconds = parseInt(match.duree_match, 10) || 0;
         }
       } else {
         seconds = Number(match.duree_match) || 0;
       }
-      console.log("Converted seconds:", seconds);
       setElapsedSeconds(seconds);
       return;
     }
 
-    if (match.isRecording && match.recordingStartTime) {
+    let saveTimer: ReturnType<typeof setInterval> | null = null;
+
+    if (match.isRecording && match.recordingStartTime && match.status_match === "en cours") {
       // Calculer le temps écoulé depuis le début
       const updateElapsed = () => {
         const elapsed = Math.floor(
@@ -340,9 +353,21 @@ export default function MatchDetailsScreen() {
 
       // Mise à jour initiale
       updateElapsed();
-
       // Mise à jour toutes les secondes
       timerRef.current = setInterval(updateElapsed, 1000);
+
+      // Sauvegarde automatique toutes les 5 secondes
+      saveTimer = setInterval(async () => {
+        try {
+          if (matchId != null && match.status_match === "en cours") {
+            await updateMatch(matchId, {
+              length_match: elapsedSeconds,
+            });
+          }
+        } catch (e) {
+          console.warn("Erreur lors de la sauvegarde auto du temps de match", e);
+        }
+      }, 5000);
     } else {
       // arrêt chrono
       if (timerRef.current) {
@@ -351,13 +376,26 @@ export default function MatchDetailsScreen() {
       }
     }
 
+    // Sauvegarde lors du démontage du composant
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      if (saveTimer) {
+        clearInterval(saveTimer);
+        saveTimer = null;
+      }
+      // Sauvegarde finale du temps si enregistrement en cours ET match pas terminé
+      if (match && match.isRecording && match.status_match === "en cours" && matchId != null) {
+        updateMatch(matchId, {
+          length_match: elapsedSeconds,
+        }).catch((e) => {
+          console.warn("Erreur lors de la sauvegarde finale du temps de match", e);
+        });
+      }
     };
-  }, [match]);
+  }, [match, elapsedSeconds, matchId]);
 
   const formatTime = (total: number) => {
     const mm = Math.floor(total / 60)
@@ -541,7 +579,13 @@ export default function MatchDetailsScreen() {
                   const duration = match.recordingStartTime
                     ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
                     : elapsedSeconds;
-                  
+
+                  // Arrêter la sauvegarde auto avant de sauvegarder la durée finale
+                  if (timerRef.current) {
+                    clearInterval(timerRef.current);
+                    timerRef.current = null;
+                  }
+
                   // Mettre à jour l'état local
                   const { recordingStartTime, ...matchWithoutStartTime } = match;
                   const updatedMatch = {
@@ -551,7 +595,7 @@ export default function MatchDetailsScreen() {
                   };
                   setMatch(updatedMatch);
                   setElapsedSeconds(duration);
-                  
+
                   // Sauvegarder en base: changer status à finished et sauvegarder la durée
                   try {
                     if (matchId != null) {
