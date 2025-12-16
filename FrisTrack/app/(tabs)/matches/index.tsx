@@ -26,22 +26,21 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
 
-  useEffect(() => {
+  const loadMatches = async () => {
     if (user?.user_id) {
-      getMatchesByUser(user.user_id).then((data) => {
-        setMatches(data);
-      });
+      const data = await getMatchesByUser(user.user_id);
+      setMatches(data);
     }
+  };
+
+  useEffect(() => {
+    loadMatches();
   }, [user]);
 
   // Recharger les données quand on revient sur cette page
   useFocusEffect(
     React.useCallback(() => {
-      if (user?.user_id) {
-        getMatchesByUser(user.user_id).then((data) => {
-          setMatches(data);
-        });
-      }
+      loadMatches();
     }, [user])
   );
 
@@ -77,46 +76,59 @@ export default function HomeScreen() {
     router.push({ pathname: "./matches/match-details", params: { matchId } });
   };
 
-  const toggleRecording = (matchId: number) => {
-    setMatches(
-      matches.map((match) => {
-        if (match.id === matchId) {
-          const isRecording = !match.isRecording;
-          if (isRecording) {
-            // Enregistrer l'heure de début
-            const startTime = Date.now();
-            updateMatch(matchId, {
-              isRecording: true,
-              recordingStartTime: startTime,
-            });
-            return {
-              ...match,
-              isRecording: true,
-              recordingStartTime: startTime,
-            };
-          } else {
-            // Calculer la durée totale en secondes
-            const duration = match.recordingStartTime
-              ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
-              : 0;
-            updateMatch(matchId, {
+  const toggleRecording = async (matchId: number) => {
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return;
+
+    const isCurrentlyRecording = match.isRecording || match.status_match === "en cours";
+
+    if (!isCurrentlyRecording) {
+      // Démarrer l'enregistrement
+      const startTime = Date.now();
+      
+      // Mise à jour optimiste de l'UI
+      setMatches(matches.map((m) => 
+        m.id === matchId 
+          ? { ...m, isRecording: true, recordingStartTime: startTime, status_match: "en cours" }
+          : m
+      ));
+
+      // Appel API
+      await updateMatch(matchId, {
+        status_match: "en cours",
+      });
+
+      // Recharger pour synchroniser
+      await loadMatches();
+    } else {
+      // Arrêter l'enregistrement = Terminer le match
+      const duration = match.recordingStartTime
+        ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
+        : 0;
+
+      // Mise à jour optimiste de l'UI
+      setMatches(matches.map((m) => 
+        m.id === matchId 
+          ? { 
+              ...m, 
               isRecording: false,
               hasRecording: true,
               recordingDuration: duration,
               recordingStartTime: undefined,
-            });
-            return {
-              ...match,
-              isRecording: false,
-              hasRecording: true,
-              recordingDuration: duration,
-              recordingStartTime: undefined,
-            };
-          }
-        }
-        return match;
-      })
-    );
+              status_match: "finished"
+            }
+          : m
+      ));
+
+      // Appel API
+      await updateMatch(matchId, {
+        status_match: "finished",
+        length_match: duration,
+      });
+
+      // Recharger pour synchroniser
+      await loadMatches();
+    }
   };
 
   const createNewMatch = () => {
@@ -222,14 +234,14 @@ export default function HomeScreen() {
               Voir détails
             </ThemedText>
           </TouchableOpacity>
-          {match.status === "scheduled" && !match.hasRecording && (
+          {((match.status === "scheduled" || match.status_match === "schedule" || match.status_match === "en cours") && !match.hasRecording) && (
             <TouchableOpacity
               style={[
                 styles.actionButton,
                 styles.secondaryButton,
                 {
-                  backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60",
-                  borderColor: match.isRecording ? "#e74c3c" : "#27ae60",
+                  backgroundColor: (match.isRecording || match.status_match === "en cours") ? "#e74c3c" : "#27ae60",
+                  borderColor: (match.isRecording || match.status_match === "en cours") ? "#e74c3c" : "#27ae60",
                 },
               ]}
               onPress={() => toggleRecording(match.id)}
@@ -237,7 +249,7 @@ export default function HomeScreen() {
               <ThemedText
                 style={[styles.secondaryButtonText, { color: "#ffffff" }]}
               >
-                {match.isRecording ? "⏹ Stop" : "▶ Start"}
+                {(match.isRecording || match.status_match === "en cours") ? "⏹ Stop" : "▶ Start"}
               </ThemedText>
             </TouchableOpacity>
           )}

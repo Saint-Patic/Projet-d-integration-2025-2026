@@ -28,6 +28,16 @@ export const getFields = async () => {
   }
 };
 
+export const getFieldById = async (id: number) => {
+  try {
+    const res = await apiClient.get(`/fields/${id}`);
+    return res.data;
+  } catch (err) {
+    console.error("Error fetching field by id:", err);
+    throw err;
+  }
+};
+
 export const deleteField = async (nameOrId: string | number) => {
   try {
     // Prefer deletion by name: call the server route /fields/name/:name
@@ -41,4 +51,14 @@ export const deleteField = async (nameOrId: string | number) => {
   }
 };
 
-export default { createField, getFields, deleteField };
+export const linkFieldToMatch = async (matchId: number, fieldId: number) => {
+  try {
+    const res = await apiClient.put(`/matches/${matchId}`, { id_field: fieldId });
+    return res.data;
+  } catch (err) {
+    console.error("Error linking field to match:", err);
+    throw err;
+  }
+};
+
+export default { createField, getFields, getFieldById, deleteField, linkFieldToMatch };

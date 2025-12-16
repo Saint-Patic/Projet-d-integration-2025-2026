@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 
 type Props = {
     teamLabel: string;
-    score: number;
+    score: string;
     onDelta: (delta: number) => void;
     disabled?: boolean;
 };
@@ -50,6 +50,6 @@ const styles = StyleSheet.create({
     },
     buttonText: { color: '#fff', fontSize: 16 },
     buttonTextDisabled: { opacity: 0.6 },
-    score: { marginHorizontal: 12, fontSize: 18, minWidth: 34, textAlign: 'center' },
+    score: { marginHorizontal: 1, fontSize: 18, minWidth: 34, textAlign: 'center' },
     scoreDisabled: { opacity: 0.5 },
 });
