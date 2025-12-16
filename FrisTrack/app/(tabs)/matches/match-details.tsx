@@ -23,9 +23,10 @@ import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createField, deleteField, getFields } from "@/services/fieldService";
-import { getMatchById, type Match, updateMatch } from "@/services/getMatches";
+import { getMatchById, updateMatch } from "@/services/getMatches";
 import ScoreControl from "@/components/perso_components/ScoreControl";
 import { updateMatchScore } from "@/services/getMatches";
+import { Match } from "@/types/user";
 
 export default function MatchDetailsScreen() {
   const params = useLocalSearchParams();
@@ -401,7 +402,7 @@ export default function MatchDetailsScreen() {
   };
 
   const getTeamTextColor = (isTeam1: boolean) => {
-    if (!match || match.status !== "finished") {
+    if (!match || match.status_match !== "finished") {
       return theme.text;
     }
 
@@ -537,11 +538,11 @@ export default function MatchDetailsScreen() {
           <ThemedText style={[styles.metaText, { color: theme.text }]}>
             Statut: {
               match.status_match === "finished" ? "Terminé" :
-              match.status_match === "en cours" ? "En cours" :
-              match.status_match === "schedule" ? "Programmé" :
-              match.isRecording ? "En cours" :
-              match.hasRecording ? "Terminé" :
-              "Programmé"
+                match.status_match === "en cours" ? "En cours" :
+                  match.status_match === "schedule" ? "Programmé" :
+                    match.isRecording ? "En cours" :
+                      match.hasRecording ? "Terminé" :
+                        "Programmé"
             }
           </ThemedText>
         </View>
@@ -570,7 +571,7 @@ export default function MatchDetailsScreen() {
               ]}
               onPress={async () => {
                 if (match.isRecording) {
-                  // STOP : terminer le match
+                  // STOP : arrêter l'enregistrement mais NE PAS terminer le match
                   const duration = match.recordingStartTime
                     ? Math.floor((Date.now() - match.recordingStartTime) / 1000) + (match.length_match || 0)
                     : elapsedSeconds;
@@ -586,17 +587,16 @@ export default function MatchDetailsScreen() {
                   const updatedMatch = {
                     ...matchWithoutStartTime,
                     isRecording: false,
-                    status_match: "finished",
+                    // status reste "en cours"
                     length_match: duration,
                   };
                   setMatch(updatedMatch);
                   setElapsedSeconds(duration);
 
-                  // Sauvegarder en base: changer status à finished et sauvegarder la durée
+                  // Sauvegarder en base: NE PAS changer status à finished, juste length_match
                   try {
                     if (matchId != null) {
                       await updateMatch(matchId, {
-                        status_match: "finished",
                         length_match: duration,
                       });
                     }
@@ -605,19 +605,17 @@ export default function MatchDetailsScreen() {
                   }
                 } else {
                   // START : démarrer l'enregistrement
-                  const startTime = Date.now();
-                  // On ne remet pas à zéro si une durée existe déjà
+                  const startTime = match.duree_match;
                   setMatch({
                     ...match,
                     isRecording: true,
                     recordingStartTime: startTime,
-                    status_match: "en cours",
+                    status: "en cours",
                   });
-                  // Sauvegarder en base: changer status à "en cours"
                   try {
                     if (matchId != null) {
                       await updateMatch(matchId, {
-                        status_match: "en cours",
+                        status: "en cours",
                       });
                     }
                   } catch (e) {
@@ -798,12 +796,12 @@ export default function MatchDetailsScreen() {
                   {saving
                     ? "Enregistrement..."
                     : terrainValidated
-                    ? "Terrain validé"
-                    : activeCorner
-                    ? `Valider coin ${activeCorner.toUpperCase()}`
-                    : allCornersSaved
-                    ? "Valider le terrain"
-                    : "Sélectionnez un coin"}
+                      ? "Terrain validé"
+                      : activeCorner
+                        ? `Valider coin ${activeCorner.toUpperCase()}`
+                        : allCornersSaved
+                          ? "Valider le terrain"
+                          : "Sélectionnez un coin"}
                 </ThemedText>
               </TouchableOpacity>
             </View>
@@ -898,7 +896,7 @@ export default function MatchDetailsScreen() {
                           style={[
                             styles.terrainItem,
                             selectedKey === String(itemId) &&
-                              styles.terrainSelected,
+                            styles.terrainSelected,
                           ]}
                         >
                           <View style={{ flex: 1 }}>
