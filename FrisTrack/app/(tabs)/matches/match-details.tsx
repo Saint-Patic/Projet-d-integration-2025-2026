@@ -24,9 +24,13 @@ import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createField, deleteField, getFields } from "@/services/fieldService";
 import { getMatchById, updateMatch } from "@/services/getMatches";
+<<<<<<< HEAD
 import { Match } from "@/types/user"
+=======
+>>>>>>> aaa848f9e05eab4267d832a901bcb7350d27b335
 import ScoreControl from "@/components/perso_components/ScoreControl";
 import { updateMatchScore } from "@/services/getMatches";
+import { Match } from "@/types/user";
 
 export default function MatchDetailsScreen() {
   const params = useLocalSearchParams();
@@ -310,14 +314,17 @@ export default function MatchDetailsScreen() {
     let seconds = 0;
     let rawDuration = undefined;
     // Prend d'abord length_match si c'est un nombre valide, sinon duree_match si c'est un nombre ou string valide
-    if (typeof match.length_match === 'number' && !isNaN(match.length_match)) {
+    if (typeof match.length_match === "number" && !isNaN(match.length_match)) {
       rawDuration = match.length_match;
-    } else if (typeof match.duree_match === 'number' && !isNaN(match.duree_match)) {
+    } else if (
+      typeof match.duree_match === "number" &&
+      !isNaN(match.duree_match)
+    ) {
       rawDuration = match.duree_match;
-    } else if (typeof match.duree_match === 'string') {
+    } else if (typeof match.duree_match === "string") {
       rawDuration = match.duree_match;
     }
-    if (rawDuration != null && typeof rawDuration !== 'object') {
+    if (rawDuration != null && typeof rawDuration !== "object") {
       if (typeof rawDuration === "string") {
         const parts = rawDuration.split(":");
         if (parts.length === 3) {
@@ -338,7 +345,11 @@ export default function MatchDetailsScreen() {
 
     let saveTimer: ReturnType<typeof setInterval> | null = null;
 
-    if (match.isRecording && match.recordingStartTime && match.status_match === "en cours") {
+    if (
+      match.isRecording &&
+      match.recordingStartTime &&
+      match.status_match === "en cours"
+    ) {
       // Calculer le temps écoulé depuis le début
       const updateElapsed = () => {
         const elapsed = Math.floor(
@@ -361,7 +372,10 @@ export default function MatchDetailsScreen() {
             });
           }
         } catch (e) {
-          console.warn("Erreur lors de la sauvegarde auto du temps de match", e);
+          console.warn(
+            "Erreur lors de la sauvegarde auto du temps de match",
+            e
+          );
         }
       }, 5000);
     } else {
@@ -383,11 +397,19 @@ export default function MatchDetailsScreen() {
         saveTimer = null;
       }
       // Sauvegarde finale du temps si enregistrement en cours ET match pas terminé
-      if (match && match.isRecording && match.status_match === "en cours" && matchId != null) {
+      if (
+        match &&
+        match.isRecording &&
+        match.status_match === "en cours" &&
+        matchId != null
+      ) {
         updateMatch(matchId, {
           length_match: elapsedSeconds,
         }).catch((e) => {
-          console.warn("Erreur lors de la sauvegarde finale du temps de match", e);
+          console.warn(
+            "Erreur lors de la sauvegarde finale du temps de match",
+            e
+          );
         });
       }
     };
@@ -536,14 +558,18 @@ export default function MatchDetailsScreen() {
 
         <View style={styles.metaRow}>
           <ThemedText style={[styles.metaText, { color: theme.text }]}>
-            Statut: {
-              match.status_match === "finished" ? "Terminé" :
-              match.status_match === "en cours" ? "En cours" :
-              match.status_match === "schedule" ? "Programmé" :
-              match.isRecording ? "En cours" :
-              match.hasRecording ? "Terminé" :
-              "Programmé"
-            }
+            Statut:{" "}
+            {match.status_match === "finished"
+              ? "Terminé"
+              : match.status_match === "en cours"
+              ? "En cours"
+              : match.status_match === "schedule"
+              ? "Programmé"
+              : match.isRecording
+              ? "En cours"
+              : match.hasRecording
+              ? "Terminé"
+              : "Programmé"}
           </ThemedText>
         </View>
 
@@ -555,7 +581,8 @@ export default function MatchDetailsScreen() {
         </View>
 
         {/* Timer + Bouton Start/Stop (visible uniquement si pas encore fini) */}
-        {(match.status_match === "schedule" || match.status_match === "en cours") && (
+        {(match.status_match === "schedule" ||
+          match.status_match === "en cours") && (
           <View style={styles.recordingBlock}>
             {match.isRecording && (
               <View style={styles.timerContainer}>
@@ -571,9 +598,11 @@ export default function MatchDetailsScreen() {
               ]}
               onPress={async () => {
                 if (match.isRecording) {
-                  // STOP : terminer le match
+                  // STOP : arrêter l'enregistrement mais NE PAS terminer le match
                   const duration = match.recordingStartTime
-                    ? Math.floor((Date.now() - match.recordingStartTime) / 1000) + (match.length_match || 0)
+                    ? Math.floor(
+                        (Date.now() - match.recordingStartTime) / 1000
+                      ) + (match.length_match || 0)
                     : elapsedSeconds;
 
                   // Arrêter la sauvegarde auto avant de sauvegarder la durée finale
@@ -583,38 +612,39 @@ export default function MatchDetailsScreen() {
                   }
 
                   // Mettre à jour l'état local
-                  const { recordingStartTime, ...matchWithoutStartTime } = match;
+                  const { recordingStartTime, ...matchWithoutStartTime } =
+                    match;
                   const updatedMatch = {
                     ...matchWithoutStartTime,
                     isRecording: false,
-                    status_match: "finished",
+                    // status reste "en cours"
                     length_match: duration,
                   };
                   setMatch(updatedMatch);
                   setElapsedSeconds(duration);
 
-                  // Sauvegarder en base: changer status à finished et sauvegarder la durée
+                  // Sauvegarder en base: NE PAS changer status à finished, juste length_match
                   try {
                     if (matchId != null) {
                       await updateMatch(matchId, {
-                        status_match: "finished",
                         length_match: duration,
                       });
                     }
                   } catch (e) {
-                    console.warn("Erreur lors de la sauvegarde de l'arrêt du recording", e);
+                    console.warn(
+                      "Erreur lors de la sauvegarde de l'arrêt du recording",
+                      e
+                    );
                   }
                 } else {
                   // START : démarrer l'enregistrement
-                  const startTime = Date.now();
-                  // On ne remet pas à zéro si une durée existe déjà
+                  const startTime = match.duree_match;
                   setMatch({
                     ...match,
                     isRecording: true,
                     recordingStartTime: startTime,
                     status_match: "en cours",
                   });
-                  // Sauvegarder en base: changer status à "en cours"
                   try {
                     if (matchId != null) {
                       await updateMatch(matchId, {
@@ -622,7 +652,10 @@ export default function MatchDetailsScreen() {
                       });
                     }
                   } catch (e) {
-                    console.warn("Erreur lors de la sauvegarde du démarrage du recording", e);
+                    console.warn(
+                      "Erreur lors de la sauvegarde du démarrage du recording",
+                      e
+                    );
                   }
                 }
               }}

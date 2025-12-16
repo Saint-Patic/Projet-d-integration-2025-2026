@@ -61,7 +61,7 @@ export default function HomeScreen() {
             } catch (error: any) {
               console.error("Error deleting match:", error);
               const errorMessage =
-                error.response?.data?.error || error.response?.status === 403
+                error.response?.data?.error || error.response?.status_match === 403
                   ? "Vous n'êtes pas autorisé à supprimer ce match. Seul le coach de l'équipe à domicile peut le faire."
                   : "Impossible de supprimer le match";
               Alert.alert("Erreur", errorMessage);
