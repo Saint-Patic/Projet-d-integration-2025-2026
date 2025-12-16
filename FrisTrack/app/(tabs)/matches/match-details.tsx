@@ -501,7 +501,7 @@ export default function MatchDetailsScreen() {
           <ThemedText style={[styles.metaText, { color: theme.text }]}>
             Statut: {
               match.status_match === "finished" ? "Terminé" :
-              match.status_match === "in_progress" ? "En cours" :
+              match.status_match === "en cours" ? "En cours" :
               match.status_match === "schedule" ? "Programmé" :
               match.isRecording ? "En cours" :
               match.hasRecording ? "Terminé" :
@@ -518,7 +518,7 @@ export default function MatchDetailsScreen() {
         </View>
 
         {/* Timer + Bouton Start/Stop (visible uniquement si pas encore fini) */}
-        {match.status_match === "schedule" && (
+        {(match.status_match === "schedule" || match.status_match === "en cours") && (
           <View style={styles.recordingBlock}>
             {match.isRecording && (
               <View style={styles.timerContainer}>
@@ -534,6 +534,7 @@ export default function MatchDetailsScreen() {
               ]}
               onPress={async () => {
                 if (match.isRecording) {
+                  // STOP : terminer le match
                   const duration = match.recordingStartTime
                     ? Math.floor((Date.now() - match.recordingStartTime) / 1000)
                     : elapsedSeconds;
@@ -560,14 +561,26 @@ export default function MatchDetailsScreen() {
                     console.warn("Erreur lors de la sauvegarde de l'arrêt du recording", e);
                   }
                 } else {
-                  // Start: démarrer avec timestamp (local seulement)
+                  // START : démarrer l'enregistrement
                   const startTime = Date.now();
                   setElapsedSeconds(0);
                   setMatch({
                     ...match,
                     isRecording: true,
                     recordingStartTime: startTime,
+                    status_match: "en cours",
                   });
+                  
+                  // Sauvegarder en base: changer status à "en cours"
+                  try {
+                    if (matchId != null) {
+                      await updateMatch(matchId, {
+                        status_match: "en cours",
+                      });
+                    }
+                  } catch (e) {
+                    console.warn("Erreur lors de la sauvegarde du démarrage du recording", e);
+                  }
                 }
               }}
             >
