@@ -10,6 +10,7 @@ import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { GPSProvider } from "@/contexts/GPSContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export const unstable_settings = {
@@ -22,33 +23,35 @@ export default function RootLayout() {
 	return (
 		<AuthProvider>
 			<ThemeProvider>
-				<GestureHandlerRootView style={styles.container}>
-					<NavigationThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-						<Stack>
-							<Stack.Screen
-								name="index"
-								options={{
-									headerShown: false,
-								}}
-							/>
-							<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-							<Stack.Screen
-								name="(modals)/player-profile"
-								options={{
-									headerShown: false,
-									presentation: "modal",
-								}}
-							/>
-							<Stack.Screen
-								name="+not-found"
-								options={{
-									title: "Page non trouvée",
-									headerShown: false,
-								}}
-							/>
-						</Stack>
-					</NavigationThemeProvider>
-				</GestureHandlerRootView>
+				<GPSProvider defaultSource="phone" autoWatchPhoneLocation={false}>
+					<GestureHandlerRootView style={styles.container}>
+						<NavigationThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+							<Stack>
+								<Stack.Screen
+									name="index"
+									options={{
+										headerShown: false,
+									}}
+								/>
+								<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+								<Stack.Screen
+									name="(modals)/player-profile"
+									options={{
+										headerShown: false,
+										presentation: "modal",
+									}}
+								/>
+								<Stack.Screen
+									name="+not-found"
+									options={{
+										title: "Page non trouvée",
+										headerShown: false,
+									}}
+								/>
+							</Stack>
+						</NavigationThemeProvider>
+					</GestureHandlerRootView>
+				</GPSProvider>
 			</ThemeProvider>
 		</AuthProvider>
 	);
