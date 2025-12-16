@@ -287,71 +287,130 @@ export default function MatchDetailsScreen() {
   };
 
 	const handleReview = () => {
-		console.log(`Ouverture de la revue du match ${matchId}`);
-		// TODO: Ajouter la logique pour ouvrir la revue/replay du match enregistré
-	};
+    Alert.alert(
+      "Fonction en développement",
+      "La fonctionnalité de revue de match est actuellement en cours de développement.",
+      [{ text: "OK" }]
+    );
+  };
 
-	// Démarre/arrête le chrono en fonction de match.isRecording
-	useEffect(() => {
-		if (!match) return;
+  // Démarre/arrête le chrono en fonction de match.isRecording
+  // Sauvegarde automatique du temps de match pendant l'enregistrement
+  useEffect(() => {
+    if (!match) return;
+    console.log("Match data:", match);
+    // Toujours initialiser le chrono avec la valeur sauvegardée (duree_match ou length_match) si présente
+    let seconds = 0;
+    let rawDuration = undefined;
+    // Prend d'abord length_match si c'est un nombre valide, sinon duree_match si c'est un nombre ou string valide
+    if (typeof match.length_match === 'number' && !isNaN(match.length_match)) {
+      rawDuration = match.length_match;
+    } else if (typeof match.duree_match === 'number' && !isNaN(match.duree_match)) {
+      rawDuration = match.duree_match;
+    } else if (typeof match.duree_match === 'string') {
+      rawDuration = match.duree_match;
+    }
+    if (rawDuration != null && typeof rawDuration !== 'object') {
+      if (typeof rawDuration === "string") {
+        const parts = rawDuration.split(":");
+        if (parts.length === 3) {
+          const h = parseInt(parts[0], 10) || 0;
+          const m = parseInt(parts[1], 10) || 0;
+          const s = parseInt(parts[2], 10) || 0;
+          seconds = h * 3600 + m * 60 + s;
+        } else {
+          seconds = parseInt(rawDuration, 10) || 0;
+        }
+      } else {
+        seconds = Number(rawDuration) || 0;
+      }
+      if (!match.isRecording && elapsedSeconds !== seconds) {
+        setElapsedSeconds(seconds);
+      }
+    }
 
-		// Si le match a une durée enregistrée (après Stop), l'afficher
-		if (match.recordingDuration && !match.isRecording) {
-			setElapsedSeconds(match.recordingDuration);
-			return;
-		}
+    let saveTimer: ReturnType<typeof setInterval> | null = null;
 
-		if (match.isRecording && match.recordingStartTime) {
-			// Calculer le temps écoulé depuis le début
-			const updateElapsed = () => {
-				const elapsed = Math.floor((Date.now() - match.recordingStartTime!) / 1000);
-				setElapsedSeconds(elapsed);
-			};
+    if (match.isRecording && match.recordingStartTime && match.status_match === "en cours") {
+      // Calculer le temps écoulé depuis le début
+      const updateElapsed = () => {
+        const elapsed = Math.floor(
+          (Date.now() - match.recordingStartTime!) / 1000
+        );
+        setElapsedSeconds(elapsed);
+      };
 
-			// Mise à jour initiale
-			updateElapsed();
+      // Mise à jour initiale
+      updateElapsed();
+      // Mise à jour toutes les secondes
+      timerRef.current = setInterval(updateElapsed, 1000);
 
-			// Mise à jour toutes les secondes
-			timerRef.current = setInterval(updateElapsed, 1000);
-		} else {
-			// arrêt chrono
-			if (timerRef.current) {
-				clearInterval(timerRef.current);
-				timerRef.current = null;
-			}
-		}
+      // Sauvegarde automatique toutes les 5 secondes
+      saveTimer = setInterval(async () => {
+        try {
+          if (matchId != null && match.status_match === "en cours") {
+            await updateMatch(matchId, {
+              length_match: elapsedSeconds,
+            });
+          }
+        } catch (e) {
+          console.warn("Erreur lors de la sauvegarde auto du temps de match", e);
+        }
+      }, 5000);
+    } else {
+      // arrêt chrono
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
 
-		return () => {
-			if (timerRef.current) {
-				clearInterval(timerRef.current);
-				timerRef.current = null;
-			}
-		};
-	}, [match]);
+    // Sauvegarde lors du démontage du composant
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      if (saveTimer) {
+        clearInterval(saveTimer);
+        saveTimer = null;
+      }
+      // Sauvegarde finale du temps si enregistrement en cours ET match pas terminé
+      if (match && match.isRecording && match.status_match === "en cours" && matchId != null) {
+        updateMatch(matchId, {
+          length_match: elapsedSeconds,
+        }).catch((e) => {
+          console.warn("Erreur lors de la sauvegarde finale du temps de match", e);
+        });
+      }
+    };
+  }, [match, elapsedSeconds, matchId]);
 
-	const formatTime = (total: number) => {
-		const mm = Math.floor(total / 60)
-			.toString()
-			.padStart(2, "0");
-		const ss = (total % 60).toString().padStart(2, "0");
-		return `${mm}:${ss}`;
-	};
+  const formatTime = (total: number) => {
+    const mm = Math.floor(total / 60)
+      .toString()
+      .padStart(2, "0");
+    const ss = (total % 60).toString().padStart(2, "0");
+    return `${mm}:${ss}`;
+  };
 
-	const getTeamTextColor = (isTeam1: boolean) => {
-		if (!match || match.status !== "finished") {
-			return theme.text;
-		}
+  const getTeamTextColor = (isTeam1: boolean) => {
+    if (!match || match.status !== "finished") {
+      return theme.text;
+    }
 
-		const team1Score = match.team_score_1;
-		const team2Score = match.team_score_2;
+    const team1Score = match.team_score_1;
+    const team2Score = match.team_score_2;
 
-		if (team1Score === team2Score) {
-			return theme.text;
-		}
+    if (team1Score === team2Score) {
+      return theme.text;
+    }
 
-		const isWinner = isTeam1 ? team1Score > team2Score : team2Score > team1Score;
-		return isWinner ? "#00e6cc" : "#ff8080";
-	};
+    const isWinner = isTeam1
+      ? team1Score > team2Score
+      : team2Score > team1Score;
+    return isWinner ? "#00e6cc" : "#ff8080";
+  };
 
 	// Corner click handler — receives which corner and optional event
 	const onCornerPress = (key: keyof typeof corners) => (e?: GestureResponderEvent) => {
