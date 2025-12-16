@@ -3,8 +3,8 @@ import apiClient from "./apiClient";
 export interface Match {
   id: number;
   name: string;
-  team_id_1?: number; // Ajoutez ceci
-  team_id_2?: number; // Ajoutez ceci
+  team_id_1?: number;
+  team_id_2?: number;
   team_name_1: string;
   team_name_2: string;
   team_score_1: number;
@@ -13,6 +13,7 @@ export interface Match {
   team2_status: string;
   date: string;
   status?: string;
+  label?: string;
   color?: string;
   isRecording?: boolean;
   hasRecording?: boolean;

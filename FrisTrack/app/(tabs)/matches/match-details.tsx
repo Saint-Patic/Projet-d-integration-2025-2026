@@ -1377,8 +1377,6 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		paddingHorizontal: 12,
 		borderRadius: 8,
-		borderWidth: 1,
-		borderColor: "#444",
 		marginBottom: 12,
 		alignItems: "center",
 	},
