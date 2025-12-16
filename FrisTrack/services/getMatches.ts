@@ -1,6 +1,26 @@
 import apiClient from "./apiClient";
 import { Match } from "@/types/user";
 
+export interface Match {
+  id: number;
+  name: string;
+  team_id_1?: number;
+  team_id_2?: number;
+  team_name_1: string;
+  team_name_2: string;
+  team_score_1: number;
+  team_score_2: number;
+  team1_status: string;
+  team2_status: string;
+  date: string;
+  status?: string;
+  label?: string;
+  color?: string;
+  isRecording?: boolean;
+  hasRecording?: boolean;
+  recordingStartTime?: number;
+  recordingDuration?: number;
+}
 export const getMatches = async (): Promise<Match[]> => {
   try {
     const response = await apiClient.get<Match[]>("/matches");
