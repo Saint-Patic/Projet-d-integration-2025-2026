@@ -293,8 +293,11 @@ export default function MatchDetailsScreen() {
   };
 
   const handleReview = () => {
-    console.log(`Ouverture de la revue du match ${matchId}`);
-    // TODO: Ajouter la logique pour ouvrir la revue/replay du match enregistré
+    Alert.alert(
+      "Fonction en développement",
+      "La fonctionnalité de revue de match est actuellement en cours de développement.",
+      [{ text: "OK" }]
+    );
   };
 
   // Démarre/arrête le chrono en fonction de match.isRecording
