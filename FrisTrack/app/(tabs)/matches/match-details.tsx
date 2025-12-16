@@ -5,7 +5,7 @@ import {
   useLocalSearchParams,
   useNavigation,
 } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   type GestureResponderEvent,
@@ -22,15 +22,10 @@ import { BackButton } from "@/components/perso_components/BackButton";
 import { ScreenLayout } from "@/components/perso_components/screenLayout";
 import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/contexts/ThemeContext";
-import { createField, deleteField, getFields } from "@/services/fieldService";
-import { getMatchById, updateMatch } from "@/services/getMatches";
-<<<<<<< HEAD
+import { createField, deleteField, getFields, getFieldById, linkFieldToMatch } from "@/services/fieldService";
+import { getMatchById, updateMatch, updateMatchScore } from "@/services/getMatches";
 import { Match } from "@/types/user"
-=======
->>>>>>> aaa848f9e05eab4267d832a901bcb7350d27b335
 import ScoreControl from "@/components/perso_components/ScoreControl";
-import { updateMatchScore } from "@/services/getMatches";
-import { Match } from "@/types/user";
 
 export default function MatchDetailsScreen() {
   const params = useLocalSearchParams();
@@ -71,6 +66,8 @@ export default function MatchDetailsScreen() {
   );
   const [showSavedTerrains, setShowSavedTerrains] = useState(false);
   const [showInitialChoice, setShowInitialChoice] = useState(true);
+  const [linkedFieldId, setLinkedFieldId] = useState<number | null>(null);
+  const [linkedFieldName, setLinkedFieldName] = useState<string | null>(null);
   // Server-stored terrains only (no local persistence)
 
   const saveCurrentTerrain = async (name?: string) => {
@@ -139,6 +136,44 @@ export default function MatchDetailsScreen() {
     }
   };
 
+  // Fonction pour lier un terrain au match
+  const handleLinkFieldToMatch = async (fieldId: number, fieldName: string) => {
+    if (!matchId) return;
+    try {
+      await linkFieldToMatch(matchId, fieldId);
+      setLinkedFieldId(fieldId);
+      setLinkedFieldName(fieldName);
+      setSelectedTerrainId(fieldId.toString());
+      if (match) {
+        setMatch({ ...match, id_field: fieldId });
+      }
+      Alert.alert("Succès", `Le terrain "${fieldName}" a été lié au match.`);
+    } catch (err) {
+      console.error("Failed to link field to match:", err);
+      Alert.alert("Erreur", "Impossible de lier le terrain au match.");
+    }
+  };
+
+  // Charger le terrain lié au match s'il existe
+  const loadLinkedField = useCallback(async (fieldId: number) => {
+    console.log("=== loadLinkedField called with fieldId:", fieldId);
+    try {
+      const field = await getFieldById(fieldId);
+      console.log("=== getFieldById response:", field);
+      if (field) {
+        loadTerrain(field);
+        setLinkedFieldId(fieldId);
+        setLinkedFieldName(field.name || field.field_name);
+        setShowInitialChoice(false);
+        console.log("=== Terrain loaded successfully");
+      } else {
+        console.log("=== No field returned");
+      }
+    } catch (err) {
+      console.error("Failed to load linked field:", err);
+    }
+  }, []);
+
   // Load server terrains on mount so they are available immediately
   useEffect(() => {
     fetchServerTerrains();
@@ -197,15 +232,38 @@ export default function MatchDetailsScreen() {
       setMatch(undefined);
       getMatchById(matchId).then((m) => {
         // m can be an object or null
+        console.log("=== Match loaded:", m);
+        console.log("=== Match id_field:", m?.id_field);
         setMatch(m ?? null);
+        // Si le match a un terrain lié, le charger
+        if (m && m.id_field) {
+          console.log("=== Calling loadLinkedField with:", m.id_field);
+          loadLinkedField(m.id_field);
+        } else {
+          console.log("=== No id_field in match");
+        }
       });
     } else {
       setMatch(null);
     }
-  }, [matchId]);
+  }, [matchId, loadLinkedField]);
 
   const team1Id = match?.team_id_1;
   const team2Id = match?.team_id_2;
+
+  // Debug: log pour comprendre pourquoi le bouton Start/Stop ne s'affiche pas
+  useEffect(() => {
+    if (match) {
+      console.log('=== MATCH STATUS DEBUG ===');
+      console.log('match.status:', match.status);
+      console.log('match.status_match:', match.status_match);
+      console.log('match.hasRecording:', match.hasRecording);
+      console.log('match.isRecording:', match.isRecording);
+      console.log('Condition pour afficher bouton: status === "scheduled" && !hasRecording');
+      console.log('Résultat:', match.status === "scheduled" && !match.hasRecording);
+      console.log('==========================');
+    }
+  }, [match]);
 
   useEffect(() => {
     if (match) {
@@ -441,6 +499,488 @@ export default function MatchDetailsScreen() {
     return isWinner ? "#00e6cc" : "#ff8080";
   };
 
+	// Corner click handler — receives which corner and optional event
+	const onCornerPress = (key: keyof typeof corners) => (e?: GestureResponderEvent) => {
+		// Toggle selection: if same corner is already active, deselect it
+		setActiveCorner((prev) => (prev === key ? null : key));
+
+		// For now just log the click; could open a modal or allow dragging to reposition
+		console.log(`Corner ${key} clicked`, corners[key]);
+	};
+
+	const allCornersSaved = ["tl", "tr", "bl", "br"].every((k) =>
+		Boolean(savedCorners[k as keyof typeof corners])
+	);
+
+	// Calculate user's relative position on the terrain (0-1 range for x and y)
+	// Uses bilinear interpolation based on the 4 GPS corners
+	const calculateRelativePosition = (): { x: number; y: number } | null => {
+		if (!currentLocation || !allCornersSaved) return null;
+		
+		const userLat = currentLocation.coords.latitude;
+		const userLon = currentLocation.coords.longitude;
+		
+		const tl = savedCorners.tl?.coords;
+		const tr = savedCorners.tr?.coords;
+		const bl = savedCorners.bl?.coords;
+		const br = savedCorners.br?.coords;
+		
+		if (!tl || !tr || !bl || !br) return null;
+		
+		// Calculate the terrain bounds
+		const minLat = Math.min(tl.latitude, tr.latitude, bl.latitude, br.latitude);
+		const maxLat = Math.max(tl.latitude, tr.latitude, bl.latitude, br.latitude);
+		const minLon = Math.min(tl.longitude, tr.longitude, bl.longitude, br.longitude);
+		const maxLon = Math.max(tl.longitude, tr.longitude, bl.longitude, br.longitude);
+		
+		// Normalize position to 0-1 range
+		// X: left to right (longitude), Y: top to bottom (latitude inverted)
+		const x = (userLon - minLon) / (maxLon - minLon || 1);
+		const y = (maxLat - userLat) / (maxLat - minLat || 1); // Inverted because screen Y goes down
+		
+		return { x, y };
+	};
+
+	const relativePosition = calculateRelativePosition();
+
+	// Handle confirm button: save a corner if selected, otherwise validate terrain when all corners saved
+	const handleConfirmPress = async () => {
+		if (terrainValidated) return;
+
+		if (activeCorner) {
+			// Save current corner position (same logic as before)
+			try {
+				setSaving(true);
+
+				const { status } = await Location.requestForegroundPermissionsAsync();
+				if (status !== "granted") {
+					setLocError("Permission refusée");
+					setSaving(false);
+					return;
+				}
+
+				const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+
+				setSavedCorners((prev) => ({ ...prev, [activeCorner]: pos }));
+				console.log(`Saved precise position for ${activeCorner}:`, pos);
+			} catch (e: any) {
+				setLocError(e?.message ?? "Erreur lors de la sauvegarde de la position");
+			} finally {
+				setSaving(false);
+			}
+		} else if (allCornersSaved && !activeCorner) {
+			// Finalize/validate the terrain: hide the corner handles
+			setTerrainValidated(true);
+			console.log("Terrain validé", savedCorners);
+		}
+	};
+
+	if (match === undefined) {
+		return (
+			<ScreenLayout
+				title="Détails du match"
+				headerLeft={<BackButton theme={theme} />}
+				theme={theme}
+			>
+				<View style={[styles.container, { backgroundColor: theme.background }]}>
+					<ThemedText style={[styles.loadingText, { color: theme.text }]}>Chargement...</ThemedText>
+				</View>
+			</ScreenLayout>
+		);
+	}
+
+	if (match === null) {
+		return (
+			<ScreenLayout
+				title="Détails du match"
+				headerLeft={<BackButton theme={theme} />}
+				theme={theme}
+			>
+				<View style={[styles.container, { backgroundColor: theme.background }]}>
+					<ThemedText style={[styles.loadingText, { color: theme.text }]}>
+						Match introuvable
+					</ThemedText>
+					<TouchableOpacity
+						style={[styles.backButton, { backgroundColor: theme.primary }]}
+						onPress={handleBack}
+					>
+						<ThemedText style={styles.backButtonText}>Retour</ThemedText>
+					</TouchableOpacity>
+				</View>
+			</ScreenLayout>
+		);
+	}
+
+	return (
+		<ScreenLayout title="Détails du match" headerLeft={<BackButton theme={theme} />} theme={theme}>
+			<View style={[styles.container, { backgroundColor: theme.background }]}>
+				{/* Initial choice removed from top; will be shown above the field area instead */}
+				<View style={styles.headerRow}>
+					<ThemedText style={[styles.dateText, { color: theme.text }]}>
+						Date: {new Date(match.date).toLocaleDateString("fr-FR")}
+					</ThemedText>
+				</View>
+
+				<View style={styles.scoreRow}>
+					<View style={[styles.scoreBox, { borderColor: theme.border }]}>
+						<ThemedText style={[styles.scoreNumber, { color: getTeamTextColor(true) }]}>
+							{score1}
+						</ThemedText>
+						<ThemedText style={[styles.teamLabel, { color: theme.primary }]}>
+							{match.team_name_1}
+						</ThemedText>
+						<ThemedText style={[styles.statusText, { color: theme.text }]}>
+							({match.team1_status})
+						</ThemedText>
+					</View>
+
+					<ThemedText style={[styles.versus, { color: theme.primary }]}>VS</ThemedText>
+
+					<View style={[styles.scoreBox, { borderColor: theme.border }]}>
+						<ThemedText style={[styles.scoreNumber, { color: getTeamTextColor(false) }]}>
+							{score2}
+						</ThemedText>
+						<ThemedText style={[styles.teamLabel, { color: theme.primary }]}>
+							{match.team_name_2}
+						</ThemedText>
+						<ThemedText style={[styles.statusText, { color: theme.text }]}>
+							({match.team2_status})
+						</ThemedText>
+					</View>
+				</View>
+
+				{/* Score controls - permet de modifier les scores pendant le match */}
+				<View style={styles.scoreControlsRow}>
+					<ScoreControl
+						teamLabel={""}
+						score={""}
+						onDelta={handleDeltaTeam1}
+						disabled={match.status_match === "finished"}
+					/>
+					<ScoreControl
+						teamLabel={""}
+						score={""}
+						onDelta={handleDeltaTeam2}
+						disabled={match.status_match === "finished"}
+					/>
+				</View>
+
+				<View style={styles.metaRow}>
+					{match.status_match && (
+						<ThemedText style={[styles.metaText, { color: theme.text }]}>
+							Statut: {match.status_match}
+						</ThemedText>
+					)}
+					{linkedFieldName && (
+						<ThemedText style={[styles.metaText, { color: theme.primary }]}>
+							🏟️ Terrain: {linkedFieldName}
+						</ThemedText>
+					)}
+				</View>
+
+				{/* Affichage du temps total (toujours affiché, même à 00:00) */}
+				<View style={styles.timerContainer}>
+					<ThemedText style={[styles.timerText, { color: theme.text }]}>
+						⏱ Temps de match: {formatTime(elapsedSeconds)}
+					</ThemedText>
+				</View>
+
+				{/* Timer + Bouton Start/Stop (visible si match pas terminé) */}
+				{match.status_match !== "finished" && (
+					<View style={styles.recordingBlock}>
+						{match.isRecording && (
+							<View style={styles.timerContainer}>
+								<ThemedText style={[styles.timerText, { color: theme.text }]}>
+									⏱ {formatTime(elapsedSeconds)}
+								</ThemedText>
+							</View>
+						)}
+						<TouchableOpacity
+							style={[
+								styles.reviewButton,
+								{ backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60" },
+							]}
+							onPress={() => {
+								if (match.isRecording) {
+									// Stop: calculer la durée et marquer l'enregistrement
+									const duration = match.recordingStartTime
+										? Math.floor((Date.now() - match.recordingStartTime) / 1000)
+										: elapsedSeconds;
+									// Persister dans le service
+									updateMatch(matchId!, {
+										isRecording: false,
+										hasRecording: true,
+										recordingDuration: duration,
+										recordingStartTime: undefined,
+									});
+									setMatch({
+										...match,
+										isRecording: false,
+										hasRecording: true,
+										recordingDuration: duration,
+										recordingStartTime: undefined,
+									});
+									setElapsedSeconds(duration);
+								} else {
+									// Start: démarrer avec timestamp
+									const startTime = Date.now();
+									// Persister dans le service
+									updateMatch(matchId!, {
+										isRecording: true,
+										recordingStartTime: startTime,
+									});
+									setElapsedSeconds(0);
+									setMatch({
+										...match,
+										isRecording: true,
+										recordingStartTime: startTime,
+									});
+								}
+							}}
+						>
+							<ThemedText style={styles.reviewButtonText}>
+								{match.isRecording ? "⏹ Stop" : "▶ Start"}
+							</ThemedText>
+						</TouchableOpacity>
+					</View>
+				)}
+
+				{/* Bouton Review */}
+				{match.hasRecording && (
+					<TouchableOpacity
+						style={[styles.reviewButton, { backgroundColor: "#27ae60" }]}
+						onPress={handleReview}
+					>
+						<ThemedText style={styles.reviewButtonText}>Review</ThemedText>
+					</TouchableOpacity>
+				)}
+				{/* Field rectangle (black) with 4 clickable corners */}
+				{/* Field rectangle (black) with 4 clickable corners */}
+				{!(showSavedTerrains || showInitialChoice) && (
+					<View style={styles.fieldWrapper}>
+						<View style={styles.fieldContainer}>
+							{!terrainValidated && (
+								<>
+									{/* Corner: top-left */}
+									<TouchableOpacity
+										accessibilityLabel="corner-top-left"
+										onPress={onCornerPress("tl")}
+										style={[
+											styles.cornerHandle,
+											styles.cornerTL,
+											activeCorner === "tl" && styles.cornerActive,
+										]}
+									>
+										<ThemedText
+											style={[
+												styles.cornerLabel,
+												{ color: activeCorner === "tl" ? "#003b22" : "#000" },
+											]}
+										>
+											TL
+										</ThemedText>
+									</TouchableOpacity>
+
+									{/* Corner: top-right */}
+									<TouchableOpacity
+										accessibilityLabel="corner-top-right"
+										onPress={onCornerPress("tr")}
+										style={[
+											styles.cornerHandle,
+											styles.cornerTR,
+											activeCorner === "tr" && styles.cornerActive,
+										]}
+									>
+										<ThemedText
+											style={[
+												styles.cornerLabel,
+												{ color: activeCorner === "tr" ? "#003b22" : "#000" },
+											]}
+										>
+											TR
+										</ThemedText>
+									</TouchableOpacity>
+
+									{/* Corner: bottom-left */}
+									<TouchableOpacity
+										accessibilityLabel="corner-bottom-left"
+										onPress={onCornerPress("bl")}
+										style={[
+											styles.cornerHandle,
+											styles.cornerBL,
+											activeCorner === "bl" && styles.cornerActive,
+										]}
+									>
+										<ThemedText
+											style={[
+												styles.cornerLabel,
+												{ color: activeCorner === "bl" ? "#003b22" : "#000" },
+											]}
+										>
+											BL
+										</ThemedText>
+									</TouchableOpacity>
+
+									{/* Corner: bottom-right */}
+									<TouchableOpacity
+										accessibilityLabel="corner-bottom-right"
+										onPress={onCornerPress("br")}
+										style={[
+											styles.cornerHandle,
+											styles.cornerBR,
+											activeCorner === "br" && styles.cornerActive,
+										]}
+									>
+										<ThemedText
+											style={[
+												styles.cornerLabel,
+												{ color: activeCorner === "br" ? "#003b22" : "#000" },
+											]}
+										>
+											BR
+										</ThemedText>
+									</TouchableOpacity>
+								</>
+							)}
+
+							{/* Coordinates shown near each corner */}
+							{savedCorners.tl && (
+								<View pointerEvents="none" style={[styles.coordsText, styles.coordsTL]}>
+									<ThemedText style={styles.coordsTextInner}>
+										TL: {savedCorners.tl.coords.latitude.toFixed(6)},{" "}
+										{savedCorners.tl.coords.longitude.toFixed(6)}
+									</ThemedText>
+								</View>
+							)}
+							{savedCorners.tr && (
+								<View pointerEvents="none" style={[styles.coordsText, styles.coordsTR]}>
+									<ThemedText style={styles.coordsTextInner}>
+										TR: {savedCorners.tr.coords.latitude.toFixed(6)},{" "}
+										{savedCorners.tr.coords.longitude.toFixed(6)}
+									</ThemedText>
+								</View>
+							)}
+							{savedCorners.bl && (
+								<View pointerEvents="none" style={[styles.coordsText, styles.coordsBL]}>
+									<ThemedText style={styles.coordsTextInner}>
+										BL: {savedCorners.bl.coords.latitude.toFixed(6)},{" "}
+										{savedCorners.bl.coords.longitude.toFixed(6)}
+									</ThemedText>
+								</View>
+							)}
+						{savedCorners.br && (
+							<View pointerEvents="none" style={[styles.coordsText, styles.coordsBR]}>
+								<ThemedText style={styles.coordsTextInner}>
+									BR: {savedCorners.br.coords.latitude.toFixed(6)},{" "}
+									{savedCorners.br.coords.longitude.toFixed(6)}
+								</ThemedText>
+							</View>
+						)}
+
+						{/* Real-time position marker */}
+						{terrainValidated && relativePosition && (
+							<View
+								pointerEvents="none"
+								style={[
+									styles.positionMarker,
+									{
+										left: `${Math.min(100, Math.max(0, relativePosition.x * 100))}%`,
+										top: `${Math.min(100, Math.max(0, relativePosition.y * 100))}%`,
+									},
+								]}
+							>
+								<View style={styles.positionMarkerInner} />
+								<View style={styles.positionMarkerPulse} />
+							</View>
+						)}
+
+						{/* Show "hors terrain" indicator if outside bounds */}
+						{terrainValidated && relativePosition && 
+							(relativePosition.x < 0 || relativePosition.x > 1 || 
+							 relativePosition.y < 0 || relativePosition.y > 1) && (
+							<View style={styles.outsideIndicator}>
+								<ThemedText style={styles.outsideText}>Hors terrain</ThemedText>
+							</View>
+						)}
+					</View>
+				</View>
+			)}
+
+				{!(showInitialChoice || showSavedTerrains) && (
+					<>
+						{/* Confirm button — enabled only after a corner is selected */}
+						<View style={styles.confirmWrapper}>
+							<TouchableOpacity
+								accessible
+								accessibilityLabel="confirm-field-button"
+								onPress={handleConfirmPress}
+								disabled={saving || (terrainValidated ? true : !(activeCorner || allCornersSaved))}
+								style={[
+									styles.confirmButton,
+									{
+										backgroundColor:
+											!terrainValidated && (activeCorner || allCornersSaved)
+												? theme.primary
+												: "#888",
+									},
+								]}
+							>
+								<ThemedText style={styles.confirmButtonText}>
+									{saving
+										? "Enregistrement..."
+										: terrainValidated
+											? "Terrain validé"
+											: activeCorner
+												? `Valider coin ${activeCorner.toUpperCase()}`
+												: allCornersSaved
+													? "Valider le terrain"
+													: "Sélectionnez un coin"}
+								</ThemedText>
+							</TouchableOpacity>
+						</View>
+
+						{/* saved position feedback removed; coordinates are shown inside the field rectangle */}
+					</>
+				)}
+
+				{/* Initial choice when arriving on the page: create new or choose existing (placed above field) */}
+				{showInitialChoice && (
+					<View style={styles.initialChoiceBox}>
+						<ThemedText style={[styles.metaText, { color: theme.text, marginBottom: 8 }]}>
+							Que voulez-vous faire ?
+						</ThemedText>
+						<View style={{ flexDirection: "column", rowGap: 12 }}>
+							<TouchableOpacity
+								accessibilityLabel="create-new-terrain"
+								onPress={() => {
+									// Start creating a new terrain
+									setShowInitialChoice(false);
+									setTerrainValidated(false);
+									setSavedCorners({});
+									setActiveCorner(null);
+									setShowSavedTerrains(false);
+								}}
+								style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+							>
+								<ThemedText style={styles.confirmButtonText}>Créer un nouveau terrain</ThemedText>
+							</TouchableOpacity>
+
+							<TouchableOpacity
+								accessibilityLabel="choose-existing-terrain"
+								onPress={() => {
+									// Open saved terrains picker
+									setShowInitialChoice(false);
+									setShowSavedTerrains(true);
+								}}
+								style={[styles.confirmButton, { backgroundColor: theme.primary }]}
+							>
+								<ThemedText style={styles.confirmButtonText}>
+									Choisir un terrain existant
+								</ThemedText>
+							</TouchableOpacity>
+						</View>
+					</View>
+				)}
   // Corner click handler — receives which corner and optional event
   const onCornerPress =
     (key: keyof typeof corners) => (e?: GestureResponderEvent) => {
@@ -918,7 +1458,7 @@ export default function MatchDetailsScreen() {
                   );
                 }
                 return (
-                  <ScrollView style={{ width: "100%", maxHeight: 160 }}>
+                  <ScrollView style={{ width: "100%", maxHeight: 200 }}>
                     {list.map((t: any, idx: number) => {
                       const key =
                         t.id ?? t.id_field ?? t.field_name ?? `terrain-${idx}`;
@@ -926,6 +1466,8 @@ export default function MatchDetailsScreen() {
                         ? String(selectedTerrainId)
                         : null;
                       const itemId = t.id ?? t.id_field ?? null;
+                      const fieldName = t.name ?? t.field_name;
+                      const isLinkedToThisMatch = linkedFieldId === itemId;
                       return (
                         <View
                           key={key}
@@ -933,6 +1475,7 @@ export default function MatchDetailsScreen() {
                             styles.terrainItem,
                             selectedKey === String(itemId) &&
                               styles.terrainSelected,
+                            isLinkedToThisMatch && styles.terrainLinked,
                           ]}
                         >
                           <View style={{ flex: 1 }}>
@@ -942,7 +1485,8 @@ export default function MatchDetailsScreen() {
                                 { color: theme.text },
                               ]}
                             >
-                              {t.name ?? t.field_name}
+                              {fieldName}
+                              {isLinkedToThisMatch && " (Lié)"}
                             </ThemedText>
                           </View>
                           <View style={styles.actionGroup}>
@@ -954,6 +1498,16 @@ export default function MatchDetailsScreen() {
                                 Charger
                               </ThemedText>
                             </TouchableOpacity>
+                            {!isLinkedToThisMatch && itemId && (
+                              <TouchableOpacity
+                                onPress={() => handleLinkFieldToMatch(itemId, fieldName)}
+                                style={styles.terrainLinkAction}
+                              >
+                                <ThemedText style={styles.terrainLinkActionText}>
+                                  Lier
+                                </ThemedText>
+                              </TouchableOpacity>
+                            )}
                             <TouchableOpacity
                               onPress={() => {
                                 Alert.alert(
@@ -1133,315 +1687,377 @@ export default function MatchDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 16,
-    paddingHorizontal: 20,
-  },
-  loadingText: {
-    fontSize: 18,
-    textAlign: "center",
-    marginTop: 24,
-  },
-  headerRow: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  dateText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  scoreRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  scoreBox: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 22,
-    paddingHorizontal: 18,
-    marginHorizontal: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 110,
-  },
-  scoreNumber: {
-    fontSize: 42,
-    fontWeight: "900",
-    lineHeight: 44,
-  },
-  teamLabel: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginTop: 8,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "500",
-    marginTop: 4,
-    fontStyle: "italic",
-  },
-  versus: {
-    fontSize: 18,
-    fontWeight: "800",
-    marginHorizontal: 8,
-  },
-  metaRow: {
-    marginBottom: 36,
-  },
-  metaText: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 6,
-  },
-  recordingBlock: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  timerContainer: {
-    marginBottom: 8,
-  },
-  timerText: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  reviewButton: {
-    alignSelf: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 20,
-    elevation: 6,
-    marginBottom: 16,
-    minWidth: 180,
-  },
-  reviewButtonText: {
-    color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 18,
-    textAlign: "center",
-  },
-  backButton: {
-    alignSelf: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 20,
-    elevation: 6,
-  },
-  backButtonText: {
-    color: "#f0f0f0",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-  locationWrapper: {
-    marginTop: 12,
-    paddingHorizontal: 0,
-  },
-  locationContainer: {
-    backgroundColor: "#000",
-    padding: 12,
-    borderRadius: 8,
-  },
-  locationText: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  /* Field (black rectangle) and corner handles */
-  fieldWrapper: {
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  fieldContainer: {
-    width: "100%",
-    maxWidth: 520,
-    aspectRatio: 16 / 9,
-    backgroundColor: "#000",
-    borderRadius: 8,
-    position: "relative",
-    overflow: "hidden",
-  },
-  cornerHandle: {
-    position: "absolute",
-    width: 28,
-    height: 28,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderWidth: 2,
-    borderColor: "#000",
-  },
-  cornerTL: {
-    top: 8,
-    left: 8,
-  },
-  cornerTR: {
-    top: 8,
-    right: 8,
-  },
-  cornerBL: {
-    bottom: 8,
-    left: 8,
-  },
-  cornerBR: {
-    bottom: 8,
-    right: 8,
-  },
-  cornerActive: {
-    backgroundColor: "#00ff88",
-    borderColor: "#006644",
-  },
-  cornerLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    lineHeight: 28,
-    textAlign: "center",
-  },
-  confirmWrapper: {
-    marginTop: 12,
-    alignItems: "center",
-  },
-  confirmButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 22,
-    borderRadius: 18,
-    elevation: 4,
-  },
-  confirmButtonText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-  savedFeedback: {
-    marginTop: 8,
-    alignItems: "center",
-  },
-  editWrapper: {
-    marginTop: 12,
-    alignItems: "center",
-  },
-  nameInput: {
-    width: "90%",
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 16,
-  },
-  terrainsList: {
-    width: "100%",
-    marginTop: 12,
-    alignItems: "center",
-  },
-  terrainItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderColor: "#222",
-  },
-  terrainName: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  terrainAction: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: "#c0392b",
-    borderRadius: 8,
-  },
-  terrainActionText: {
-    color: "#fff",
-    fontWeight: "700",
-  },
-  actionGroup: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-  },
-  terrainLoadAction: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: "#2ecc71",
-    borderRadius: 8,
-  },
-  terrainLoadActionText: {
-    color: "#fff",
-    fontWeight: "700",
-  },
-  terrainsPicker: {
-    width: "100%",
-    marginTop: 12,
-    alignItems: "center",
-  },
-  terrainSelected: {
-    backgroundColor: "rgba(0,128,0,0.12)",
-  },
-  smallToggleButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    elevation: 3,
-  },
-  initialChoiceBox: {
-    width: "100%",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#444",
-    marginBottom: 12,
-    alignItems: "center",
-  },
-  coordsText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 2,
-    position: "absolute",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  coordsTL: {
-    top: 8,
-    left: 8,
-    textAlign: "left",
-  },
-  coordsTR: {
-    top: 8,
-    right: 8,
-    textAlign: "right",
-  },
-  coordsBL: {
-    bottom: 8,
-    left: 8,
-    textAlign: "left",
-  },
-  coordsBR: {
-    bottom: 8,
-    right: 8,
-    textAlign: "right",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  modalWrapper: {
-    width: "100%",
-  },
-  modalContent: {
-    width: "100%",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    alignItems: "center",
-  },
+	container: {
+		flex: 1,
+		paddingTop: 16,
+		paddingHorizontal: 20,
+	},
+	loadingText: {
+		fontSize: 18,
+		textAlign: "center",
+		marginTop: 24,
+	},
+	headerRow: {
+		alignItems: "center",
+		marginBottom: 24,
+	},
+	dateText: {
+		fontSize: 14,
+		fontWeight: "600",
+	},
+	scoreRow: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		marginBottom: 24,
+	},
+	scoreControlsRow: {
+		flexDirection: "row",
+		justifyContent: "space-around",
+		alignItems: "center",
+		marginBottom: 16,
+	},
+	scoreBox: {
+		flex: 1,
+		alignItems: "center",
+		paddingVertical: 22,
+		paddingHorizontal: 18,
+		marginHorizontal: 8,
+		borderRadius: 12,
+		borderWidth: 1,
+		justifyContent: "center",
+		minHeight: 110,
+	},
+	scoreNumber: {
+		fontSize: 42,
+		fontWeight: "900",
+		lineHeight: 44,
+	},
+	teamLabel: {
+		fontSize: 16,
+		fontWeight: "700",
+		marginTop: 8,
+	},
+	statusText: {
+		fontSize: 12,
+		fontWeight: "500",
+		marginTop: 4,
+		fontStyle: "italic",
+	},
+	versus: {
+		fontSize: 18,
+		fontWeight: "800",
+		marginHorizontal: 8,
+	},
+	metaRow: {
+		marginBottom: 36,
+	},
+	metaText: {
+		fontSize: 16,
+		fontWeight: "600",
+		marginBottom: 6,
+	},
+	recordingBlock: {
+		alignItems: "center",
+		marginBottom: 16,
+	},
+	timerContainer: {
+		marginBottom: 8,
+	},
+	timerText: {
+		fontSize: 18,
+		fontWeight: "700",
+	},
+	reviewButton: {
+		alignSelf: "center",
+		paddingVertical: 16,
+		paddingHorizontal: 32,
+		borderRadius: 20,
+		elevation: 6,
+		marginBottom: 16,
+		minWidth: 180,
+	},
+	reviewButtonText: {
+		color: "#ffffff",
+		fontWeight: "700",
+		fontSize: 18,
+		textAlign: "center",
+	},
+	backButton: {
+		alignSelf: "center",
+		paddingVertical: 14,
+		paddingHorizontal: 28,
+		borderRadius: 20,
+		elevation: 6,
+	},
+	backButtonText: {
+		color: "#f0f0f0",
+		fontWeight: "700",
+		fontSize: 16,
+	},
+	locationWrapper: {
+		marginTop: 12,
+		paddingHorizontal: 0,
+	},
+	locationContainer: {
+		backgroundColor: "#000",
+		padding: 12,
+		borderRadius: 8,
+	},
+	locationText: {
+		fontSize: 14,
+		fontWeight: "600",
+		marginBottom: 4,
+	},
+	/* Field (black rectangle) and corner handles */
+	fieldWrapper: {
+		alignItems: "center",
+		marginBottom: 12,
+	},
+	fieldContainer: {
+		width: "100%",
+		maxWidth: 520,
+		aspectRatio: 16 / 9,
+		backgroundColor: "#000",
+		borderRadius: 8,
+		position: "relative",
+		overflow: "hidden",
+	},
+	cornerHandle: {
+		position: "absolute",
+		width: 28,
+		height: 28,
+		borderRadius: 16,
+		backgroundColor: "rgba(255,255,255,0.9)",
+		borderWidth: 2,
+		borderColor: "#000",
+	},
+	cornerTL: {
+		top: 8,
+		left: 8,
+	},
+	cornerTR: {
+		top: 8,
+		right: 8,
+	},
+	cornerBL: {
+		bottom: 8,
+		left: 8,
+	},
+	cornerBR: {
+		bottom: 8,
+		right: 8,
+	},
+	cornerActive: {
+		backgroundColor: "#00ff88",
+		borderColor: "#006644",
+	},
+	cornerLabel: {
+		fontSize: 10,
+		fontWeight: "800",
+		lineHeight: 28,
+		textAlign: "center",
+	},
+	/* Position marker for real-time location */
+	positionMarker: {
+		position: "absolute",
+		width: 20,
+		height: 20,
+		marginLeft: -10,
+		marginTop: -10,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	positionMarkerInner: {
+		width: 14,
+		height: 14,
+		borderRadius: 7,
+		backgroundColor: "#00aaff",
+		borderWidth: 3,
+		borderColor: "#fff",
+		zIndex: 2,
+	},
+	positionMarkerPulse: {
+		position: "absolute",
+		width: 24,
+		height: 24,
+		borderRadius: 12,
+		backgroundColor: "rgba(0, 170, 255, 0.3)",
+		zIndex: 1,
+	},
+	outsideIndicator: {
+		position: "absolute",
+		top: "50%",
+		left: "50%",
+		transform: [{ translateX: -50 }, { translateY: -10 }],
+		backgroundColor: "rgba(255, 100, 100, 0.9)",
+		paddingHorizontal: 12,
+		paddingVertical: 4,
+		borderRadius: 8,
+	},
+	outsideText: {
+		color: "#fff",
+		fontSize: 12,
+		fontWeight: "700",
+	},
+	confirmWrapper: {
+		marginTop: 12,
+		alignItems: "center",
+	},
+	confirmButton: {
+		paddingVertical: 12,
+		paddingHorizontal: 22,
+		borderRadius: 18,
+		elevation: 4,
+	},
+	confirmButtonText: {
+		color: "#fff",
+		fontWeight: "700",
+		fontSize: 16,
+	},
+	savedFeedback: {
+		marginTop: 8,
+		alignItems: "center",
+	},
+	editWrapper: {
+		marginTop: 12,
+		alignItems: "center",
+	},
+	nameInput: {
+		width: "90%",
+		borderWidth: 1,
+		borderRadius: 8,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		fontSize: 16,
+	},
+	terrainsList: {
+		width: "100%",
+		marginTop: 12,
+		alignItems: "center",
+	},
+	terrainItem: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingVertical: 8,
+		paddingHorizontal: 12,
+		borderBottomWidth: 1,
+		borderColor: "#222",
+	},
+	terrainName: {
+		fontSize: 16,
+		fontWeight: "600",
+	},
+	terrainAction: {
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		backgroundColor: "#c0392b",
+		borderRadius: 8,
+	},
+	terrainActionText: {
+		color: "#fff",
+		fontWeight: "700",
+	},
+	actionGroup: {
+		flexDirection: "row",
+		gap: 8,
+		alignItems: "center",
+	},
+	terrainLoadAction: {
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		backgroundColor: "#2ecc71",
+		borderRadius: 8,
+	},
+	terrainLoadActionText: {
+		color: "#fff",
+		fontWeight: "700",
+	},
+	terrainsPicker: {
+		width: "100%",
+		marginTop: 12,
+		alignItems: "center",
+	},
+	terrainSelected: {
+		backgroundColor: "rgba(0,128,0,0.12)",
+	},
+	terrainLinked: {
+		backgroundColor: "rgba(0,150,255,0.15)",
+		borderLeftWidth: 3,
+		borderLeftColor: "#0096ff",
+	},
+	terrainLinkAction: {
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		backgroundColor: "#3498db",
+		borderRadius: 8,
+	},
+	terrainLinkActionText: {
+		color: "#fff",
+		fontWeight: "700",
+	},
+	smallToggleButton: {
+		paddingVertical: 8,
+		paddingHorizontal: 16,
+		borderRadius: 12,
+		elevation: 3,
+	},
+	initialChoiceBox: {
+		width: "100%",
+		paddingVertical: 12,
+		paddingHorizontal: 12,
+		borderRadius: 8,
+		marginBottom: 12,
+		alignItems: "center",
+	},
+	coordsText: {
+		position: "absolute",
+		backgroundColor: "rgba(0,0,0,0.5)",
+		paddingHorizontal: 6,
+		paddingVertical: 4,
+		borderRadius: 6,
+	},
+	coordsTextInner: {
+		color: "#fff",
+		fontSize: 12,
+		fontWeight: "600",
+	},
+	coordsTL: {
+		top: 8,
+		left: 8,
+		textAlign: "left",
+	},
+	coordsTR: {
+		top: 8,
+		right: 8,
+		textAlign: "right",
+	},
+	coordsBL: {
+		bottom: 8,
+		left: 8,
+		textAlign: "left",
+	},
+	coordsBR: {
+		bottom: 8,
+		right: 8,
+		textAlign: "right",
+	},
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: "rgba(0,0,0,0.45)",
+		justifyContent: "center",
+		alignItems: "center",
+		paddingHorizontal: 20,
+	},
+	modalWrapper: {
+		width: "100%",
+	},
+	modalContent: {
+		width: "100%",
+		borderRadius: 12,
+		padding: 16,
+		borderWidth: 1,
+		alignItems: "center",
+	},
 });
