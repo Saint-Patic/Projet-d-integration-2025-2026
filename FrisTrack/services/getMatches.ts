@@ -86,7 +86,7 @@ export const finishMatch = async (
   score2: number
 ): Promise<Match | null> => {
   return updateMatch(id, {
-    status: "finished",
+    status_match: "finished",
     team_score_1: score1,
     team_score_2: score2,
     color: score1 > score2 ? "#27ae60" : "#e74c3c",

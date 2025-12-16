@@ -24,32 +24,38 @@ import { ThemedText } from "@/components/themed-text";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createField, deleteField, getFields, getFieldById, linkFieldToMatch } from "@/services/fieldService";
 import { getMatchById, updateMatch, updateMatchScore } from "@/services/getMatches";
-import { Match } from "@/types/user";
+import { Match } from "@/types/user"
 import ScoreControl from "@/components/perso_components/ScoreControl";
 
 export default function MatchDetailsScreen() {
-	const params = useLocalSearchParams();
-	const matchId = params.matchId ? parseInt(params.matchId as string, 10) : null;
-	const navigation = useNavigation();
-	const { theme } = useTheme();
+  const params = useLocalSearchParams();
+  const matchId = params.matchId
+    ? parseInt(params.matchId as string, 10)
+    : null;
+  const navigation = useNavigation();
+  const { theme } = useTheme();
 
-	const [currentLocation, setLocation] = useState<Location.LocationObject | null>(null);
-	const [, setLocLoading] = useState(false);
-	const [, setLocError] = useState<string | null>(null);
+  const [, setLocation] = useState<any | null>(null);
+  const [, setLocLoading] = useState(false);
+  const [, setLocError] = useState<string | null>(null);
 
-	// Field corners state (store as normalized coords 0..1 relative to field)
-	// We only read corners for now; keep as read-only state to avoid unused setter lint.
-	const [corners] = useState({
-		tl: { x: 0, y: 0 },
-		tr: { x: 1, y: 0 },
-		bl: { x: 0, y: 1 },
-		br: { x: 1, y: 1 },
-	});
-	const [activeCorner, setActiveCorner] = useState<null | keyof typeof corners>(null);
-	// Saved precise positions per corner
-	const [savedCorners, setSavedCorners] = useState<Partial<Record<keyof typeof corners, any>>>({});
-	const [saving, setSaving] = useState(false);
-	const [terrainValidated, setTerrainValidated] = useState(false);
+  // Field corners state (store as normalized coords 0..1 relative to field)
+  // We only read corners for now; keep as read-only state to avoid unused setter lint.
+  const [corners] = useState({
+    tl: { x: 0, y: 0 },
+    tr: { x: 1, y: 0 },
+    bl: { x: 0, y: 1 },
+    br: { x: 1, y: 1 },
+  });
+  const [activeCorner, setActiveCorner] = useState<null | keyof typeof corners>(
+    null
+  );
+  // Saved precise positions per corner
+  const [savedCorners, setSavedCorners] = useState<
+    Partial<Record<keyof typeof corners, any>>
+  >({});
+  const [saving, setSaving] = useState(false);
+  const [terrainValidated, setTerrainValidated] = useState(false);
 
   const [serverTerrains, setServerTerrains] = useState<any[]>([]);
   const [loadingServerTerrains, setLoadingServerTerrains] = useState(false);
@@ -312,12 +318,12 @@ export default function MatchDetailsScreen() {
             return;
           }
 
-          // Start watching position with high accuracy for real-time tracking on terrain
+          // Start watching position. Adjust accuracy and distanceInterval as needed.
           subscription = await Location.watchPositionAsync(
             {
-              accuracy: Location.Accuracy.BestForNavigation,
-              timeInterval: 100, // update every 100ms for very smooth tracking
-              distanceInterval: 0, // update on any movement
+              accuracy: Location.Accuracy.Balanced,
+              timeInterval: 3000, // minimum time between updates in ms
+              distanceInterval: 5, // minimum change in meters to receive update
             },
             (pos) => {
               if (!mounted) return;
@@ -349,7 +355,7 @@ export default function MatchDetailsScreen() {
     router.back();
   };
 
-	const handleReview = () => {
+  const handleReview = () => {
     Alert.alert(
       "Fonction en développement",
       "La fonctionnalité de revue de match est actuellement en cours de développement.",
@@ -366,14 +372,17 @@ export default function MatchDetailsScreen() {
     let seconds = 0;
     let rawDuration = undefined;
     // Prend d'abord length_match si c'est un nombre valide, sinon duree_match si c'est un nombre ou string valide
-    if (typeof match.length_match === 'number' && !isNaN(match.length_match)) {
+    if (typeof match.length_match === "number" && !isNaN(match.length_match)) {
       rawDuration = match.length_match;
-    } else if (typeof match.duree_match === 'number' && !isNaN(match.duree_match)) {
+    } else if (
+      typeof match.duree_match === "number" &&
+      !isNaN(match.duree_match)
+    ) {
       rawDuration = match.duree_match;
-    } else if (typeof match.duree_match === 'string') {
+    } else if (typeof match.duree_match === "string") {
       rawDuration = match.duree_match;
     }
-    if (rawDuration != null && typeof rawDuration !== 'object') {
+    if (rawDuration != null && typeof rawDuration !== "object") {
       if (typeof rawDuration === "string") {
         const parts = rawDuration.split(":");
         if (parts.length === 3) {
@@ -394,7 +403,11 @@ export default function MatchDetailsScreen() {
 
     let saveTimer: ReturnType<typeof setInterval> | null = null;
 
-    if (match.isRecording && match.recordingStartTime && match.status_match === "en cours") {
+    if (
+      match.isRecording &&
+      match.recordingStartTime &&
+      match.status_match === "en cours"
+    ) {
       // Calculer le temps écoulé depuis le début
       const updateElapsed = () => {
         const elapsed = Math.floor(
@@ -417,7 +430,10 @@ export default function MatchDetailsScreen() {
             });
           }
         } catch (e) {
-          console.warn("Erreur lors de la sauvegarde auto du temps de match", e);
+          console.warn(
+            "Erreur lors de la sauvegarde auto du temps de match",
+            e
+          );
         }
       }, 5000);
     } else {
@@ -439,11 +455,19 @@ export default function MatchDetailsScreen() {
         saveTimer = null;
       }
       // Sauvegarde finale du temps si enregistrement en cours ET match pas terminé
-      if (match && match.isRecording && match.status_match === "en cours" && matchId != null) {
+      if (
+        match &&
+        match.isRecording &&
+        match.status_match === "en cours" &&
+        matchId != null
+      ) {
         updateMatch(matchId, {
           length_match: elapsedSeconds,
         }).catch((e) => {
-          console.warn("Erreur lors de la sauvegarde finale du temps de match", e);
+          console.warn(
+            "Erreur lors de la sauvegarde finale du temps de match",
+            e
+          );
         });
       }
     };
@@ -458,7 +482,7 @@ export default function MatchDetailsScreen() {
   };
 
   const getTeamTextColor = (isTeam1: boolean) => {
-    if (!match || match.status !== "finished") {
+    if (!match || match.status_match !== "finished") {
       return theme.text;
     }
 
@@ -957,6 +981,459 @@ export default function MatchDetailsScreen() {
 						</View>
 					</View>
 				)}
+  // Corner click handler — receives which corner and optional event
+  const onCornerPress =
+    (key: keyof typeof corners) => (e?: GestureResponderEvent) => {
+      // Toggle selection: if same corner is already active, deselect it
+      setActiveCorner((prev) => (prev === key ? null : key));
+
+      // For now just log the click; could open a modal or allow dragging to reposition
+    };
+
+  const allCornersSaved = ["tl", "tr", "bl", "br"].every((k) =>
+    Boolean(savedCorners[k as keyof typeof corners])
+  );
+
+  // Handle confirm button: save a corner if selected, otherwise validate terrain when all corners saved
+  const handleConfirmPress = async () => {
+    if (terrainValidated) return;
+
+    if (activeCorner) {
+      // Save current corner position (same logic as before)
+      try {
+        setSaving(true);
+
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setLocError("Permission refusée");
+          setSaving(false);
+          return;
+        }
+
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Highest,
+        });
+
+        setSavedCorners((prev) => ({ ...prev, [activeCorner]: pos }));
+      } catch (e: any) {
+        setLocError(
+          e?.message ?? "Erreur lors de la sauvegarde de la position"
+        );
+      } finally {
+        setSaving(false);
+      }
+    } else if (allCornersSaved && !activeCorner) {
+      // Finalize/validate the terrain: hide the corner handles
+      setTerrainValidated(true);
+    }
+  };
+
+  if (match === undefined) {
+    return (
+      <ScreenLayout
+        title="Détails du match"
+        headerLeft={<BackButton theme={theme} />}
+        theme={theme}
+      >
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+          <ThemedText style={[styles.loadingText, { color: theme.text }]}>
+            Chargement...
+          </ThemedText>
+        </View>
+      </ScreenLayout>
+    );
+  }
+
+  if (match === null) {
+    return (
+      <ScreenLayout
+        title="Détails du match"
+        headerLeft={<BackButton theme={theme} />}
+        theme={theme}
+      >
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+          <ThemedText style={[styles.loadingText, { color: theme.text }]}>
+            Match introuvable
+          </ThemedText>
+          <TouchableOpacity
+            style={[styles.backButton, { backgroundColor: theme.primary }]}
+            onPress={handleBack}
+          >
+            <ThemedText style={styles.backButtonText}>Retour</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </ScreenLayout>
+    );
+  }
+
+  return (
+    <ScreenLayout
+      title="Détails du match"
+      headerLeft={<BackButton theme={theme} />}
+      theme={theme}
+    >
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        {/* Initial choice removed from top; will be shown above the field area instead */}
+        <View style={styles.headerRow}>
+          <ThemedText style={[styles.dateText, { color: theme.text }]}>
+            Date: {new Date(match.date).toLocaleDateString("fr-FR")}
+          </ThemedText>
+        </View>
+
+        <View style={styles.scoreRow}>
+          <ScoreControl
+            teamLabel={match.team_name_1}
+            score={score1}
+            onDelta={handleDeltaTeam1}
+          />
+          <ThemedText style={[styles.versus, { color: theme.primary }]}>
+            VS
+          </ThemedText>
+          <ScoreControl
+            teamLabel={match.team_name_2}
+            score={score2}
+            onDelta={handleDeltaTeam2}
+          />
+        </View>
+
+        <View style={styles.metaRow}>
+          <ThemedText style={[styles.metaText, { color: theme.text }]}>
+            Statut:{" "}
+            {match.status_match === "finished"
+              ? "Terminé"
+              : match.status_match === "en cours"
+              ? "En cours"
+              : match.status_match === "schedule"
+              ? "Programmé"
+              : match.isRecording
+              ? "En cours"
+              : match.hasRecording
+              ? "Terminé"
+              : "Programmé"}
+          </ThemedText>
+        </View>
+
+        {/* Affichage du temps total (toujours affiché, même à 00:00) */}
+        <View style={styles.timerContainer}>
+          <ThemedText style={[styles.timerText, { color: theme.text }]}>
+            Temps de match: {formatTime(elapsedSeconds)}
+          </ThemedText>
+        </View>
+
+        {/* Timer + Bouton Start/Stop (visible uniquement si pas encore fini) */}
+        {(match.status_match === "schedule" ||
+          match.status_match === "en cours") && (
+          <View style={styles.recordingBlock}>
+            {match.isRecording && (
+              <View style={styles.timerContainer}>
+                <ThemedText style={[styles.timerText, { color: theme.text }]}>
+                  ⏱ {formatTime(elapsedSeconds)}
+                </ThemedText>
+              </View>
+            )}
+            <TouchableOpacity
+              style={[
+                styles.reviewButton,
+                { backgroundColor: match.isRecording ? "#e74c3c" : "#27ae60" },
+              ]}
+              onPress={async () => {
+                if (match.isRecording) {
+                  // STOP : arrêter l'enregistrement mais NE PAS terminer le match
+                  const duration = match.recordingStartTime
+                    ? Math.floor(
+                        (Date.now() - match.recordingStartTime) / 1000
+                      ) + (match.length_match || 0)
+                    : elapsedSeconds;
+
+                  // Arrêter la sauvegarde auto avant de sauvegarder la durée finale
+                  if (timerRef.current) {
+                    clearInterval(timerRef.current);
+                    timerRef.current = null;
+                  }
+
+                  // Mettre à jour l'état local
+                  const { recordingStartTime, ...matchWithoutStartTime } =
+                    match;
+                  const updatedMatch = {
+                    ...matchWithoutStartTime,
+                    isRecording: false,
+                    // status reste "en cours"
+                    length_match: duration,
+                  };
+                  setMatch(updatedMatch);
+                  setElapsedSeconds(duration);
+
+                  // Sauvegarder en base: NE PAS changer status à finished, juste length_match
+                  try {
+                    if (matchId != null) {
+                      await updateMatch(matchId, {
+                        length_match: duration,
+                      });
+                    }
+                  } catch (e) {
+                    console.warn(
+                      "Erreur lors de la sauvegarde de l'arrêt du recording",
+                      e
+                    );
+                  }
+                } else {
+                  // START : démarrer l'enregistrement
+                  const startTime = match.duree_match;
+                  setMatch({
+                    ...match,
+                    isRecording: true,
+                    recordingStartTime: startTime,
+                    status_match: "en cours",
+                  });
+                  try {
+                    if (matchId != null) {
+                      await updateMatch(matchId, {
+                        status_match: "en cours",
+                      });
+                    }
+                  } catch (e) {
+                    console.warn(
+                      "Erreur lors de la sauvegarde du démarrage du recording",
+                      e
+                    );
+                  }
+                }
+              }}
+            >
+              <ThemedText style={styles.reviewButtonText}>
+                {match.isRecording ? "⏹ Stop" : "▶ Start"}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Bouton Review (visible quand le match est finished) */}
+        {match.status_match === "finished" && (
+          <TouchableOpacity
+            style={[styles.reviewButton, { backgroundColor: "#27ae60" }]}
+            onPress={handleReview}
+          >
+            <ThemedText style={styles.reviewButtonText}>Review</ThemedText>
+          </TouchableOpacity>
+        )}
+        {/* Field rectangle (black) with 4 clickable corners */}
+        {/* Field rectangle (black) with 4 clickable corners */}
+        {!(showSavedTerrains || showInitialChoice) && (
+          <View style={styles.fieldWrapper}>
+            <View style={styles.fieldContainer}>
+              {!terrainValidated && (
+                <>
+                  {/* Corner: top-left */}
+                  <TouchableOpacity
+                    accessibilityLabel="corner-top-left"
+                    onPress={onCornerPress("tl")}
+                    style={[
+                      styles.cornerHandle,
+                      styles.cornerTL,
+                      activeCorner === "tl" && styles.cornerActive,
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.cornerLabel,
+                        { color: activeCorner === "tl" ? "#003b22" : "#000" },
+                      ]}
+                    >
+                      TL
+                    </ThemedText>
+                  </TouchableOpacity>
+
+                  {/* Corner: top-right */}
+                  <TouchableOpacity
+                    accessibilityLabel="corner-top-right"
+                    onPress={onCornerPress("tr")}
+                    style={[
+                      styles.cornerHandle,
+                      styles.cornerTR,
+                      activeCorner === "tr" && styles.cornerActive,
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.cornerLabel,
+                        { color: activeCorner === "tr" ? "#003b22" : "#000" },
+                      ]}
+                    >
+                      TR
+                    </ThemedText>
+                  </TouchableOpacity>
+
+                  {/* Corner: bottom-left */}
+                  <TouchableOpacity
+                    accessibilityLabel="corner-bottom-left"
+                    onPress={onCornerPress("bl")}
+                    style={[
+                      styles.cornerHandle,
+                      styles.cornerBL,
+                      activeCorner === "bl" && styles.cornerActive,
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.cornerLabel,
+                        { color: activeCorner === "bl" ? "#003b22" : "#000" },
+                      ]}
+                    >
+                      BL
+                    </ThemedText>
+                  </TouchableOpacity>
+
+                  {/* Corner: bottom-right */}
+                  <TouchableOpacity
+                    accessibilityLabel="corner-bottom-right"
+                    onPress={onCornerPress("br")}
+                    style={[
+                      styles.cornerHandle,
+                      styles.cornerBR,
+                      activeCorner === "br" && styles.cornerActive,
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.cornerLabel,
+                        { color: activeCorner === "br" ? "#003b22" : "#000" },
+                      ]}
+                    >
+                      BR
+                    </ThemedText>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {/* Coordinates shown near each corner */}
+              {savedCorners.tl && (
+                <ThemedText
+                  pointerEvents="none"
+                  style={[styles.coordsText, styles.coordsTL]}
+                >
+                  TL: {savedCorners.tl.coords.latitude.toFixed(6)},{" "}
+                  {savedCorners.tl.coords.longitude.toFixed(6)}
+                </ThemedText>
+              )}
+              {savedCorners.tr && (
+                <ThemedText
+                  pointerEvents="none"
+                  style={[styles.coordsText, styles.coordsTR]}
+                >
+                  TR: {savedCorners.tr.coords.latitude.toFixed(6)},{" "}
+                  {savedCorners.tr.coords.longitude.toFixed(6)}
+                </ThemedText>
+              )}
+              {savedCorners.bl && (
+                <ThemedText
+                  pointerEvents="none"
+                  style={[styles.coordsText, styles.coordsBL]}
+                >
+                  BL: {savedCorners.bl.coords.latitude.toFixed(6)},{" "}
+                  {savedCorners.bl.coords.longitude.toFixed(6)}
+                </ThemedText>
+              )}
+              {savedCorners.br && (
+                <ThemedText
+                  pointerEvents="none"
+                  style={[styles.coordsText, styles.coordsBR]}
+                >
+                  BR: {savedCorners.br.coords.latitude.toFixed(6)},{" "}
+                  {savedCorners.br.coords.longitude.toFixed(6)}
+                </ThemedText>
+              )}
+            </View>
+          </View>
+        )}
+
+        {!(showInitialChoice || showSavedTerrains) && (
+          <>
+            {/* Confirm button — enabled only after a corner is selected */}
+            <View style={styles.confirmWrapper}>
+              <TouchableOpacity
+                accessible
+                accessibilityLabel="confirm-field-button"
+                onPress={handleConfirmPress}
+                disabled={
+                  saving ||
+                  (terrainValidated ? true : !(activeCorner || allCornersSaved))
+                }
+                style={[
+                  styles.confirmButton,
+                  {
+                    backgroundColor:
+                      !terrainValidated && (activeCorner || allCornersSaved)
+                        ? theme.primary
+                        : "#888",
+                  },
+                ]}
+              >
+                <ThemedText style={styles.confirmButtonText}>
+                  {saving
+                    ? "Enregistrement..."
+                    : terrainValidated
+                    ? "Terrain validé"
+                    : activeCorner
+                    ? `Valider coin ${activeCorner.toUpperCase()}`
+                    : allCornersSaved
+                    ? "Valider le terrain"
+                    : "Sélectionnez un coin"}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {/* saved position feedback removed; coordinates are shown inside the field rectangle */}
+          </>
+        )}
+
+        {/* Initial choice when arriving on the page: create new or choose existing (placed above field) */}
+        {showInitialChoice && (
+          <View style={styles.initialChoiceBox}>
+            <ThemedText
+              style={[styles.metaText, { color: theme.text, marginBottom: 8 }]}
+            >
+              Que voulez-vous faire ?
+            </ThemedText>
+            <View style={{ flexDirection: "column", rowGap: 12 }}>
+              <TouchableOpacity
+                accessibilityLabel="create-new-terrain"
+                onPress={() => {
+                  // Start creating a new terrain
+                  setShowInitialChoice(false);
+                  setTerrainValidated(false);
+                  setSavedCorners({});
+                  setActiveCorner(null);
+                  setShowSavedTerrains(false);
+                }}
+                style={[
+                  styles.confirmButton,
+                  { backgroundColor: theme.primary },
+                ]}
+              >
+                <ThemedText style={styles.confirmButtonText}>
+                  Créer un nouveau terrain
+                </ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                accessibilityLabel="choose-existing-terrain"
+                onPress={() => {
+                  // Open saved terrains picker
+                  setShowInitialChoice(false);
+                  setShowSavedTerrains(true);
+                }}
+                style={[
+                  styles.confirmButton,
+                  { backgroundColor: theme.primary },
+                ]}
+              >
+                <ThemedText style={styles.confirmButtonText}>
+                  Choisir un terrain existant
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Picker: allow choosing an existing server terrain at any time (toggleable) */}
         {showSavedTerrains && (
@@ -1100,8 +1577,6 @@ export default function MatchDetailsScreen() {
                 onPress={() => {
                   setTerrainValidated(false);
                   setActiveCorner(null);
-                  setShowSavedTerrains(false);
-                  setShowInitialChoice(false);
                 }}
                 style={[
                   styles.confirmButton,

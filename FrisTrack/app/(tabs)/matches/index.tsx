@@ -61,7 +61,7 @@ export default function HomeScreen() {
             } catch (error: any) {
               console.error("Error deleting match:", error);
               const errorMessage =
-                error.response?.data?.error || error.response?.status === 403
+                error.response?.data?.error || error.response?.status_match === 403
                   ? "Vous n'êtes pas autorisé à supprimer ce match. Seul le coach de l'équipe à domicile peut le faire."
                   : "Impossible de supprimer le match";
               Alert.alert("Erreur", errorMessage);
@@ -113,7 +113,7 @@ export default function HomeScreen() {
               ...m, 
               isRecording: false,
               hasRecording: true,
-              recordingDuration: duration,
+              length_match: duration,
               recordingStartTime: undefined,
               status_match: "finished"
             }
@@ -136,7 +136,7 @@ export default function HomeScreen() {
   };
 
   const getTeamTextColor = (match: Match, isteam_name_1: boolean) => {
-    if (match.status !== "finished") {
+    if (match.status_match !== "finished") {
       return theme.text;
     }
 
@@ -234,7 +234,7 @@ export default function HomeScreen() {
               Voir détails
             </ThemedText>
           </TouchableOpacity>
-          {((match.status === "scheduled" || match.status_match === "schedule" || match.status_match === "en cours") && !match.hasRecording) && (
+          {((match.status_match === "scheduled" || match.status_match === "schedule" || match.status_match === "en cours") && !match.hasRecording) && (
             <TouchableOpacity
               style={[
                 styles.actionButton,
