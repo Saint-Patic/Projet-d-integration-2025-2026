@@ -167,22 +167,15 @@ export default function MatchDetailsScreen() {
 
   // Charger le terrain lié au match s'il existe
   const loadLinkedField = useCallback(async (fieldId: number) => {
-    console.log("=== loadLinkedField called with fieldId:", fieldId);
     try {
       const field = await getFieldById(fieldId);
-      console.log("=== getFieldById response:", field);
       if (field) {
         loadTerrain(field);
         setLinkedFieldId(fieldId);
         setLinkedFieldName(field.name || field.field_name);
         setShowInitialChoice(false);
-        console.log("=== Terrain loaded successfully");
-      } else {
-        console.log("=== No field returned");
       }
-    } catch (err) {
-      console.error("Failed to load linked field:", err);
-    }
+    } catch (err) {}
   }, []);
 
   // Load server terrains on mount so they are available immediately
@@ -242,16 +235,10 @@ export default function MatchDetailsScreen() {
       // start loading
       setMatch(undefined);
       getMatchById(matchId).then((m) => {
-        // m can be an object or null
-        console.log("=== Match loaded:", m);
-        console.log("=== Match id_field:", m?.id_field);
         setMatch(m ?? null);
         // Si le match a un terrain lié, le charger
         if (m && m.id_field) {
-          console.log("=== Calling loadLinkedField with:", m.id_field);
           loadLinkedField(m.id_field);
-        } else {
-          console.log("=== No id_field in match");
         }
       });
     } else {
@@ -364,16 +351,19 @@ export default function MatchDetailsScreen() {
   // Sauvegarde automatique du temps de match pendant l'enregistrement
   useEffect(() => {
     if (!match) return;
-    console.log("Match data:", match);
+
     // Toujours initialiser le chrono avec la valeur sauvegardée (duree_match ou length_match) si présente
     let seconds = 0;
     let rawDuration = undefined;
     // Prend d'abord length_match si c'est un nombre valide, sinon duree_match si c'est un nombre ou string valide
-    if (typeof match.length_match === "number" && !isNaN(match.length_match)) {
+    if (
+      typeof match.length_match === "number" &&
+      !Number.isNaN(match.length_match)
+    ) {
       rawDuration = match.length_match;
     } else if (
       typeof match.duree_match === "number" &&
-      !isNaN(match.duree_match)
+      !Number.isNaN(match.duree_match)
     ) {
       rawDuration = match.duree_match;
     } else if (typeof match.duree_match === "string") {
@@ -503,7 +493,6 @@ export default function MatchDetailsScreen() {
       setActiveCorner((prev) => (prev === key ? null : key));
 
       // For now just log the click; could open a modal or allow dragging to reposition
-      console.log(`Corner ${key} clicked`, corners[key]);
     };
 
   const allCornersSaved = ["tl", "tr", "bl", "br"].every((k) =>
@@ -572,7 +561,6 @@ export default function MatchDetailsScreen() {
         });
 
         setSavedCorners((prev) => ({ ...prev, [activeCorner]: pos }));
-        console.log(`Saved precise position for ${activeCorner}:`, pos);
       } catch (e: any) {
         setLocError(
           e?.message ?? "Erreur lors de la sauvegarde de la position"
@@ -583,7 +571,6 @@ export default function MatchDetailsScreen() {
     } else if (allCornersSaved && !activeCorner) {
       // Finalize/validate the terrain: hide the corner handles
       setTerrainValidated(true);
-      console.log("Terrain validé", savedCorners);
     }
   };
 

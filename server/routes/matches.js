@@ -49,7 +49,6 @@ router.get("/:id", authMiddleware, async (req, res) => {
 
     const rows = await callProcedure("CALL get_match_by_id(?)", [id]);
     const matchData = rows[0];
-    console.log("🚀 ~ rows[0]:", rows[0]);
     matchData.date = matchData.date.toISOString();
     if (!rows || rows.length === 0) {
       return res.status(404).json({ error: "Match not found" });

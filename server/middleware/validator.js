@@ -34,7 +34,7 @@ const validatePassword = (password) => {
 const validateBirthdate = (birthdate) => {
   if (!birthdate) return false;
   const date = new Date(birthdate);
-  if (isNaN(date.getTime())) return false;
+  if (Number.isNaN(date.getTime())) return false;
 
   const now = new Date();
   const minAge = 5; // Au moins 5 ans
@@ -47,7 +47,7 @@ const validateBirthdate = (birthdate) => {
 // Validation des nombres dans une plage
 const validateNumberInRange = (value, min, max) => {
   const num = Number(value);
-  return !isNaN(num) && num >= min && num <= max;
+  return !Number.isNaN(num) && num >= min && num <= max;
 };
 
 // Validation de la pointure
@@ -92,7 +92,7 @@ const validateId = (id) => {
   if (!/^-?\d+$/.test(idStr)) return false;
 
   const num = parseInt(id, 10);
-  return !isNaN(num) && num > 0 && num <= 2147483647;
+  return !Number.isNaN(num) && num > 0 && num <= 2147483647;
 };
 
 // Sanitize string (enlever les caractères dangereux)

@@ -4,9 +4,9 @@ import { Match } from "@/types/user";
 export const getMatches = async (): Promise<Match[]> => {
   try {
     const response = await apiClient.get<Match[]>("/matches");
-    const matches: Match[] = response.data.map(m => ({
+    const matches: Match[] = response.data.map((m) => ({
       ...m,
-      date: new Date(m.date)
+      date: new Date(m.date),
     }));
     return matches;
   } catch (error) {
@@ -20,9 +20,8 @@ export const getMatchById = async (id: number): Promise<Match | null> => {
     const response = await apiClient.get<Match>(`/matches/${id}`);
     const match: Match = {
       ...response.data,
-      date: new Date(response.data.date)
+      date: new Date(response.data.date),
     };
-    console.log("Fetched match:", response.data);
     return match;
   } catch (error) {
     console.error(`Error fetching match ${id}:`, error);

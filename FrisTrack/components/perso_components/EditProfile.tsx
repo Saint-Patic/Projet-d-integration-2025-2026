@@ -246,7 +246,7 @@ export default function EditProfile(props: Props) {
               }}
               onBlur={() => {
                 let value = parseInt(pointure);
-                if (isNaN(value)) value = form.pointure;
+                if (Number.isNaN(value)) value = form.pointure;
                 if (value < 15) value = 15;
                 if (value > 65) value = 65;
                 setPointure(value.toString());
@@ -365,7 +365,7 @@ export default function EditProfile(props: Props) {
               }}
               onBlur={() => {
                 let value = parseFloat(poids);
-                if (isNaN(value)) value = form.poids;
+                if (Number.isNaN(value)) value = form.poids;
                 if (value < 10) value = 10;
                 if (value > 300) value = 300;
                 setPoids(value.toString());
@@ -400,7 +400,7 @@ export default function EditProfile(props: Props) {
               }}
               onBlur={() => {
                 let value = parseInt(taille);
-                if (isNaN(value)) value = form.taille;
+                if (Number.isNaN(value)) value = form.taille;
                 if (value < 50) value = 50;
                 if (value > 250) value = 250;
                 setTaille(value.toString());

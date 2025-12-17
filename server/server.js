@@ -103,7 +103,6 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Logger middleware pour le debugging
 if (process.env.NODE_ENV !== "production") {
   app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
   });
 }
@@ -137,7 +136,6 @@ app.use("/api/localisation", localisation);
 
 // Gestion des routes non trouvées (404)
 app.use((req, res) => {
-  console.log(`404 - Route not found: ${req.method} ${req.path}`);
   res.status(404).json({
     error: "Route not found",
     path: req.path,
@@ -164,50 +162,26 @@ app.use((err, req, res, next) => {
 const port = Number(process.env.PORT) || 3000;
 const host = process.env.HOST || "0.0.0.0"; // Important: écouter sur toutes les interfaces
 
-const server = app.listen(port, host, () => {
-  console.log("=".repeat(50));
-  console.log(`✅ FrisTrack API Server Started`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`🌐 Host: ${host}`);
-  console.log(`🔌 Port: ${port}`);
-  console.log(`🔗 Local: http://localhost:${port}`);
-  if (process.env.PUBLIC_URL) {
-    console.log(`🌍 Public: ${process.env.PUBLIC_URL}`);
-  }
-  console.log(`🛡️  CORS Origin: ${process.env.CORS_ORIGIN || "*"}`);
-  console.log("=".repeat(50));
-});
+const server = app.listen(port, host, () => {});
 
 // Gestion des erreurs du serveur
 server.on("error", (err) => {
   if (err && err.code === "EADDRINUSE") {
-    console.error("=".repeat(50));
-    console.error(`❌ ERROR: Port ${port} is already in use!`);
-    console.error(`Solutions:`);
-    console.error(`  1. Change PORT in .env file`);
-    console.error(`  2. Stop the service using this port`);
-    console.error(`  3. Use: lsof -ti:${port} | xargs kill -9 (Linux/Mac)`);
-    console.error(`     or: netstat -ano | findstr :${port} (Windows)`);
-    console.error("=".repeat(50));
     process.exit(1);
   }
-  console.error("Unhandled server error:", err);
+
   process.exit(1);
 });
 
 // Gestion propre de l'arrêt
 process.on("SIGTERM", () => {
-  console.log("SIGTERM signal received: closing HTTP server");
   server.close(() => {
-    console.log("HTTP server closed");
     process.exit(0);
   });
 });
 
 process.on("SIGINT", () => {
-  console.log("SIGINT signal received: closing HTTP server");
   server.close(() => {
-    console.log("HTTP server closed");
     process.exit(0);
   });
 });
