@@ -48,46 +48,13 @@ router.get("/:id", authMiddleware, async (req, res) => {
     }
 
     const rows = await callProcedure("CALL get_match_by_id(?)", [id]);
-
+    const matchData = rows[0];
+    console.log("🚀 ~ rows[0]:", rows[0]);
+    matchData.date = matchData.date.toISOString();
     if (!rows || rows.length === 0) {
       return res.status(404).json({ error: "Match not found" });
     }
-
-    // Récupérer id_field séparément car la procédure ne le retourne pas
-    const conn = await pool.getConnection();
-    try {
-      const fieldResult = await conn.query(
-        "SELECT id_field FROM match_frisbee WHERE match_id = ?",
-        [id]
-      );
-      console.log("=== fieldResult for match", id, ":", fieldResult);
-      const matchData = { ...rows[0] };
-      
-      // fieldResult peut être un tableau de lignes ou [rows, fields]
-      let fieldRows = fieldResult;
-      if (Array.isArray(fieldResult) && fieldResult.length > 0) {
-        // Si c'est [rows, fields], prendre rows
-        if (Array.isArray(fieldResult[0])) {
-          fieldRows = fieldResult[0];
-        }
-      }
-      
-      // Extraire id_field
-      if (Array.isArray(fieldRows) && fieldRows.length > 0 && fieldRows[0].id_field !== undefined) {
-        matchData.id_field = fieldRows[0].id_field;
-        console.log("=== Added id_field to match:", matchData.id_field);
-      } else if (fieldRows && fieldRows.id_field !== undefined) {
-        // Si fieldRows est directement un objet
-        matchData.id_field = fieldRows.id_field;
-        console.log("=== Added id_field to match (from object):", matchData.id_field);
-      } else {
-        console.log("=== No id_field found for match", id);
-      }
-      console.log("=== Returning matchData:", matchData);
-      res.json(matchData);
-    } finally {
-      conn.release();
-    }
+    res.json(matchData);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "db error" });
@@ -221,7 +188,9 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
     if (updates.length > 0) {
       values.push(matchId);
-      const sql = `UPDATE match_frisbee SET ${updates.join(", ")} WHERE match_id = ?`;
+      const sql = `UPDATE match_frisbee SET ${updates.join(
+        ", "
+      )} WHERE match_id = ?`;
       await conn.query(sql, values);
     }
 
