@@ -48,12 +48,13 @@ router.get("/:id", authMiddleware, async (req, res) => {
     }
 
     const rows = await callProcedure("CALL get_match_by_id(?)", [id]);
-
+    const matchData = rows[0];
+    console.log("🚀 ~ rows[0]:", rows[0]);
+    matchData.date = matchData.date.toISOString();
     if (!rows || rows.length === 0) {
       return res.status(404).json({ error: "Match not found" });
     }
-
-    res.json(rows[0]);
+    res.json(matchData);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "db error" });
@@ -148,6 +149,59 @@ router.post("/", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Error creating match:", err);
     res.status(500).json({ error: "db error", details: err.message });
+  }
+});
+
+// PUT /api/matches/:id - Update match (recording status, etc.)
+router.put("/:id", authMiddleware, async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    const matchId = parseInt(req.params.id, 10);
+    const { status_match, length_match, id_field } = req.body;
+
+    if (!validator.validateId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid match ID" });
+    }
+
+    // Vérifier si le match existe
+    const existing = await callProcedure("CALL get_match_by_id(?)", [matchId]);
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ error: "Match not found" });
+    }
+
+    // Construire la requête de mise à jour dynamiquement
+    const updates = [];
+    const values = [];
+
+    if (status_match !== undefined) {
+      updates.push("label = ?");
+      values.push(status_match);
+    }
+    if (length_match !== undefined) {
+      updates.push("length_match = SEC_TO_TIME(?)");
+      values.push(length_match);
+    }
+    if (id_field !== undefined) {
+      updates.push("id_field = ?");
+      values.push(id_field);
+    }
+
+    if (updates.length > 0) {
+      values.push(matchId);
+      const sql = `UPDATE match_frisbee SET ${updates.join(
+        ", "
+      )} WHERE match_id = ?`;
+      await conn.query(sql, values);
+    }
+
+    // Retourner le match mis à jour
+    const updated = await callProcedure("CALL get_match_by_id(?)", [matchId]);
+    res.json(updated[0]);
+  } catch (err) {
+    console.error("Error updating match:", err);
+    res.status(500).json({ error: "db error", details: err.message });
+  } finally {
+    conn.release();
   }
 });
 
