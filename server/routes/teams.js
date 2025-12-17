@@ -110,4 +110,38 @@ router.get("/:id/players", authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/teams/:id/players - Ajouter un joueur à une équipe
+router.post("/:id/players", authMiddleware, async (req, res) => {
+  try {
+    const teamId = parseInt(req.params.id, 10);
+    const { user_id, role_attack, role_def } = req.body;
+
+    // Validation
+    if (!validator.validateId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid team ID" });
+    }
+
+    if (!user_id) {
+      return res.status(400).json({ error: "user_id is required" });
+    }
+
+    // Appeler la procédure stockée pour ajouter le joueur
+    // Adapter selon votre procédure SQL existante
+    await executeProcedure("CALL add_player_to_team(?, ?, ?, ?)", [
+      teamId,
+      user_id,
+      role_attack || null,
+      role_def || null,
+    ]);
+
+    res.json({
+      success: true,
+      message: "Player added successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "db error" });
+  }
+});
+
 module.exports = router;
