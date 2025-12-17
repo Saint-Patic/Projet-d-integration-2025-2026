@@ -5,7 +5,7 @@ import {
   useLocalSearchParams,
   useNavigation,
 } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   Alert,
   type GestureResponderEvent,
@@ -878,7 +878,7 @@ export default function MatchDetailsScreen() {
             </View>
           </View>
         )}
-
+          <View>
 						{/* Real-time position marker */}
 						{terrainValidated && relativePosition && (
 							<View
@@ -906,7 +906,6 @@ export default function MatchDetailsScreen() {
 						)}
 					</View>
 				</View>
-			)}
 
         {!(showInitialChoice || showSavedTerrains) && (
           <>
@@ -1233,7 +1232,6 @@ export default function MatchDetailsScreen() {
             {/* Saved terrains are shown via the "Voir terrains" toggle to avoid automatic display after validation. */}
           </View>
         )}
-      </View>
     </ScreenLayout>
   );
 }
@@ -1474,6 +1472,7 @@ const styles = StyleSheet.create({
   editWrapper: {
     marginTop: 12,
     alignItems: "center",
+    gap: 12,
   },
   nameInput: {
     width: "90%",
@@ -1533,6 +1532,21 @@ const styles = StyleSheet.create({
   terrainSelected: {
     backgroundColor: "rgba(0,128,0,0.12)",
   },
+  	terrainLinked: {
+		backgroundColor: "rgba(0,150,255,0.15)",
+		borderLeftWidth: 3,
+		borderLeftColor: "#0096ff",
+	},
+  	terrainLinkAction: {
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		backgroundColor: "#3498db",
+		borderRadius: 8,
+	},
+  	terrainLinkActionText: {
+		color: "#fff",
+		fontWeight: "700",
+	},
   smallToggleButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
