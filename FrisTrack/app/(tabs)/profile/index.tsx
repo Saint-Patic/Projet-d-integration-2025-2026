@@ -507,7 +507,7 @@ export default function ProfilScreen() {
 									}}
 									onBlur={() => {
 										let value = parseInt(pointureInput);
-										if (isNaN(value)) value = form.foot_size;
+										if (Number.isNaN(value)) value = form.foot_size;
 										if (value < 15) value = 15;
 										if (value > 65) value = 65;
 										setPointureInput(value.toString());
@@ -593,7 +593,7 @@ export default function ProfilScreen() {
 									}}
 									onBlur={() => {
 										let value = parseFloat(poidsInput);
-										if (isNaN(value)) value = form.user_weight;
+										if (Number.isNaN(value)) value = form.user_weight;
 										if (value < 10) value = 10;
 										if (value > 300) value = 300;
 										setPoidsInput(value.toString());
@@ -618,7 +618,7 @@ export default function ProfilScreen() {
 									}}
 									onBlur={() => {
 										let value = parseInt(tailleInput);
-										if (isNaN(value)) value = form.user_height;
+										if (Number.isNaN(value)) value = form.user_height;
 										if (value < 50) value = 50;
 										if (value > 250) value = 250;
 										setTailleInput(value.toString());

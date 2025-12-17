@@ -46,18 +46,11 @@ if (fs.existsSync(envPath)) {
     existingEnv.includes("https://") ||
     existingEnv.includes("fristrack.duckdns.org")
   ) {
-    console.log(
-      "⚠️  Production URL detected in .env file - skipping auto-configuration"
-    );
-    console.log("Current configuration preserved:");
-    console.log(existingEnv);
     process.exit(0);
   }
 
   // Si le flag --production est passé, ne pas modifier
   if (isProduction) {
-    console.log("⚠️  Production mode detected - skipping auto-configuration");
-    console.log("Please configure .env manually with production URL");
     process.exit(0);
   }
 }
